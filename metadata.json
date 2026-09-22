@@ -1,0 +1,6 @@
+{
+  "name": "KHTN 9 - Khoa Học Tự Nhiên Lớp 9",
+  "description": "Ứng dụng học tập tương tác môn Khoa học tự nhiên lớp 9 theo chương trình GDPT 2018 - Kết nối tri thức với cuộc sống.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

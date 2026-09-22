@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="vi" class="h-full">
+  <head>
+    <meta charset="UTF-8" />
+    <script>
+      (function() {
+        try {
+          var _rawFetch = window.fetch;
+          Object.defineProperty(window, 'fetch', {
+            get: function() {
+              return typeof _rawFetch === 'function' ? _rawFetch.bind(window) : _rawFetch;
+            },
+            set: function(fn) {
+              _rawFetch = fn;
+            },
+            configurable: true,
+            enumerable: true
+          });
+        } catch (e) {
+          try {
+            var _protoFetch = Window.prototype.fetch;
+            Object.defineProperty(Window.prototype, 'fetch', {
+              get: function() {
+                return typeof _protoFetch === 'function' ? _protoFetch.bind(window) : _protoFetch;
+              },
+              set: function(fn) {
+                _protoFetch = fn;
+              },
+              configurable: true,
+              enumerable: true
+            });
+          } catch (err) {}
+        }
+      })();
+    </script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>KHTN 9 - Khoa Học Tự Nhiên Lớp 9</title>
+    <meta name="description" content="Ứng dụng học tập tương tác môn Khoa học tự nhiên lớp 9 theo chương trình GDPT 2018 - Kết nối tri thức với cuộc sống." />
+    <meta property="og:title" content="KHTN 9 - Khoa Học Tự Nhiên Lớp 9" />
+    <meta property="og:description" content="Ứng dụng học tập tương tác môn Khoa học tự nhiên lớp 9 theo chương trình GDPT 2018 - Kết nối tri thức với cuộc sống." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+  </head>
+  <body class="h-full bg-[#F8FAFC] text-slate-800 antialiased font-sans selection:bg-blue-600 selection:text-white">
+    <div id="root" class="h-full flex flex-col"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+

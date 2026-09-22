@@ -1,0 +1,16 @@
+{
+  "students": {},
+  "quizAttempts": [],
+  "transfers": [
+    {
+      "id": "req-init-1",
+      "studentId": "hs-03",
+      "studentName": "Vũ Đức Long",
+      "currentClass": "9A1",
+      "requestedClass": "9A2",
+      "reason": "Em chuyển buổi học bồi dưỡng Tin học sang thứ 3 trùng lịch 9A1, xin chuyển sang 9A2 để thuận tiện tham gia đầy đủ",
+      "date": "09/09/2026",
+      "status": "pending"
+    }
+  ]
+}

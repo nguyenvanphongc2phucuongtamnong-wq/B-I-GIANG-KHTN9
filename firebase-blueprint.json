@@ -1,0 +1,29 @@
+{
+  "entities": {
+    "Student": {
+      "title": "Student",
+      "description": "Hồ sơ và kết quả học tập của học sinh KHTN 9",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Firebase Auth UID của học sinh" },
+        "displayName": { "type": "string", "description": "Họ và tên thật của học sinh từ Google" },
+        "email": { "type": "string", "format": "email", "description": "Email Google của học sinh" },
+        "classId": { "type": "string", "description": "Lớp học (9A1 - 9A8)" },
+        "role": { "type": "string", "enum": ["STUDENT"], "description": "Vai trò của học sinh" },
+        "createdAt": { "type": "string", "description": "Thời điểm tạo hồ sơ" },
+        "lastLoginAt": { "type": "string", "description": "Thời điểm đăng nhập gần nhất" },
+        "progressPercent": { "type": "number", "description": "Tiến độ học tập tổng thể (%)" },
+        "completedLessons": { "type": "array", "description": "Danh sách mã bài học đã hoàn thành" },
+        "scores": { "type": "array", "description": "Danh sách điểm các bài kiểm tra" },
+        "assessmentCount": { "type": "number", "description": "Số bài kiểm tra đã làm" }
+      },
+      "required": ["uid", "displayName", "email", "classId", "role"]
+    }
+  },
+  "firestore": {
+    "/students/{studentId}": {
+      "schema": "Student",
+      "description": "Collection chứa danh sách và tiến độ học tập của từng học sinh"
+    }
+  }
+}

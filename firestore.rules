@@ -1,0 +1,39 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isTeacher() {
+      return isSignedIn() &&
+        request.auth.token.email != null &&
+        (
+          request.auth.token.email == 'nvphong.thcsphuninh@gmail.com' ||
+          request.auth.token.email.matches('(?i)^nvphong\\.thcsphuninh@gmail\\.com$')
+        );
+    }
+
+    function isOwner(studentId) {
+      return isSignedIn() && request.auth.uid == studentId;
+    }
+
+    // Default deny all other documents
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Test connection check
+    match /test/{docId} {
+      allow read, write: if true;
+    }
+
+    // Students collection
+    match /students/{studentId} {
+      // Cho phép đọc và ghi dữ liệu học sinh đồng bộ thời gian thực giữa học sinh và giáo viên
+      allow read, write: if true;
+    }
+  }
+}
+
