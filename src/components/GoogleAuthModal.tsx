@@ -1,21 +1,18 @@
 import React, { useState } from 'react';
 import { UserAccount, VALID_CLASSES, ClassId } from '../types';
-import { isAuthorizedTeacherEmail, AUTHORIZED_TEACHER_EMAILS } from '../config/authConfig';
+import { isAuthorizedTeacherEmail } from '../config/authConfig';
+import { signInWithGoogle, syncUserProfile } from '../services/firebaseService';
 import { 
   X, 
-  Mail, 
-  ArrowRight,
-  School,
-  CheckCircle2,
-  AlertCircle,
-  LogOut,
-  ShieldCheck,
-  GraduationCap,
-  Sparkles
+  LogOut, 
+  ShieldCheck, 
+  Sparkles,
+  RefreshCw,
+  AlertCircle
 } from 'lucide-react';
 
 interface GoogleAuthModalProps {
-  currentUser: UserAccount;
+  currentUser: UserAccount | null;
   isOpen: boolean;
   onClose: () => void;
   onLogin: (user: UserAccount) => void;
@@ -29,101 +26,84 @@ export const GoogleAuthModal: React.FC<GoogleAuthModalProps> = ({
   onLogin,
   onLogout
 }) => {
-  const [emailInput, setEmailInput] = useState('');
-  const [nameInput, setNameInput] = useState('');
+  const [isAuthenticating, setIsAuthenticating] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
   if (!isOpen) return null;
 
-  // Preset quick fill helpers (only fills email and name - NO role selection!)
-  const handleQuickFill = (email: string, name: string) => {
-    setEmailInput(email);
-    setNameInput(name);
-  };
+  const handleGoogleSignIn = async () => {
+    if (isAuthenticating) return;
+    setIsAuthenticating(true);
+    setErrorMsg('');
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const finalEmail = emailInput.trim().toLowerCase();
-    if (!finalEmail) return;
+    try {
+      const firebaseUser = await signInWithGoogle();
+      const email = (firebaseUser.email || '').trim().toLowerCase();
+      const displayName = firebaseUser.displayName?.trim() || email.split('@')[0] || 'Học sinh KHTN 9';
+      const avatar = firebaseUser.photoURL || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80';
 
-    const finalName = nameInput.trim() || finalEmail.split('@')[0];
+      const isTeacher = isAuthorizedTeacherEmail(email);
 
-    // Check system authorization: Is this email in AUTHORIZED_TEACHER_EMAILS?
-    const isTeacher = isAuthorizedTeacherEmail(finalEmail);
+      const userProfile = await syncUserProfile({
+        uid: firebaseUser.uid,
+        email,
+        displayName,
+        photoURL: avatar
+      });
 
-    if (isTeacher) {
-      // 👨🏫 VAI TRÒ: GIÁO VIÊN (Tự động cấp quyền theo AUTHORIZED_TEACHER_EMAILS)
-      const existingTeacherStr = localStorage.getItem(`khtn9_teacher_${finalEmail}`);
-      let savedTeacher: Partial<UserAccount> = {};
-      if (existingTeacherStr) {
-        try {
-          savedTeacher = JSON.parse(existingTeacherStr);
-        } catch {
-          // ignore
-        }
+      if (isTeacher) {
+        const teacherAccount: UserAccount = {
+          id: firebaseUser.uid,
+          email,
+          name: displayName.startsWith('Thầy') || displayName.startsWith('Cô') ? displayName : `Thầy ${displayName}`,
+          avatar,
+          role: 'teacher',
+          gradeClass: 'Tổ Tự Nhiên - Khối 9',
+          school: 'Trường THCS Phú Ninh',
+          joinDate: userProfile.createdAt ? new Date(userProfile.createdAt).toLocaleDateString('vi-VN') : '01/09/2026',
+          xp: 500,
+          streakDays: 7,
+          unlockedLessonIds: [1, 2, 3, 4],
+          currentLessonId: 1,
+          completedLessonIds: [1],
+          quizRecords: {},
+          badges: ['teacher_mentor', 'lab_master']
+        };
+
+        setIsAuthenticating(false);
+        onLogin(teacherAccount);
+        onClose();
+        return;
       }
 
-      const teacherAccount: UserAccount = {
-        id: savedTeacher.id || `teacher-${Date.now()}`,
-        email: finalEmail,
-        name: finalName.startsWith('Thầy') || finalName.startsWith('Cô') ? finalName : `Thầy/Cô ${finalName}`,
-        avatar: savedTeacher.avatar || 'https://images.unsplash.com/photo-1568602471122-7832951cc4c5?w=120&auto=format&fit=crop&q=80',
-        role: 'teacher',
-        gradeClass: 'Tổ Tự Nhiên - Khối 9',
-        school: savedTeacher.school || 'Trường THCS Phú Ninh',
-        joinDate: savedTeacher.joinDate || '01/09/2026',
-        xp: savedTeacher.xp || 400,
-        streakDays: savedTeacher.streakDays || 7,
-        unlockedLessonIds: [1, 2],
+      const hasClass = userProfile.classId && VALID_CLASSES.includes(userProfile.classId as ClassId);
+
+      const studentAccount: UserAccount = {
+        id: firebaseUser.uid,
+        email,
+        name: userProfile.displayName || displayName,
+        avatar,
+        role: 'student',
+        gradeClass: hasClass ? (userProfile.classId as string) : '',
+        school: 'Trường THCS Phú Ninh',
+        joinDate: userProfile.createdAt ? new Date(userProfile.createdAt).toLocaleDateString('vi-VN') : new Date().toLocaleDateString('vi-VN'),
+        xp: 0,
+        streakDays: 1,
+        unlockedLessonIds: [1],
         currentLessonId: 1,
-        completedLessonIds: [1],
+        completedLessonIds: [],
         quizRecords: {},
-        badges: ['teacher_mentor', 'lab_master']
+        badges: ['learner_bronze']
       };
 
-      localStorage.setItem(`khtn9_teacher_${finalEmail}`, JSON.stringify(teacherAccount));
-      onLogin(teacherAccount);
+      setIsAuthenticating(false);
+      onLogin(studentAccount);
       onClose();
-      return;
+    } catch (err: any) {
+      console.error('[GoogleAuthModal] Lỗi:', err);
+      setErrorMsg(err.message || 'Không thể đăng nhập bằng Google. Vui lòng thử lại.');
+      setIsAuthenticating(false);
     }
-
-    // 👨🎓 VAI TRÒ: HỌC SINH (Mọi tài khoản không thuộc danh sách giáo viên)
-    const existingStudentStr = localStorage.getItem(`khtn9_student_${finalEmail}`);
-    let existingStudent: Partial<UserAccount> = {};
-    if (existingStudentStr) {
-      try {
-        existingStudent = JSON.parse(existingStudentStr);
-      } catch {
-        // ignore
-      }
-    }
-
-    const hasValidClass = existingStudent.gradeClass && VALID_CLASSES.includes(existingStudent.gradeClass as ClassId);
-
-    const studentAccount: UserAccount = {
-      id: existingStudent.id || `student-${Date.now()}`,
-      email: finalEmail,
-      name: finalName,
-      avatar: existingStudent.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80',
-      role: 'student',
-      gradeClass: hasValidClass ? (existingStudent.gradeClass as string) : '',
-      school: existingStudent.school || 'Trường THCS Phú Ninh',
-      joinDate: existingStudent.joinDate || new Date().toLocaleDateString('vi-VN'),
-      xp: existingStudent.xp || 0,
-      streakDays: existingStudent.streakDays || 1,
-      unlockedLessonIds: existingStudent.unlockedLessonIds || [1],
-      currentLessonId: existingStudent.currentLessonId || 1,
-      completedLessonIds: existingStudent.completedLessonIds || [],
-      quizRecords: existingStudent.quizRecords || {},
-      badges: existingStudent.badges || ['learner_bronze']
-    };
-
-    if (hasValidClass) {
-      // Học sinh đã có hồ sơ lớp -> lưu và vào học ngay
-      localStorage.setItem(`khtn9_student_${finalEmail}`, JSON.stringify(studentAccount));
-    }
-
-    onLogin(studentAccount);
-    onClose();
   };
 
   return (
@@ -132,7 +112,7 @@ export const GoogleAuthModal: React.FC<GoogleAuthModalProps> = ({
       role="dialog"
       aria-modal="true"
     >
-      <div className="bg-white rounded-3xl max-w-lg w-full p-6 md:p-8 shadow-2xl border border-slate-200 relative space-y-5 max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-3xl max-w-md w-full p-6 md:p-8 shadow-2xl border border-slate-200 relative space-y-5">
         {/* Close button */}
         <button
           onClick={onClose}
@@ -165,8 +145,8 @@ export const GoogleAuthModal: React.FC<GoogleAuthModalProps> = ({
             </svg>
           </div>
           <div>
-            <h3 className="font-extrabold text-slate-900 text-lg">Đăng Nhập Google / Gmail</h3>
-            <p className="text-xs text-slate-500">Hệ thống tự động xác thực vai trò và lưu tiến độ</p>
+            <h3 className="font-extrabold text-slate-900 text-lg">Tài Khoản Google</h3>
+            <p className="text-xs text-slate-500">Xác thực Firebase Authentication chính thức</p>
           </div>
         </div>
 
@@ -194,108 +174,42 @@ export const GoogleAuthModal: React.FC<GoogleAuthModalProps> = ({
               </div>
             </div>
             <button
-              onClick={onLogout}
-              className="text-xs font-semibold text-rose-600 hover:text-rose-700 hover:bg-rose-50 px-2.5 py-1.5 rounded-lg border border-rose-200 transition-colors flex items-center gap-1"
+              onClick={() => {
+                onLogout();
+                onClose();
+              }}
+              className="text-xs font-semibold text-rose-600 hover:text-rose-700 hover:bg-rose-50 px-2.5 py-1.5 rounded-lg border border-rose-200 transition-colors flex items-center gap-1 cursor-pointer"
             >
               <LogOut className="w-3.5 h-3.5" /> Đăng xuất
             </button>
           </div>
         )}
 
-        {/* Google Sign In Form (NO role selector allowed!) */}
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="text-xs font-bold text-slate-700 block mb-1">
-              Địa chỉ Gmail của bạn:
-            </label>
-            <div className="relative">
-              <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-              <input
-                type="email"
-                required
-                value={emailInput}
-                onChange={(e) => setEmailInput(e.target.value)}
-                placeholder="vidu: hocsinh@gmail.com"
-                className="w-full pl-9 pr-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-hidden"
-              />
-            </div>
+        {errorMsg && (
+          <div className="p-3 bg-rose-50 rounded-xl border border-rose-200 text-xs font-bold text-rose-700 flex items-start gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+            <span>{errorMsg}</span>
           </div>
+        )}
 
-          <div>
-            <label className="text-xs font-bold text-slate-700 block mb-1">
-              Họ và tên hiển thị:
-            </label>
-            <input
-              type="text"
-              required
-              value={nameInput}
-              onChange={(e) => setNameInput(e.target.value)}
-              placeholder="Nguyễn Văn A"
-              className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-hidden"
-            />
-          </div>
-
-          {/* Tiện ích điền nhanh Gmail mẫu để kiểm thử phân quyền */}
-          <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 space-y-2">
-            <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-              Chọn nhanh Gmail để kiểm thử hệ thống tự động nhận diện:
-            </div>
-            <div className="grid grid-cols-1 gap-1.5 text-xs">
-              <button
-                type="button"
-                onClick={() => handleQuickFill('nvphong.thcsphuninh@gmail.com', 'Nguyễn Văn Phong')}
-                className="text-left p-2 rounded-xl bg-white border border-slate-200 hover:border-blue-300 hover:bg-blue-50/50 transition-colors flex items-center justify-between"
-              >
-                <div>
-                  <div className="font-semibold text-slate-800">nvphong.thcsphuninh@gmail.com</div>
-                  <div className="text-[10px] text-slate-500">Nguyễn Văn Phong (Đã đăng ký lớp 9A1 trước đó)</div>
-                </div>
-                <span className="text-[10px] px-2 py-0.5 bg-slate-100 text-slate-600 rounded-md font-mono">Điền email</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleQuickFill('hocsinh.moi@gmail.com', 'Lê Hoàng Nam')}
-                className="text-left p-2 rounded-xl bg-white border border-slate-200 hover:border-blue-300 hover:bg-blue-50/50 transition-colors flex items-center justify-between"
-              >
-                <div>
-                  <div className="font-semibold text-slate-800">hocsinh.moi@gmail.com</div>
-                  <div className="text-[10px] text-slate-500">Lê Hoàng Nam (Tài khoản mới chưa chọn lớp)</div>
-                </div>
-                <span className="text-[10px] px-2 py-0.5 bg-slate-100 text-slate-600 rounded-md font-mono">Điền email</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleQuickFill('thcs.giaovien@gmail.com', 'Thầy Trần Hữu Minh')}
-                className="text-left p-2 rounded-xl bg-white border border-slate-200 hover:border-purple-300 hover:bg-purple-50/50 transition-colors flex items-center justify-between"
-              >
-                <div>
-                  <div className="font-semibold text-slate-800">thcs.giaovien@gmail.com</div>
-                  <div className="text-[10px] text-slate-500">Thầy Trần Hữu Minh (Có trong AUTHORIZED_TEACHER_EMAILS)</div>
-                </div>
-                <span className="text-[10px] px-2 py-0.5 bg-purple-50 text-purple-700 rounded-md font-mono">Điền email</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Role Policy Explanation Banner */}
-          <div className="p-3 bg-blue-50/80 rounded-xl border border-blue-200 text-[11px] text-blue-900 leading-relaxed">
-            <strong>Quy tắc xác thực hệ thống:</strong>
-            <ul className="list-disc list-inside mt-1 space-y-0.5 text-blue-800">
-              <li>Email thuộc <code>AUTHORIZED_TEACHER_EMAILS</code> ➔ Tự động phân quyền <strong>Giáo viên</strong> & vào Teacher Dashboard.</li>
-              <li>Mọi Email khác ➔ Tự động phân quyền <strong>Học sinh</strong> & bắt buộc chọn 1 trong 8 lớp (9A1 → 9A8).</li>
-            </ul>
-          </div>
-
+        {/* Google Sign In Button */}
+        <div className="space-y-3 pt-2">
           <button
-            type="submit"
-            className="w-full py-3 px-4 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white transition-colors flex items-center justify-center gap-2 shadow-xs cursor-pointer"
+            type="button"
+            onClick={handleGoogleSignIn}
+            disabled={isAuthenticating}
+            className="w-full py-3.5 px-4 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white transition-colors flex items-center justify-center gap-2 shadow-xs cursor-pointer disabled:opacity-50"
           >
-            <span>Đăng Nhập Với Google</span>
-            <ArrowRight className="w-4 h-4" />
+            {isAuthenticating ? (
+              <>
+                <RefreshCw className="w-4 h-4 animate-spin" />
+                <span>Đang kết nối Google...</span>
+              </>
+            ) : (
+              <span>Đăng Nhập Tài Khoản Google Khác</span>
+            )}
           </button>
-        </form>
+        </div>
       </div>
     </div>
   );

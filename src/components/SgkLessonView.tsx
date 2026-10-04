@@ -11,8 +11,6 @@ import {
   RotateCcw, 
   Lightbulb, 
   HelpCircle, 
-  Beaker, 
-  Zap, 
   Check, 
   X, 
   ShieldCheck, 
@@ -24,12 +22,16 @@ import {
   Clock,
   FileText,
   Compass,
-  AlertCircle
+  AlertTriangle,
+  Beaker,
+  Zap,
+  Info,
+  ChevronDown
 } from 'lucide-react';
 import { UserAccount } from '../types';
 import { 
-  updateStudentStepProgressInFirestore, 
-  recordStudentQuizScoreInFirestore 
+  getLessonProgressFromFirestore,
+  saveLessonProgressToFirestore
 } from '../services/firebaseService';
 import { apiRecordQuizAttempt } from '../services/apiService';
 import { 
@@ -39,7 +41,9 @@ import {
   KineticEnergySim,
   PotentialEnergySim,
   MechanicalEnergySim,
-  PendulumEnergySim
+  PendulumEnergySim,
+  WorkPowerSim,
+  CranePowerSim
 } from './Simulations';
 import { 
   getSgkLessonData, 
@@ -49,6 +53,7 @@ import {
   SgkExamEssayQuestion,
   SgkTopicItem
 } from '../data/sgkCurriculumData';
+import { getEnrichedTopicData, EnrichedTopicData } from '../data/sgkTopicHelpers';
 
 interface SgkLessonViewProps {
   lessonId: number;
@@ -59,8 +64,8 @@ interface SgkLessonViewProps {
   onLessonCompleted: (lessonId: number, score: number) => void;
 }
 
-// 5 MỤC CHÍNH CỦA BÀI HỌC THEO MASTER PROMPT
-export type MainSectionId = 'sec_1' | 'sec_2' | 'sec_3' | 'sec_4' | 'sec_5';
+// 4 TAB CHÍNH DUY NHẤT CỦA BÀI HỌC (THEO ĐÚNG YÊU CẦU MỚI)
+export type MainSectionId = 'sec_1' | 'sec_2' | 'sec_3' | 'sec_4';
 
 interface MainSectionMeta {
   id: MainSectionId;
@@ -71,19 +76,18 @@ interface MainSectionMeta {
 }
 
 const MAIN_SECTIONS: MainSectionMeta[] = [
-  { id: 'sec_1', stepNum: 1, title: '1. KHỞI ĐỘNG', shortTitle: '1. Khởi động', desc: 'Thử thách tình huống mở đầu SGK' },
-  { id: 'sec_2', stepNum: 2, title: '2. HÌNH THÀNH KIẾN THỨC', shortTitle: '2. Kiến thức SGK', desc: 'Theo đúng thứ tự các đề mục SGK KHTN 9' },
-  { id: 'sec_3', stepNum: 3, title: '3. LUYỆN TẬP', shortTitle: '3. Luyện tập', desc: '10 câu trắc nghiệm chuẩn 3 mức độ (Biết, Hiểu, Vận dụng)' },
-  { id: 'sec_4', stepNum: 4, title: '4. KIỂM TRA', shortTitle: '4. Kiểm tra', desc: 'Thang điểm 10 chuẩn: 8 trắc nghiệm (4đ) + 4 tự luận (6đ)' },
-  { id: 'sec_5', stepNum: 5, title: '5. HOÀN THÀNH & KẾT QUẢ', shortTitle: '5. Hoàn thành', desc: 'Tổng kết đánh giá năng lực & Điểm số chính thức' },
+  { id: 'sec_1', stepNum: 1, title: '1. KHỞI ĐỘNG', shortTitle: '1. Khởi động', desc: 'Tình huống mở đầu & Hoạt động gợi mở SGK' },
+  { id: 'sec_2', stepNum: 2, title: '2. HÌNH THÀNH KIẾN THỨC', shortTitle: '2. Kiến thức SGK', desc: 'Đầy đủ đề mục SGK, ví dụ, thí nghiệm ảo & tương tác' },
+  { id: 'sec_3', stepNum: 3, title: '3. LUYỆN TẬP', shortTitle: '3. Luyện tập', desc: '10 bài tập củng cố 3 mức độ có giải thích chi tiết' },
+  { id: 'sec_4', stepNum: 4, title: '4. KIỂM TRA', shortTitle: '4. Kiểm tra & Tổng kết', desc: 'Thang điểm 10 chuẩn mực, kết quả & xếp loại năng lực' },
 ];
 
 /**
  * Thuật toán xáo trộn deterministic hoặc ngẫu nhiên ổn định dựa trên id câu hỏi
- * Giúp các phương án A, B, C, D được phân bổ đồng đều, không bị thiên vị ở A
+ * Giúp các phương án A, B, C, D được phân bổ đồng đều
  */
-function getShuffledOptions(options: SgkQuestionOption[], seedStr: string): SgkQuestionOption[] {
-  // Tạo bản sao
+function getShuffledOptions(options: SgkQuestionOption[] = [], seedStr: string): SgkQuestionOption[] {
+  if (!Array.isArray(options) || options.length === 0) return [];
   const result = [...options];
   let hash = 0;
   for (let i = 0; i < seedStr.length; i++) {
@@ -110,30 +114,33 @@ export const SgkLessonView: React.FC<SgkLessonViewProps> = ({
   onLogout,
   onLessonCompleted
 }) => {
-  // Lấy toàn bộ gói nội dung SGK của bài học hiện tại (Bài 1 hoặc Bài 2)
+  // Lấy toàn bộ gói nội dung SGK của bài học hiện tại (Bài 1, 2, 3, 4)
   const lessonData = useMemo(() => getSgkLessonData(lessonId), [lessonId]);
 
-  // Trạng thái mục đang học (1 đến 5)
+  // Trạng thái mục đang học (Chỉ 4 tab: sec_1, sec_2, sec_3, sec_4)
   const [activeSection, setActiveSection] = useState<MainSectionId>('sec_1');
   const [completedSections, setCompletedSections] = useState<MainSectionId[]>([]);
   const [syncNotice, setSyncNotice] = useState<string>('');
 
-  // Trạng thái Mục 1: Khởi động
+  // Trạng thái Tab 1: Khởi động
   const [warmupAnswer, setWarmupAnswer] = useState<string | null>(null);
   const [warmupChecked, setWarmupChecked] = useState<boolean>(false);
 
-  // Trạng thái Mục 2: Hình thành kiến thức SGK
+  // Trạng thái Tab 2: Hình thành kiến thức SGK
   const [currentTopicIdx, setCurrentTopicIdx] = useState<number>(0);
   const [completedTopicIds, setCompletedTopicIds] = useState<string[]>([]);
-  const [topicQuizAnswer, setTopicQuizAnswer] = useState<string | null>(null);
-  const [topicQuizChecked, setTopicQuizChecked] = useState<boolean>(false);
+  
+  // Trạng thái câu hỏi tương tác trong Tab 2 (Lưu câu trả lời của từng câu)
+  const [interactiveQuizAnswers, setInteractiveQuizAnswers] = useState<Record<string, string>>({});
+  const [interactiveQuizChecked, setInteractiveQuizChecked] = useState<Record<string, boolean>>({});
 
-  // Trạng thái Mục 3: Luyện tập (10 câu hỏi)
+  // Trạng thái Tab 3: Luyện tập (10 câu hỏi)
   const [practiceAnswers, setPracticeAnswers] = useState<Record<string, string>>({});
   const [practiceSubmitted, setPracticeSubmitted] = useState<boolean>(false);
   const [practiceScore, setPracticeScore] = useState<number | null>(null);
+  const [practiceFilter, setPracticeFilter] = useState<'ALL' | 'BIẾT' | 'HIỂU' | 'VẬN DỤNG'>('ALL');
 
-  // Trạng thái Mục 4: Kiểm tra (8 trắc nghiệm + 4 tự luận)
+  // Trạng thái Tab 4: Kiểm tra (8 trắc nghiệm + 4 tự luận)
   const [examMcAnswers, setExamMcAnswers] = useState<Record<string, string>>({});
   const [examEssayAnswers, setExamEssayAnswers] = useState<Record<string, string>>({});
   const [examSubmitted, setExamSubmitted] = useState<boolean>(false);
@@ -141,49 +148,104 @@ export const SgkLessonView: React.FC<SgkLessonViewProps> = ({
   const [examEssayScore, setExamEssayScore] = useState<number>(0);
   const [examScore, setExamScore] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
+  const [examViewMode, setExamViewMode] = useState<'summary' | 'review'>('summary');
 
-  // Khôi phục trạng thái khi đổi bài học
+  // Khôi phục trạng thái từ Cloud Firestore (studentProgress/{uid}/lessons/{lessonId})
   useEffect(() => {
-    setActiveSection('sec_1');
-    setCompletedSections([]);
-    setWarmupAnswer(null);
-    setWarmupChecked(false);
-    setCurrentTopicIdx(0);
-    setCompletedTopicIds([]);
-    setTopicQuizAnswer(null);
-    setTopicQuizChecked(false);
-    setPracticeAnswers({});
-    setPracticeSubmitted(false);
-    setPracticeScore(null);
-    setExamMcAnswers({});
-    setExamEssayAnswers({});
-    setExamSubmitted(false);
-    setExamMcScore(0);
-    setExamEssayScore(0);
-    setExamScore(null);
-  }, [lessonId]);
+    let isCancelled = false;
+
+    async function restoreLessonProgress() {
+      if (!currentUser.id) return;
+
+      try {
+        const saved = await getLessonProgressFromFirestore(currentUser.id, lessonId);
+        if (isCancelled) return;
+
+        if (saved) {
+          // Khôi phục phần đang học hoặc phần đã mở gần nhất (Tối đa là sec_4)
+          let targetSection = (saved.currentSection || saved.lastViewedSection || 'sec_1') as MainSectionId;
+          if ((targetSection as any) === 'sec_5') {
+            targetSection = 'sec_4';
+          }
+          setActiveSection(targetSection);
+
+          let restoredSections: MainSectionId[] = [];
+          if (Array.isArray(saved.completedSections) && saved.completedSections.length > 0) {
+            restoredSections = (saved.completedSections as any[]).filter(s => s !== 'sec_5') as MainSectionId[];
+            if (saved.completedSections.includes('sec_5') && !restoredSections.includes('sec_4')) {
+              restoredSections.push('sec_4');
+            }
+          } else if (saved.progressPercent) {
+            if (saved.progressPercent >= 20 || saved.progressPercent >= 25) restoredSections.push('sec_1');
+            if (saved.progressPercent >= 40 || saved.progressPercent >= 50) restoredSections.push('sec_2');
+            if (saved.progressPercent >= 60 || saved.progressPercent >= 75) restoredSections.push('sec_3');
+            if (saved.progressPercent >= 80 || saved.progressPercent >= 100) restoredSections.push('sec_4');
+          }
+          setCompletedSections(restoredSections);
+
+          if (saved.currentTopicIdx !== undefined) setCurrentTopicIdx(saved.currentTopicIdx);
+          if (saved.completedTopicIds) setCompletedTopicIds(saved.completedTopicIds);
+
+          if (saved.practiceScore !== null && saved.practiceScore !== undefined) {
+            setPracticeScore(saved.practiceScore);
+            setPracticeSubmitted(true);
+            if (saved.practiceAnswers) setPracticeAnswers(saved.practiceAnswers);
+          }
+
+          if (saved.examScore !== null && saved.examScore !== undefined) {
+            setExamScore(saved.examScore);
+            setExamSubmitted(true);
+            if (saved.examMcAnswers) setExamMcAnswers(saved.examMcAnswers);
+            if (saved.examEssayAnswers) setExamEssayAnswers(saved.examEssayAnswers);
+          }
+        } else {
+          // Mở bài mới lần đầu: ghi nhận trạng thái in_progress với 10%
+          setActiveSection('sec_1');
+          setCompletedSections([]);
+          await saveLessonProgressToFirestore(currentUser.id, lessonId, {
+            status: 'in_progress',
+            progressPercent: 10,
+            currentSection: 'sec_1',
+            lastViewedSection: 'sec_1',
+            startedAt: new Date().toISOString()
+          });
+        }
+      } catch (err) {
+        console.warn('Lỗi khôi phục tiến trình bài học từ Firestore:', err);
+      }
+    }
+
+    restoreLessonProgress();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [lessonId, currentUser.id]);
 
   // Tạo các mảng câu hỏi với phương án đã được xáo trộn A, B, C, D ổn định
+  const currentUserId = currentUser?.id || 'guest_user';
+
   const shuffledWarmupOptions = useMemo(() => {
-    return getShuffledOptions(lessonData.warmup.options, `warmup_${lessonId}_${currentUser.id}`);
-  }, [lessonData.warmup.options, lessonId, currentUser.id]);
+    return getShuffledOptions(lessonData?.warmup?.options || [], `warmup_${lessonId}_${currentUserId}`);
+  }, [lessonData?.warmup?.options, lessonId, currentUserId]);
 
   const shuffledPracticeQuestions = useMemo(() => {
-    return lessonData.practiceQuestions.map(q => ({
+    return (lessonData?.practiceQuestions || []).map(q => ({
       ...q,
-      shuffledOptions: getShuffledOptions(q.options, `practice_${q.id}_${currentUser.id}`)
+      shuffledOptions: getShuffledOptions(q?.options || [], `practice_${q?.id || 'p'}_${currentUserId}`)
     }));
-  }, [lessonData.practiceQuestions, currentUser.id]);
+  }, [lessonData?.practiceQuestions, currentUserId]);
 
   const shuffledExamMCQuestions = useMemo(() => {
-    return lessonData.examMCQuestions.map(q => ({
+    return (lessonData?.examMCQuestions || []).map(q => ({
       ...q,
-      shuffledOptions: getShuffledOptions(q.options, `exam_${q.id}_${currentUser.id}`)
+      shuffledOptions: getShuffledOptions(q?.options || [], `exam_${q?.id || 'e'}_${currentUserId}`)
     }));
-  }, [lessonData.examMCQuestions, currentUser.id]);
+  }, [lessonData?.examMCQuestions, currentUserId]);
 
-  // Tính phần trăm tiến độ (20% mỗi mục hoàn thành)
-  const progressPercent = Math.min(100, completedSections.length * 20);
+  // Tính phần trăm tiến độ (4 tab: 25% mỗi mục hoàn thành)
+  const progressPercent = Math.min(100, completedSections.length * 25);
 
   // Kiểm tra mục có bị khoá không (phải hoàn thành tuần tự)
   const isSectionLocked = (secId: MainSectionId): boolean => {
@@ -191,7 +253,6 @@ export const SgkLessonView: React.FC<SgkLessonViewProps> = ({
     if (secId === 'sec_2') return !completedSections.includes('sec_1');
     if (secId === 'sec_3') return !completedSections.includes('sec_2');
     if (secId === 'sec_4') return !completedSections.includes('sec_3');
-    if (secId === 'sec_5') return !completedSections.includes('sec_4') && examScore === null;
     return false;
   };
 
@@ -199,25 +260,34 @@ export const SgkLessonView: React.FC<SgkLessonViewProps> = ({
     if (isSectionLocked(secId)) return;
     setActiveSection(secId);
     window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    // Lưu ngay vị trí phần đang xem vào Cloud Firestore
+    if (currentUser.id) {
+      saveLessonProgressToFirestore(currentUser.id, lessonId, {
+        currentSection: secId,
+        lastViewedSection: secId,
+        status: completedSections.includes('sec_4') ? 'completed' : 'in_progress',
+        progressPercent: Math.max(progressPercent, completedSections.length * 25)
+      }).catch(err => console.warn(err));
+    }
   };
 
-  // --- XỬ LÝ MỤC 1: KHỞI ĐỘNG ---
+  // --- XỬ LÝ TAB 1: KHỞI ĐỘNG ---
   const handleCompleteWarmup = async () => {
-    const nextCompleted = Array.from(new Set([...completedSections, 'sec_1']));
+    const nextCompleted = Array.from(new Set([...completedSections, 'sec_1' as MainSectionId]));
     setCompletedSections(nextCompleted);
 
     setSyncNotice('Đang lưu kết quả Khởi động vào Cloud Firestore...');
     if (currentUser.id) {
       try {
-        await updateStudentStepProgressInFirestore({
-          uid: currentUser.id,
-          lessonId,
-          stepId: 'sec_2',
-          stepTitle: `2. Hình thành kiến thức: ${lessonData.topics[0]?.title || 'Kiến thức SGK'}`,
-          completedStepId: 'sec_1',
-          totalStepsInLesson: 5
+        await saveLessonProgressToFirestore(currentUser.id, lessonId, {
+          status: 'in_progress',
+          currentSection: 'sec_2',
+          lastViewedSection: 'sec_2',
+          completedSections: nextCompleted,
+          progressPercent: 25
         });
-        setSyncNotice('✓ Đã đồng bộ với Thầy/Cô (Mục 1 hoàn thành)');
+        setSyncNotice('✓ Đã đồng bộ tiến trình: Hoàn thành Tab 1 - Khởi động (25%)');
         setTimeout(() => setSyncNotice(''), 3000);
       } catch (err) {
         console.warn('Lỗi lưu Khởi động:', err);
@@ -228,54 +298,52 @@ export const SgkLessonView: React.FC<SgkLessonViewProps> = ({
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // --- XỬ LÝ MỤC 2: HÌNH THÀNH KIẾN THỨC ---
+  // --- XỬ LÝ TAB 2: HÌNH THÀNH KIẾN THỨC ---
   const currentTopic: SgkTopicItem = lessonData.topics[currentTopicIdx] || lessonData.topics[0];
-
-  const shuffledTopicQuizOptions = useMemo(() => {
-    if (!currentTopic.quickQuiz) return [];
-    return getShuffledOptions(currentTopic.quickQuiz.options, `topic_${currentTopic.id}_${currentUser.id}`);
-  }, [currentTopic, currentUser.id]);
+  
+  // Lấy dữ liệu làm giàu (đầy đủ đề mục lớn, tiểu mục, ví dụ, lưu ý, câu hỏi tương tác)
+  const enrichedTopic: EnrichedTopicData = useMemo(() => {
+    return getEnrichedTopicData(currentTopic.id, currentTopic);
+  }, [currentTopic]);
 
   const handleNextTopic = async () => {
     const nextTopicCompleted = Array.from(new Set([...completedTopicIds, currentTopic.id]));
     setCompletedTopicIds(nextTopicCompleted);
 
-    if (currentUser.id) {
-      updateStudentStepProgressInFirestore({
-        uid: currentUser.id,
-        lessonId,
-        stepId: 'sec_2',
-        stepTitle: `2. Hình thành kiến thức: ${currentTopic.order} ${currentTopic.title}`,
-        completedStepId: currentTopic.id,
-        totalStepsInLesson: 5
-      }).catch(e => console.warn(e));
-    }
-
     if (currentTopicIdx < lessonData.topics.length - 1) {
-      setCurrentTopicIdx(prev => prev + 1);
-      setTopicQuizAnswer(null);
-      setTopicQuizChecked(false);
+      const nextIdx = currentTopicIdx + 1;
+      setCurrentTopicIdx(nextIdx);
       window.scrollTo({ top: 0, behavior: 'smooth' });
+
+      if (currentUser.id) {
+        saveLessonProgressToFirestore(currentUser.id, lessonId, {
+          currentSection: 'sec_2',
+          lastViewedSection: 'sec_2',
+          currentTopicIdx: nextIdx,
+          completedTopicIds: nextTopicCompleted,
+          progressPercent: Math.max(progressPercent, 25 + Math.round((nextIdx / lessonData.topics.length) * 25))
+        }).catch(e => console.warn(e));
+      }
     } else {
-      // Đã học hết các đề mục SGK -> Hoàn thành Mục 2
-      const nextCompleted = Array.from(new Set([...completedSections, 'sec_2']));
+      // Đã học hết toàn bộ các đề mục SGK -> Hoàn thành Tab 2 (50%)
+      const nextCompleted = Array.from(new Set([...completedSections, 'sec_2' as MainSectionId]));
       setCompletedSections(nextCompleted);
 
-      setSyncNotice('Đang cập nhật hoàn thành Mục 2 vào Firestore...');
+      setSyncNotice('Đang cập nhật hoàn thành Tab 2 vào Firestore...');
       if (currentUser.id) {
         try {
-          await updateStudentStepProgressInFirestore({
-            uid: currentUser.id,
-            lessonId,
-            stepId: 'sec_3',
-            stepTitle: '3. Luyện tập (10 câu trắc nghiệm)',
-            completedStepId: 'sec_2',
-            totalStepsInLesson: 5
+          await saveLessonProgressToFirestore(currentUser.id, lessonId, {
+            status: 'in_progress',
+            currentSection: 'sec_3',
+            lastViewedSection: 'sec_3',
+            completedSections: nextCompleted,
+            progressPercent: 50,
+            completedTopicIds: nextTopicCompleted
           });
-          setSyncNotice('✓ Giáo viên đã nhận được tiến trình Mục 2');
+          setSyncNotice('✓ Giáo viên đã nhận được tiến trình Tab 2 (50%)');
           setTimeout(() => setSyncNotice(''), 3000);
         } catch (err) {
-          console.warn('Lỗi lưu Mục 2:', err);
+          console.warn('Lỗi lưu Tab 2:', err);
         }
       }
 
@@ -284,7 +352,12 @@ export const SgkLessonView: React.FC<SgkLessonViewProps> = ({
     }
   };
 
-  // --- XỬ LÝ MỤC 3: LUYỆN TẬP (10 CÂU) ---
+  // --- XỬ LÝ TAB 3: LUYỆN TẬP (10 CÂU) ---
+  const filteredPracticeQuestions = useMemo(() => {
+    if (practiceFilter === 'ALL') return shuffledPracticeQuestions;
+    return shuffledPracticeQuestions.filter(q => q.level === practiceFilter);
+  }, [shuffledPracticeQuestions, practiceFilter]);
+
   const handleSubmitPractice = async () => {
     let correctCount = 0;
     lessonData.practiceQuestions.forEach(q => {
@@ -299,22 +372,22 @@ export const SgkLessonView: React.FC<SgkLessonViewProps> = ({
     setPracticeScore(calculatedScore);
     setPracticeSubmitted(true);
 
-    const nextCompleted = Array.from(new Set([...completedSections, 'sec_3']));
+    const nextCompleted = Array.from(new Set([...completedSections, 'sec_3' as MainSectionId]));
     setCompletedSections(nextCompleted);
 
-    setSyncNotice('Đang gửi điểm Luyện tập lên Cloud Firestore...');
+    setSyncNotice('Đang lưu kết quả Luyện tập vào Cloud Firestore...');
     if (currentUser.id) {
       try {
-        await recordStudentQuizScoreInFirestore({
-          uid: currentUser.id,
-          lessonId,
-          score: calculatedScore,
-          total: 10,
-          completedStepId: 'sec_3',
-          testType: 'practice',
-          details: { correctCount, totalQuestions: 10 }
+        await saveLessonProgressToFirestore(currentUser.id, lessonId, {
+          status: 'in_progress',
+          currentSection: 'sec_4',
+          lastViewedSection: 'sec_4',
+          completedSections: nextCompleted,
+          progressPercent: 75,
+          practiceScore: calculatedScore,
+          practiceAnswers
         });
-        setSyncNotice(`✓ Điểm Luyện tập (${calculatedScore}/10) đã lưu trên hệ thống!`);
+        setSyncNotice(`✓ Điểm Luyện tập (${calculatedScore}/10) đã lưu trên hệ thống! (75%)`);
         setTimeout(() => setSyncNotice(''), 3500);
       } catch (err) {
         console.warn('Lỗi lưu điểm luyện tập:', err);
@@ -322,9 +395,10 @@ export const SgkLessonView: React.FC<SgkLessonViewProps> = ({
     }
   };
 
-  // --- XỬ LÝ MỤC 4: KIỂM TRA (THANG 10 CHUẨN: 8 TN + 4 TL) ---
+  // --- XỬ LÝ TAB 4: KIỂM TRA (THANG 10 CHUẨN: 8 TN + 4 TL) ---
   const handleSubmitExam = async () => {
     setIsSubmitting(true);
+    setShowConfirmModal(false);
 
     // 1. Chấm phần Trắc nghiệm (8 câu × 0.5đ = tối đa 4.0đ)
     let mcPoints = 0;
@@ -357,32 +431,28 @@ export const SgkLessonView: React.FC<SgkLessonViewProps> = ({
     const totalExam = Math.min(10.0, Math.round((mcPoints + essayPoints) * 10) / 10);
     setExamScore(totalExam);
     setExamSubmitted(true);
+    setExamViewMode('summary');
 
-    const nextCompleted = Array.from(new Set([...completedSections, 'sec_4', 'sec_5']));
+    const isPassed = totalExam >= 5.0;
+    const nextCompleted = Array.from(new Set([...completedSections, 'sec_4' as MainSectionId]));
     setCompletedSections(nextCompleted);
 
-    // ĐỒNG BỘ TRỰC TIẾP LÊN CLOUD FIRESTORE & SERVER DATABASE
+    // ĐỒNG BỘ TRỰC TIẾP LÊN CLOUD FIRESTORE
     if (currentUser.id) {
       setSyncNotice('Đang nộp bài kiểm tra và đồng bộ bảng điểm giáo viên...');
       try {
-        await recordStudentQuizScoreInFirestore({
-          uid: currentUser.id,
-          lessonId,
-          score: totalExam,
-          total: 10,
-          completedStepId: 'sec_4',
-          testType: 'test',
-          details: {
-            mcPoints,
-            essayPoints,
-            total: totalExam,
-            mcAnswers: examMcAnswers,
-            essayAnswers: examEssayAnswers,
-            timestamp: new Date().toISOString()
-          }
+        await saveLessonProgressToFirestore(currentUser.id, lessonId, {
+          status: isPassed ? 'completed' : 'in_progress',
+          currentSection: 'sec_4',
+          lastViewedSection: 'sec_4',
+          completedSections: nextCompleted,
+          progressPercent: 100,
+          examScore: totalExam,
+          examMcAnswers,
+          examEssayAnswers,
+          completedAt: new Date().toISOString()
         });
 
-        // Đồng bộ thêm vào Express server API
         apiRecordQuizAttempt({
           attemptId: `attempt_${Date.now()}_${currentUser.id}`,
           lessonId,
@@ -399,7 +469,7 @@ export const SgkLessonView: React.FC<SgkLessonViewProps> = ({
           status: 'SUBMITTED'
         }).catch(e => console.warn(e));
 
-        setSyncNotice(`✓ NỘP BÀI THÀNH CÔNG! Điểm kiểm tra: ${totalExam}/10.0 đã cập nhật Dashboard Giáo viên.`);
+        setSyncNotice(`✓ NỘP BÀI THÀNH CÔNG! Điểm kiểm tra: ${totalExam}/10.0 đã cập nhật hồ sơ học tập.`);
         setTimeout(() => setSyncNotice(''), 4000);
       } catch (err) {
         console.warn('Lỗi lưu điểm thi:', err);
@@ -408,66 +478,105 @@ export const SgkLessonView: React.FC<SgkLessonViewProps> = ({
 
     onLessonCompleted(lessonId, totalExam);
     setIsSubmitting(false);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
-    // Tự động chuyển sang Mục 5: Hoàn thành & Kết quả
-    setActiveSection('sec_5');
+  const handleRetakeExam = () => {
+    setExamSubmitted(false);
+    setExamViewMode('summary');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   return (
     <div className="space-y-6 animate-in fade-in duration-200 max-w-6xl mx-auto">
-      {/* 1. THANH TIÊU ĐỀ & TIẾN TRÌNH 5 MỤC CHÍNH BÁM SÁT SGK */}
-      <div className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200 shadow-sm space-y-4">
+      {/* ================================================================
+          II. BỐ CỤC CHUNG MỖI BÀI HỌC (HEADER + 4 TAB LỚN DUY NHẤT)
+      ================================================================ */}
+      <div className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200 shadow-sm space-y-5">
+        {/* Phía trên bài học: Nút Quay lại, Số bài, Tên bài, Mô tả, Trạng thái bài */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-4">
-          <div>
-            <div className="flex items-center gap-2 text-xs font-extrabold text-blue-600 uppercase tracking-wider">
-              <BookOpen className="w-4 h-4" />
-              <span>{lessonData.chapterTitle}</span>
-              <span className="text-slate-300">•</span>
-              <span className="text-slate-500">{lessonData.pageInfo}</span>
-            </div>
-            <h1 className="text-xl sm:text-2xl font-black text-slate-900 mt-1 leading-tight">
-              {lessonData.title}
-            </h1>
-          </div>
-
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-start gap-3">
             <button
               onClick={onSelectOtherLesson}
-              className="px-3 py-2 text-xs font-bold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer"
+              className="mt-0.5 px-3 py-2 text-xs font-bold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer shrink-0"
+              title="Quay lại danh mục các bài học"
             >
-              <Compass className="w-4 h-4 text-indigo-600" />
-              Danh mục bài
+              <ArrowLeft className="w-4 h-4 text-blue-600" />
+              <span>Quay lại</span>
             </button>
+
+            <div>
+              <div className="flex flex-wrap items-center gap-2 text-xs font-black uppercase tracking-wider">
+                <span className="px-2.5 py-0.5 bg-blue-600 text-white rounded-md">
+                  BÀI {lessonId}
+                </span>
+                <span className="text-slate-400">•</span>
+                <span className="text-blue-700 font-extrabold">{lessonData.chapterTitle}</span>
+                <span className="text-slate-300">•</span>
+                <span className="text-slate-500 font-medium">{lessonData.pageInfo}</span>
+              </div>
+              <h1 className="text-xl sm:text-2xl font-black text-slate-900 mt-1.5 leading-tight">
+                {lessonData.title}
+              </h1>
+              <p className="text-xs text-slate-500 font-medium mt-0.5">
+                {lessonData.shortTitle}
+              </p>
+            </div>
+          </div>
+
+          {/* Trạng thái bài học (Badge trực quan & nút Đăng xuất) */}
+          <div className="flex items-center gap-3 self-end md:self-center shrink-0">
+            {examScore !== null ? (
+              <div className="px-3.5 py-2 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                <div className="text-left">
+                  <div className="text-[10px] font-black uppercase text-emerald-800 tracking-wider">ĐÃ HOÀN THÀNH</div>
+                  <div className="text-xs font-extrabold text-emerald-950">Điểm thi: {examScore}/10.0</div>
+                </div>
+              </div>
+            ) : (
+              <div className="px-3.5 py-2 bg-blue-50 border border-blue-200 rounded-2xl flex items-center gap-2">
+                <Zap className="w-4 h-4 text-blue-600" />
+                <div className="text-left">
+                  <div className="text-[10px] font-black uppercase text-blue-800 tracking-wider">TRẠNG THÁI</div>
+                  <div className="text-xs font-extrabold text-blue-950">Đang học • {progressPercent}%</div>
+                </div>
+              </div>
+            )}
+
             <button
               onClick={onLogout}
               className="px-3 py-2 text-xs font-bold text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer"
+              title="Đăng xuất khỏi tài khoản"
             >
               <LogOut className="w-4 h-4" />
-              Đăng xuất
+              <span className="hidden sm:inline">Đăng xuất</span>
             </button>
           </div>
         </div>
 
-        {/* Thông báo đồng bộ thời gian thực */}
+        {/* Thông báo đồng bộ Firestore theo thời gian thực */}
         {syncNotice && (
-          <div className="p-2.5 rounded-xl bg-blue-50 border border-blue-200 text-blue-800 text-xs font-bold flex items-center gap-2 animate-in fade-in duration-200">
-            <RefreshCw className="w-3.5 h-3.5 animate-spin text-blue-600 shrink-0" />
+          <div className="p-3 rounded-2xl bg-blue-50 border border-blue-200 text-blue-900 text-xs font-bold flex items-center gap-2 animate-in fade-in duration-200">
+            <RefreshCw className="w-4 h-4 animate-spin text-blue-600 shrink-0" />
             <span>{syncNotice}</span>
           </div>
         )}
 
-        {/* THANH 5 MỤC CHÍNH BẮT BUỘC THEO ĐÚNG TIẾN TRÌNH */}
+        {/* 4 TAB LỚN BẮT BUỘC: [ KHỞI ĐỘNG ] [ HÌNH THÀNH KIẾN THỨC ] [ LUYỆN TẬP ] [ KIỂM TRA ] */}
         <div>
-          <div className="flex items-center justify-between text-xs font-bold text-slate-500 mb-2">
-            <span>Tiến trình 5 mục bài học chuẩn:</span>
+          <div className="flex items-center justify-between text-xs font-bold text-slate-500 mb-2.5">
+            <span className="flex items-center gap-1.5">
+              <Layers className="w-4 h-4 text-blue-600" />
+              4 TAB CHÍNH CỦA BÀI HỌC:
+            </span>
             <span className="text-blue-600 font-extrabold">{progressPercent}% hoàn thành</span>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
             {MAIN_SECTIONS.map((sec) => {
               const isActive = activeSection === sec.id;
-              const isDone = completedSections.includes(sec.id) || (sec.id === 'sec_5' && examScore !== null);
+              const isDone = completedSections.includes(sec.id) || (sec.id === 'sec_4' && examScore !== null);
               const locked = isSectionLocked(sec.id);
 
               return (
@@ -475,19 +584,19 @@ export const SgkLessonView: React.FC<SgkLessonViewProps> = ({
                   key={sec.id}
                   disabled={locked}
                   onClick={() => handleSelectSection(sec.id)}
-                  className={`p-3 rounded-2xl border text-left transition-all relative overflow-hidden flex flex-col justify-between h-20 ${
+                  className={`p-3.5 rounded-2xl border text-left transition-all relative overflow-hidden flex flex-col justify-between h-22 cursor-pointer ${
                     isActive
-                      ? 'bg-blue-600 border-blue-600 text-white shadow-md'
+                      ? 'bg-blue-600 border-blue-600 text-white shadow-md ring-2 ring-blue-400/30'
                       : isDone
                         ? 'bg-emerald-50 border-emerald-200 text-emerald-950 hover:bg-emerald-100/70'
                         : locked
                           ? 'bg-slate-50 border-slate-200 text-slate-400 opacity-60 cursor-not-allowed'
-                          : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                          : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 shadow-2xs'
                   }`}
                 >
                   <div className="flex items-center justify-between w-full">
                     <span className={`text-[10px] font-black uppercase tracking-wider ${isActive ? 'text-blue-100' : 'text-slate-400'}`}>
-                      Mục {sec.stepNum}
+                      MỤC {sec.stepNum}
                     </span>
                     {isDone ? (
                       <CheckCircle2 className={`w-4 h-4 ${isActive ? 'text-white' : 'text-emerald-600'}`} />
@@ -497,8 +606,13 @@ export const SgkLessonView: React.FC<SgkLessonViewProps> = ({
                       <Play className={`w-3.5 h-3.5 ${isActive ? 'text-white' : 'text-blue-600'}`} />
                     )}
                   </div>
-                  <div className="font-extrabold text-xs leading-snug line-clamp-1">
-                    {sec.shortTitle}
+                  <div>
+                    <div className="font-black text-xs sm:text-sm leading-snug line-clamp-1">
+                      {sec.shortTitle}
+                    </div>
+                    <div className={`text-[10px] mt-0.5 line-clamp-1 ${isActive ? 'text-blue-100' : 'text-slate-400'}`}>
+                      {sec.desc}
+                    </div>
                   </div>
                 </button>
               );
@@ -508,37 +622,38 @@ export const SgkLessonView: React.FC<SgkLessonViewProps> = ({
       </div>
 
       {/* ================================================================
-          MỤC 1: KHỞI ĐỘNG (BÁM SÁT SGK KHTN 9)
+          III. TAB 1 – KHỞI ĐỘNG (BỐ CỤC: TÌNH HUỐNG THỰC TẾ ➔ CÂU HỎI GỢI MỞ ➔ HOẠT ĐỘNG TƯƠNG TÁC)
       ================================================================ */}
       {activeSection === 'sec_1' && (
         <div className="bg-white rounded-3xl p-6 md:p-8 border border-slate-200 shadow-sm space-y-6">
           <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
-            <span className="p-3 bg-amber-100 text-amber-700 rounded-2xl font-black text-lg">
+            <span className="p-3 bg-amber-100 text-amber-800 rounded-2xl font-black text-lg">
               1
             </span>
             <div>
-              <h2 className="text-xl font-black text-slate-900">1. KHỞI ĐỘNG</h2>
-              <p className="text-xs text-slate-500 font-medium">Tình huống thực tiễn mở đầu bài học trong SGK KHTN 9</p>
+              <h2 className="text-xl font-black text-slate-900">TAB 1: KHỞI ĐỘNG</h2>
+              <p className="text-xs text-slate-500 font-medium">Tình huống thực tế & Hoạt động tương tác dẫn nhập vào bài học</p>
             </div>
           </div>
 
-          <div className="bg-amber-50/70 rounded-2xl p-5 border border-amber-200/80 space-y-3">
+          {/* 1. TÌNH HUỐNG / HÌNH ẢNH THỰC TẾ */}
+          <div className="bg-gradient-to-r from-amber-50 to-orange-50/60 rounded-2xl p-5 border border-amber-200/80 space-y-3">
             <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-amber-800">
               <Lightbulb className="w-4 h-4 text-amber-600" />
-              <span>{lessonData.warmup.scenarioTitle}</span>
+              <span>Tình huống thực tế: {lessonData.warmup.scenarioTitle}</span>
             </div>
             <p className="text-slate-800 text-sm leading-relaxed font-medium">
               {lessonData.warmup.scenarioText}
             </p>
           </div>
 
+          {/* 2. CÂU HỎI GỢI VẤN ĐỀ & 3. HOẠT ĐỘNG TƯƠNG TÁC */}
           <div className="p-5 rounded-2xl border border-slate-200 bg-slate-50/60 space-y-4">
-            <div className="font-extrabold text-slate-900 text-sm flex items-start gap-2">
+            <div className="font-extrabold text-slate-900 text-sm flex items-start gap-2.5">
               <HelpCircle className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
               <span>{lessonData.warmup.question}</span>
             </div>
 
-            {/* Các lựa chọn được xáo trộn A, B, C, D cân đối độ dài */}
             <div className="grid grid-cols-1 gap-2.5">
               {shuffledWarmupOptions.map((opt, idx) => {
                 const label = ['A', 'B', 'C', 'D'][idx];
@@ -579,7 +694,7 @@ export const SgkLessonView: React.FC<SgkLessonViewProps> = ({
                 Kiểm tra câu trả lời
               </button>
             ) : (
-              <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs space-y-1.5">
+              <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs space-y-1.5 animate-in fade-in duration-200">
                 <div className="font-extrabold text-sm flex items-center gap-1.5">
                   <CheckCircle2 className="w-4 h-4 text-emerald-600" />
                   Căn cứ giải thích khoa học theo SGK KHTN 9:
@@ -594,9 +709,9 @@ export const SgkLessonView: React.FC<SgkLessonViewProps> = ({
           <div className="flex justify-end pt-4 border-t border-slate-100">
             <button
               onClick={handleCompleteWarmup}
-              className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm rounded-2xl shadow-md transition-all flex items-center gap-2 cursor-pointer"
+              className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs sm:text-sm rounded-2xl shadow-md transition-all flex items-center gap-2 cursor-pointer"
             >
-              <span>XÁC NHẬN HOÀN THÀNH KHỞI ĐỘNG ➔ SANG MỤC 2: HÌNH THÀNH KIẾN THỨC</span>
+              <span>HOÀN THÀNH KHỞI ĐỘNG ➔ CHUYỂN SANG TAB 2: HÌNH THÀNH KIẾN THỨC</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>
@@ -604,28 +719,30 @@ export const SgkLessonView: React.FC<SgkLessonViewProps> = ({
       )}
 
       {/* ================================================================
-          MỤC 2: HÌNH THÀNH KIẾN THỨC (THEO ĐÚNG THỨ TỰ ĐỀ MỤC CỦA SGK)
+          IV. TAB 2 – HÌNH THÀNH KIẾN THỨC (TRUNG TÂM CỦA BÀI HỌC)
+          THEO ĐÚNG ĐỀ MỤC SGK & MỖI ĐƠN VỊ LÀ 1 KHỐI HỌC TẬP CHUẨN MỰC
       ================================================================ */}
       {activeSection === 'sec_2' && (
         <div className="bg-white rounded-3xl p-6 md:p-8 border border-slate-200 shadow-sm space-y-6">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+          {/* Header Tab 2 */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
             <div className="flex items-center gap-3">
               <span className="p-3 bg-blue-100 text-blue-700 rounded-2xl font-black text-lg">
                 2
               </span>
               <div>
-                <h2 className="text-xl font-black text-slate-900">2. HÌNH THÀNH KIẾN THỨC</h2>
-                <p className="text-xs text-slate-500 font-medium">Bám sát 100% thứ tự các đề mục SGK KHTN 9 Kết nối tri thức</p>
+                <h2 className="text-xl font-black text-slate-900">TAB 2: HÌNH THÀNH KIẾN THỨC</h2>
+                <p className="text-xs text-slate-500 font-medium">Bám sát 100% đề mục SGK KHTN 9 Kết nối tri thức với cuộc sống</p>
               </div>
             </div>
 
-            <span className="text-xs font-extrabold text-blue-700 bg-blue-50 px-3 py-1 rounded-full border border-blue-200">
+            <span className="text-xs font-extrabold text-blue-700 bg-blue-50 px-3.5 py-1.5 rounded-full border border-blue-200 self-start sm:self-center">
               Đề mục {currentTopicIdx + 1}/{lessonData.topics.length}
             </span>
           </div>
 
-          {/* Thanh chuyển nhanh các đề mục SGK */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+          {/* 1. THANH CHUYỂN NHANH THEO ĐÚNG ĐỀ MỤC SGK */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
             {lessonData.topics.map((top, idx) => {
               const isCurr = idx === currentTopicIdx;
               const isTopicDone = completedTopicIds.includes(top.id);
@@ -634,154 +751,315 @@ export const SgkLessonView: React.FC<SgkLessonViewProps> = ({
                   key={top.id}
                   onClick={() => {
                     setCurrentTopicIdx(idx);
-                    setTopicQuizAnswer(null);
-                    setTopicQuizChecked(false);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
                   }}
                   className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
                     isCurr
-                      ? 'bg-blue-50 border-blue-500 text-blue-900 font-bold shadow-xs'
+                      ? 'bg-blue-50 border-blue-500 text-blue-900 font-bold shadow-xs ring-1 ring-blue-400'
                       : isTopicDone
                         ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
                         : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
                   }`}
                 >
-                  <div className="text-[10px] font-extrabold text-slate-400">ĐỀ MỤC {top.order}</div>
+                  <div className="flex items-center justify-between text-[10px] font-extrabold text-slate-400">
+                    <span>MỤC {top.order}</span>
+                    {isTopicDone && <Check className="w-3 h-3 text-emerald-600" />}
+                  </div>
                   <div className="text-xs font-bold truncate mt-0.5">{top.title}</div>
                 </button>
               );
             })}
           </div>
 
-          {/* NỘI DUNG CHI TIẾT CỦA ĐỀ MỤC SGK */}
+          {/* ============================================================
+              MỖI ĐƠN VỊ KIẾN THỨC LÀ MỘT KHỐI HỌC TẬP (LEARNING BLOCK)
+              1. ĐỀ MỤC SGK PHÂN CẤP (I. ... 1. ... a, b ...)
+              2. KIẾN THỨC CỐT LÕI (kèm công thức nổi bật nếu có)
+              3. BẢNG / SƠ ĐỒ
+              4. ⚠ LƯU Ý
+              5. 💡 VÍ DỤ MINH HOẠ (Dữ kiện / Cách làm / Kết quả)
+              6. THÍ NGHIỆM ẢO / MÔ PHỎNG TƯƠNG TÁC TẠI CHỖ
+              7. 1–2 CÂU HỎI TƯƠNG TÁC (Kiến thức đến đâu -> Tương tác đến đó)
+              8. GHI NHỚ / KẾT LUẬN CỦA ĐỀ MỤC
+          ============================================================ */}
           <div className="space-y-6 pt-2">
-            {/* Header đề mục */}
-            <div className="flex flex-wrap items-center justify-between gap-2 bg-slate-50 p-4 rounded-2xl border border-slate-200">
-              <div className="space-y-1">
+            {/* 1. [ĐỀ MỤC PHÂN CẤP THEO ĐÚNG THỨ TỰ SGK] */}
+            <div className="bg-slate-50 p-4.5 rounded-2xl border border-slate-200 space-y-2">
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 <span className="text-[11px] font-black uppercase text-blue-600 tracking-wider">
-                  Mục {currentTopic.order} • {currentTopic.page}
+                  {enrichedTopic.hierarchy.romanHeader} • {currentTopic.page}
                 </span>
-                <h3 className="text-lg font-black text-slate-900">
-                  {currentTopic.order}. {currentTopic.title}
-                </h3>
+                <span className="px-3 py-1 bg-white border border-slate-200 rounded-full text-xs font-bold text-slate-700 shadow-2xs">
+                  {currentTopic.badge}
+                </span>
               </div>
-              <span className="px-3 py-1 bg-white border border-slate-200 rounded-full text-xs font-bold text-slate-700 shadow-2xs">
-                {currentTopic.badge}
-              </span>
+              <h3 className="text-lg font-black text-slate-900">
+                {currentTopic.order}. {currentTopic.title}
+              </h3>
+              {enrichedTopic?.hierarchy?.subItems && enrichedTopic.hierarchy.subItems.length > 0 && (
+                <div className="flex flex-wrap gap-2 pt-1 text-[11px] font-bold text-slate-600">
+                  {(enrichedTopic.hierarchy.subItems || []).map((sub, sIdx) => (
+                    <span key={sIdx} className="bg-white px-2.5 py-1 rounded-lg border border-slate-200/80">
+                      {sub}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
 
-            {/* 1. KIẾN THỨC MỚI CẦN TIẾP THU */}
+            {/* 2. KIẾN THỨC CỐT LÕI (Gạch ý rõ ràng, súc tích) */}
             <div className="space-y-3">
               <h4 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider flex items-center gap-2">
                 <BookOpen className="w-4 h-4 text-blue-600" />
-                Kiến Thức Mới Cần Tiếp Thu (SGK)
+                Kiến Thức Cốt Lõi SGK KHTN 9
               </h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {currentTopic.newKnowledge.map((point, pIdx) => (
-                  <div key={pIdx} className="p-3.5 rounded-xl bg-blue-50/40 border border-blue-100 text-xs text-slate-700 leading-relaxed flex items-start gap-2.5">
+                {(currentTopic?.newKnowledge || []).map((point, pIdx) => (
+                  <div key={pIdx} className="p-3.5 rounded-xl bg-blue-50/40 border border-blue-100 text-xs text-slate-800 leading-relaxed flex items-start gap-2.5">
                     <span className="w-5 h-5 rounded-full bg-blue-600 text-white text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">
                       {pIdx + 1}
                     </span>
-                    <span>{point}</span>
+                    <span className="font-medium">{point}</span>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* 2. KIẾN THỨC CỐT LÕI */}
-            <div className="p-4 rounded-2xl bg-amber-50/60 border border-amber-200 space-y-2">
-              <h4 className="text-xs font-extrabold text-amber-900 uppercase tracking-wider flex items-center gap-1.5">
-                <Sparkles className="w-4 h-4 text-amber-600" />
-                Kiến Thức Cốt Lõi Trọng Tâm
-              </h4>
-              <ul className="space-y-1.5 text-xs text-amber-950 font-medium list-disc pl-5">
-                {currentTopic.coreSummary.map((item, cIdx) => (
-                  <li key={cIdx} className="leading-relaxed">{item}</li>
-                ))}
-              </ul>
-            </div>
-
-            {/* 3. THÍ NGHIỆM ẢO TƯƠNG TÁC THEO HÌNH ẢNH SGK */}
-            {currentTopic.simulation === 'kinetic_ramp' && <KineticEnergySim />}
-            {currentTopic.simulation === 'potential_gravity' && <PotentialEnergySim />}
-            {currentTopic.simulation === 'mechanical_energy' && <MechanicalEnergySim />}
-            {currentTopic.simulation === 'pendulum_energy' && <PendulumEnergySim />}
-            {currentTopic.simulation === 'optics' && <OpticsSim />}
-            {currentTopic.simulation === 'galvanometer' && <GalvanometerSim />}
-            {currentTopic.simulation === 'chemistry' && <ChemistrySeparationSim />}
-
-            {/* 4. VÍ DỤ MINH HOẠ */}
-            <div className="p-4 rounded-2xl bg-indigo-50/60 border border-indigo-200 space-y-1.5">
-              <h4 className="text-xs font-extrabold text-indigo-900 uppercase tracking-wider flex items-center gap-1.5">
-                <Lightbulb className="w-4 h-4 text-indigo-600" />
-                {currentTopic.exampleTitle}
-              </h4>
-              <p className="text-xs text-indigo-950 leading-relaxed font-medium">
-                {currentTopic.exampleText}
-              </p>
-            </div>
-
-            {/* 5. CÂU HỎI TRẮC NGHIỆM NHANH CỦA ĐỀ MỤC */}
-            {currentTopic.quickQuiz && (
-              <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
-                <div className="flex items-center gap-2 text-xs font-extrabold text-slate-800 uppercase tracking-wider">
-                  <HelpCircle className="w-4 h-4 text-blue-600" />
-                  <span>Câu hỏi củng cố đề mục:</span>
+            {/* CÔNG THỨC VẬT LÍ NỔI BẬT (Nếu đề mục có công thức) */}
+            {enrichedTopic?.formula && (
+              <div className="p-5 rounded-2xl bg-gradient-to-r from-blue-900 to-indigo-900 text-white shadow-md space-y-3">
+                <div className="flex items-center justify-between border-b border-blue-800/80 pb-2">
+                  <span className="text-xs font-extrabold uppercase tracking-wider text-blue-200 flex items-center gap-1.5">
+                    <Zap className="w-4 h-4 text-amber-400" />
+                    {enrichedTopic.formula.title}
+                  </span>
+                  <span className="text-[10px] px-2 py-0.5 rounded bg-blue-800 text-blue-100 font-bold">
+                    Công thức chuẩn SI
+                  </span>
                 </div>
-                <p className="text-xs font-bold text-slate-900">
-                  {currentTopic.quickQuiz.question}
-                </p>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {shuffledTopicQuizOptions.map((opt, oIdx) => {
-                    const label = ['A', 'B', 'C', 'D'][oIdx];
-                    const isSelected = topicQuizAnswer === opt.id;
-                    return (
-                      <button
-                        key={opt.id}
-                        disabled={topicQuizChecked}
-                        onClick={() => setTopicQuizAnswer(opt.id)}
-                        className={`p-3 rounded-xl border text-left text-xs font-semibold transition-all cursor-pointer flex items-center justify-between ${
-                          isSelected
-                            ? topicQuizChecked
-                              ? opt.isCorrect
-                                ? 'bg-emerald-50 border-emerald-500 text-emerald-900 font-bold'
-                                : 'bg-rose-50 border-rose-400 text-rose-900'
-                              : 'bg-blue-50 border-blue-500 text-blue-900 font-bold'
-                            : topicQuizChecked && opt.isCorrect
-                              ? 'bg-emerald-50/60 border-emerald-300 text-emerald-800 font-bold'
-                              : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-100'
-                        }`}
-                      >
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-slate-400">{label}.</span>
-                          <span>{opt.text}</span>
-                        </div>
-                        {topicQuizChecked && opt.isCorrect && <Check className="w-4 h-4 text-emerald-600 shrink-0" />}
-                      </button>
-                    );
-                  })}
+                
+                <div className="text-center py-2">
+                  <div className="text-2xl sm:text-3xl font-black font-mono tracking-widest text-amber-300">
+                    {enrichedTopic.formula.formula}
+                  </div>
+                  <p className="text-xs text-blue-200 mt-1 font-medium">
+                    {enrichedTopic.formula.explanation}
+                  </p>
                 </div>
 
-                {!topicQuizChecked ? (
-                  <button
-                    disabled={!topicQuizAnswer}
-                    onClick={() => setTopicQuizChecked(true)}
-                    className="px-5 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold text-xs rounded-xl transition-all cursor-pointer"
-                  >
-                    Kiểm tra đáp án
-                  </button>
-                ) : (
-                  <div className="p-3 bg-slate-100 rounded-xl text-xs text-slate-700 leading-relaxed">
-                    <strong>Giải thích SGK:</strong> {currentTopic.quickQuiz.explanation}
+                {enrichedTopic.formula.variables && enrichedTopic.formula.variables.length > 0 && (
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-2 border-t border-blue-800/80 text-xs">
+                    {(enrichedTopic.formula.variables || []).map((v, vIdx) => (
+                      <div key={vIdx} className="bg-blue-800/40 p-2 rounded-lg flex items-center justify-between">
+                        <span className="font-mono font-bold text-amber-300">{v.symbol}:</span>
+                        <span className="text-blue-100 text-[11px] truncate mx-1.5">{v.name}</span>
+                        <span className="text-blue-300 text-[10px] font-mono">({v.unit})</span>
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
             )}
 
-            {/* 6. KẾT LUẬN / GHI NHỚ */}
-            <div className="p-3.5 rounded-xl bg-slate-900 text-white text-xs flex items-center gap-2">
+            {/* 3. BẢNG HOẶC SƠ ĐỒ ĐỐI CHIẾU */}
+            {enrichedTopic?.tableOrDiagram && (
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2.5">
+                <h4 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+                  <Layers className="w-4 h-4 text-indigo-600" />
+                  {enrichedTopic.tableOrDiagram.title}
+                </h4>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="bg-slate-100/90 border-b border-slate-200 text-slate-700">
+                        {(enrichedTopic.tableOrDiagram.headers || []).map((h, hIdx) => (
+                          <th key={hIdx} className="p-2.5 font-black uppercase text-[10px]">
+                            {h}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-200/70">
+                      {(enrichedTopic.tableOrDiagram.rows || []).map((row, rIdx) => (
+                        <tr key={rIdx} className="hover:bg-white transition-colors">
+                          {(row || []).map((cell, cIdx) => (
+                            <td key={cIdx} className={`p-2.5 leading-relaxed text-slate-700 ${cIdx === 0 ? 'font-bold text-slate-900' : ''}`}>
+                              {cell}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* 4. ⚠ LƯU Ý (KHỐI RIÊNG BIỆT DỄ NHÌN, NỔI BẬT THEO ĐÚNG YÊU CẦU) */}
+            <div className="p-4.5 rounded-2xl bg-amber-50/80 border-2 border-amber-300/80 space-y-2">
+              <div className="flex items-center gap-2 text-xs font-black text-amber-900 uppercase tracking-wider">
+                <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                <span>⚠ LƯU Ý QUAN TRỌNG THEO SGK</span>
+              </div>
+              <p className="text-xs text-amber-950 font-medium leading-relaxed pl-6">
+                {enrichedTopic.warningNote}
+              </p>
+            </div>
+
+            {/* 5. 💡 VÍ DỤ MINH HOẠ (ĐẶT NGAY SAU KIẾN THỨC, DỮ KIỆN - CÁCH LÀM - KẾT QUẢ) */}
+            <div className="p-5 rounded-2xl bg-indigo-50/70 border border-indigo-200 space-y-3">
+              <div className="flex items-center justify-between border-b border-indigo-200 pb-2">
+                <h4 className="text-xs font-black text-indigo-900 uppercase tracking-wider flex items-center gap-1.5">
+                  <Lightbulb className="w-4 h-4 text-indigo-600" />
+                  💡 VÍ DỤ MINH HOẠ: {enrichedTopic.exampleDetail.title}
+                </h4>
+                <span className="text-[10px] font-bold text-indigo-700 bg-white px-2 py-0.5 rounded-full border border-indigo-200">
+                  {enrichedTopic.exampleDetail.type === 'problem' ? 'Bài toán định lượng' : 'Hiện tượng thực tế'}
+                </span>
+              </div>
+
+              <div className="space-y-2 text-xs">
+                <div className="bg-white/90 p-3 rounded-xl border border-indigo-100">
+                  <span className="font-extrabold text-indigo-900">
+                    {enrichedTopic.exampleDetail.type === 'problem' ? 'Dữ kiện đề bài:' : 'Hiện tượng quan sát:'}
+                  </span>{' '}
+                  <span className="text-slate-800 leading-relaxed font-medium">
+                    {enrichedTopic.exampleDetail.givenOrPhenomenon}
+                  </span>
+                </div>
+
+                <div className="bg-white/90 p-3 rounded-xl border border-indigo-100">
+                  <span className="font-extrabold text-indigo-900">
+                    {enrichedTopic.exampleDetail.type === 'problem' ? 'Cách làm / Lời giải chi tiết:' : 'Giải thích khoa học:'}
+                  </span>{' '}
+                  <p className="text-slate-800 leading-relaxed font-medium whitespace-pre-line mt-1">
+                    {enrichedTopic.exampleDetail.stepsOrExplanation}
+                  </p>
+                </div>
+
+                <div className="bg-emerald-50/80 p-3 rounded-xl border border-emerald-200 flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <div>
+                    <span className="font-extrabold text-emerald-900">
+                      {enrichedTopic.exampleDetail.type === 'problem' ? 'Kết quả:' : 'Rút ra kết luận:'}
+                    </span>{' '}
+                    <span className="text-emerald-950 font-bold">
+                      {enrichedTopic.exampleDetail.resultOrTakeaway}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* 6. THÍ NGHIỆM ẢO / MÔ PHỎNG (NẰM NGAY TẠI ĐƠN VỊ KIẾN THỨC NÀY) */}
+            {currentTopic.simulation && (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 text-xs font-black text-slate-800 uppercase tracking-wider">
+                  <Beaker className="w-4 h-4 text-blue-600" />
+                  <span>Thí nghiệm ảo mô phỏng tương tác:</span>
+                </div>
+
+                {currentTopic.simulation === 'optics' && <OpticsSim />}
+                {currentTopic.simulation === 'galvanometer' && <GalvanometerSim />}
+                {currentTopic.simulation === 'chemistry' && <ChemistrySeparationSim />}
+                {currentTopic.simulation === 'kinetic_ramp' && <KineticEnergySim />}
+                {currentTopic.simulation === 'potential_gravity' && <PotentialEnergySim />}
+                {currentTopic.simulation === 'mechanical_energy' && <MechanicalEnergySim />}
+                {currentTopic.simulation === 'pendulum_energy' && <PendulumEnergySim />}
+                {currentTopic.simulation === 'work_power' && <WorkPowerSim />}
+                {currentTopic.simulation === 'crane_power' && <CranePowerSim />}
+
+                {enrichedTopic.simObservation && (
+                  <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs space-y-1">
+                    <div className="font-extrabold text-slate-800 flex items-center gap-1.5">
+                      <Info className="w-3.5 h-3.5 text-blue-600" />
+                      Câu hỏi quan sát: {enrichedTopic.simObservation.observationQuestion}
+                    </div>
+                    <p className="text-slate-600 pl-5">
+                      <strong>Kết luận quan sát:</strong> {enrichedTopic.simObservation.observationAnswer}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* 7. 1–2 CÂU HỎI TƯƠNG TÁC (KIẾN THỨC ĐẾN ĐÂU -> TƯƠNG TÁC ĐẾN ĐÓ) */}
+            <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                <div className="flex items-center gap-2 text-xs font-black text-slate-900 uppercase tracking-wider">
+                  <HelpCircle className="w-4 h-4 text-blue-600" />
+                  <span>Câu hỏi tương tác củng cố đề mục ({(enrichedTopic?.interactiveQuizzes || []).length} câu)</span>
+                </div>
+                <span className="text-[10px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200">
+                  Phản hồi đúng/sai tức thì
+                </span>
+              </div>
+
+              {(enrichedTopic?.interactiveQuizzes || []).map((quiz, qIdx) => {
+                const answer = interactiveQuizAnswers[quiz.id];
+                const checked = interactiveQuizChecked[quiz.id];
+                return (
+                  <div key={quiz.id} className="p-4 bg-white rounded-xl border border-slate-200 space-y-3">
+                    <p className="text-xs font-bold text-slate-900 flex items-start gap-2">
+                      <span className="w-5 h-5 rounded-full bg-slate-100 text-slate-700 text-[10px] font-black flex items-center justify-center shrink-0">
+                        {qIdx + 1}
+                      </span>
+                      <span>{quiz.question}</span>
+                    </p>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {(quiz.options || []).map((opt, oIdx) => {
+                        const label = ['A', 'B', 'C', 'D'][oIdx];
+                        const isChosen = answer === opt.id;
+                        return (
+                          <button
+                            key={opt.id}
+                            disabled={checked}
+                            onClick={() => setInteractiveQuizAnswers(prev => ({ ...prev, [quiz.id]: opt.id }))}
+                            className={`p-3 rounded-xl border text-left text-xs font-semibold transition-all cursor-pointer flex items-center justify-between ${
+                              isChosen
+                                ? checked
+                                  ? opt.isCorrect
+                                    ? 'bg-emerald-50 border-emerald-500 text-emerald-900 font-bold'
+                                    : 'bg-rose-50 border-rose-400 text-rose-900'
+                                  : 'bg-blue-50 border-blue-500 text-blue-900 font-bold'
+                                : checked && opt.isCorrect
+                                  ? 'bg-emerald-50/60 border-emerald-300 text-emerald-800 font-bold'
+                                  : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-slate-400">{label}.</span>
+                              <span>{opt.text}</span>
+                            </div>
+                            {checked && opt.isCorrect && <Check className="w-4 h-4 text-emerald-600 shrink-0" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {!checked ? (
+                      <button
+                        disabled={!answer}
+                        onClick={() => setInteractiveQuizChecked(prev => ({ ...prev, [quiz.id]: true }))}
+                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold text-xs rounded-xl transition-all cursor-pointer"
+                      >
+                        Kiểm tra đáp án
+                      </button>
+                    ) : (
+                      <div className="p-3 bg-slate-50 rounded-xl text-xs text-slate-700 leading-relaxed border border-slate-200">
+                        <strong>Giải thích chuẩn SGK:</strong> {quiz.explanation}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* 8. KẾT LUẬN / GHI NHỚ */}
+            <div className="p-3.5 rounded-xl bg-slate-900 text-white text-xs flex items-center gap-2.5 shadow-xs">
               <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-              <span>{currentTopic.keyTakeaway}</span>
+              <span className="font-medium">{currentTopic.keyTakeaway}</span>
             </div>
           </div>
 
@@ -791,8 +1069,6 @@ export const SgkLessonView: React.FC<SgkLessonViewProps> = ({
               disabled={currentTopicIdx === 0}
               onClick={() => {
                 setCurrentTopicIdx(prev => prev - 1);
-                setTopicQuizAnswer(null);
-                setTopicQuizChecked(false);
                 window.scrollTo({ top: 0, behavior: 'smooth' });
               }}
               className="px-4 py-2.5 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-100 disabled:opacity-40 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
@@ -804,7 +1080,7 @@ export const SgkLessonView: React.FC<SgkLessonViewProps> = ({
               onClick={handleNextTopic}
               className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs rounded-xl shadow-xs flex items-center gap-1.5 cursor-pointer"
             >
-              <span>{currentTopicIdx === lessonData.topics.length - 1 ? 'HOÀN THÀNH MỤC 2 ➔ SANG MỤC 3: LUYỆN TẬP' : 'Tiếp tục đề mục tiếp theo'}</span>
+              <span>{currentTopicIdx === lessonData.topics.length - 1 ? 'HOÀN THÀNH KIẾN THỨC ➔ SANG TAB 3: LUYỆN TẬP' : 'Tiếp tục đề mục tiếp theo'}</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>
@@ -812,7 +1088,7 @@ export const SgkLessonView: React.FC<SgkLessonViewProps> = ({
       )}
 
       {/* ================================================================
-          MỤC 3: LUYỆN TẬP (10 CÂU TRẮC NGHIỆM ĐỦ 3 MỨC ĐỘ)
+          V. TAB 3 – LUYỆN TẬP (10 CÂU HỎI 3 MỨC ĐỘ CỦNG CỐ)
       ================================================================ */}
       {activeSection === 'sec_3' && (
         <div className="bg-white rounded-3xl p-6 md:p-8 border border-slate-200 shadow-sm space-y-6">
@@ -822,19 +1098,39 @@ export const SgkLessonView: React.FC<SgkLessonViewProps> = ({
                 3
               </span>
               <div>
-                <h2 className="text-xl font-black text-slate-900">3. LUYỆN TẬP (10 CÂU HỎI)</h2>
-                <p className="text-xs text-slate-500 font-medium">Hệ thống bài tập chuẩn mực: 4 Biết • 4 Hiểu • 2 Vận dụng (Phương án cân đối, xáo trộn A/B/C/D)</p>
+                <h2 className="text-xl font-black text-slate-900">TAB 3: LUYỆN TẬP (10 CÂU HỎI)</h2>
+                <p className="text-xs text-slate-500 font-medium">Hệ thống bài tập củng cố: 4 Nhận biết • 4 Thông hiểu • 2 Vận dụng</p>
               </div>
             </div>
 
-            <span className="text-xs font-extrabold text-purple-700 bg-purple-50 px-3 py-1 rounded-full border border-purple-200">
-              Đã làm {Object.keys(practiceAnswers).length}/{shuffledPracticeQuestions.length} câu
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-extrabold text-purple-700 bg-purple-50 px-3 py-1.5 rounded-full border border-purple-200">
+                Đã làm: {Object.keys(practiceAnswers).length}/{shuffledPracticeQuestions.length} câu
+              </span>
+            </div>
           </div>
 
-          {/* Danh sách 10 câu hỏi luyện tập */}
+          {/* Bộ lọc mức độ câu hỏi */}
+          <div className="flex flex-wrap items-center gap-2 text-xs">
+            <span className="text-slate-500 font-bold mr-1">Lọc theo mức độ:</span>
+            {(['ALL', 'BIẾT', 'HIỂU', 'VẬN DỤNG'] as const).map(f => (
+              <button
+                key={f}
+                onClick={() => setPracticeFilter(f)}
+                className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
+                  practiceFilter === f
+                    ? 'bg-purple-600 text-white shadow-2xs'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                {f === 'ALL' ? 'Tất cả (10 câu)' : `Mức độ ${f}`}
+              </button>
+            ))}
+          </div>
+
+          {/* Danh sách các câu hỏi luyện tập */}
           <div className="space-y-4">
-            {shuffledPracticeQuestions.map((q, idx) => {
+            {(filteredPracticeQuestions || []).map((q, idx) => {
               const selectedOptId = practiceAnswers[q.id];
               return (
                 <div key={q.id} className="p-5 rounded-2xl border border-slate-200 bg-slate-50/50 space-y-3">
@@ -853,7 +1149,7 @@ export const SgkLessonView: React.FC<SgkLessonViewProps> = ({
                   <p className="text-[11px] text-slate-500 italic">{q.subText}</p>
 
                   <div className="space-y-2">
-                    {q.shuffledOptions.map((opt, oIdx) => {
+                    {(q.shuffledOptions || []).map((opt, oIdx) => {
                       const label = ['A', 'B', 'C', 'D'][oIdx];
                       const isChosen = selectedOptId === opt.id;
                       return (
@@ -867,7 +1163,7 @@ export const SgkLessonView: React.FC<SgkLessonViewProps> = ({
                                 ? opt.isCorrect
                                   ? 'bg-emerald-50 border-emerald-400 text-emerald-900 font-bold'
                                   : 'bg-rose-50 border-rose-300 text-rose-900'
-                                : 'bg-blue-50 border-blue-400 text-blue-900 font-bold'
+                                : 'bg-purple-50 border-purple-400 text-purple-900 font-bold'
                               : practiceSubmitted && opt.isCorrect
                                 ? 'bg-emerald-50/60 border-emerald-300 text-emerald-800 font-bold'
                                 : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-100'
@@ -884,8 +1180,8 @@ export const SgkLessonView: React.FC<SgkLessonViewProps> = ({
                   </div>
 
                   {practiceSubmitted && (
-                    <div className="p-3 bg-slate-100 rounded-xl text-xs text-slate-700 leading-relaxed">
-                      <strong>Giải thích:</strong> {q.explanation}
+                    <div className="p-3 bg-purple-50/80 rounded-xl text-xs text-purple-950 leading-relaxed border border-purple-200">
+                      <strong>Lời giải chi tiết:</strong> {q.explanation}
                     </div>
                   )}
                 </div>
@@ -893,12 +1189,12 @@ export const SgkLessonView: React.FC<SgkLessonViewProps> = ({
             })}
           </div>
 
-          <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
+          <div className="pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3">
             {!practiceSubmitted ? (
               <button
                 disabled={Object.keys(practiceAnswers).length < 5}
                 onClick={handleSubmitPractice}
-                className="px-6 py-3 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white font-black text-xs rounded-xl shadow-md transition-all cursor-pointer"
+                className="w-full sm:w-auto px-6 py-3 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white font-black text-xs rounded-xl shadow-md transition-all cursor-pointer"
               >
                 NỘP BÀI LUYỆN TẬP (TÍNH ĐIỂM & LƯU FIRESTORE)
               </button>
@@ -915,9 +1211,9 @@ export const SgkLessonView: React.FC<SgkLessonViewProps> = ({
                 setActiveSection('sec_4');
                 window.scrollTo({ top: 0, behavior: 'smooth' });
               }}
-              className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white font-black text-xs rounded-xl shadow-md flex items-center gap-1.5 cursor-pointer"
+              className="w-full sm:w-auto px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white font-black text-xs rounded-xl shadow-md flex items-center justify-center gap-1.5 cursor-pointer"
             >
-              <span>SANG MỤC 4: BÀI KIỂM TRA</span>
+              <span>SANG TAB 4: BÀI KIỂM TRA</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>
@@ -925,289 +1221,437 @@ export const SgkLessonView: React.FC<SgkLessonViewProps> = ({
       )}
 
       {/* ================================================================
-          MỤC 4: KIỂM TRA (THANG 10 CHUẨN: 8 TN + 4 TL)
+          VI. TAB 4 – KIỂM TRA (ĐÁNH GIÁ CHÍNH THỨC & TỔNG KẾT BÀI HỌC)
+          KẾT QUẢ VÀ TỔNG KẾT BÀI HỌC ĐƯỢC HIỂN THỊ NGAY TRONG TAB 4 NÀY
+          TUYỆT ĐỐI KHÔNG TẠO TAB 5 RIÊNG BIỆT!
       ================================================================ */}
       {activeSection === 'sec_4' && (
         <div className="bg-white rounded-3xl p-6 md:p-8 border border-slate-200 shadow-sm space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
-            <div className="flex items-center gap-3">
-              <span className="p-3 bg-rose-100 text-rose-700 rounded-2xl font-black text-lg">
-                4
-              </span>
-              <div>
-                <h2 className="text-xl font-black text-slate-900">4. KIỂM TRA ĐÁNH GIÁ (THANG ĐIỂM 10)</h2>
-                <p className="text-xs text-slate-500 font-medium">8 câu trắc nghiệm (0,5đ/câu = 4,0 điểm) + 4 câu tự luận (1,5đ/câu = 6,0 điểm)</p>
+          {/* TRƯỜNG HỢP 1: ĐÃ NỘP BÀI KIỂM TRA ➔ HIỂN THỊ KẾT QUẢ VÀ TỔNG KẾT NGAY TẠI TAB 4 */}
+          {examSubmitted && examScore !== null ? (
+            <div className="space-y-6 animate-in zoom-in-95 duration-200">
+              {/* Thanh điều hướng Tổng quan / Xem lại chi tiết bài làm */}
+              <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-emerald-100 text-emerald-700 rounded-2xl flex items-center justify-center font-black">
+                    <Award className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-black text-slate-900">KẾT QUẢ & TỔNG KẾT BÀI HỌC</h2>
+                    <p className="text-xs text-slate-500 font-medium">Báo cáo đánh giá năng lực chính thức của {lessonData.shortTitle}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setExamViewMode('summary')}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                      examViewMode === 'summary'
+                        ? 'bg-blue-600 text-white shadow-2xs'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                  >
+                    Tổng kết kết quả
+                  </button>
+                  <button
+                    onClick={() => setExamViewMode('review')}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                      examViewMode === 'review'
+                        ? 'bg-blue-600 text-white shadow-2xs'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                  >
+                    Xem lại bài làm & Lời giải
+                  </button>
+                </div>
               </div>
-            </div>
 
-            <div className="flex items-center gap-2 text-xs font-bold text-rose-700 bg-rose-50 px-3 py-1.5 rounded-full border border-rose-200">
-              <Clock className="w-3.5 h-3.5" />
-              <span>Thời gian làm bài: 20 phút</span>
-            </div>
-          </div>
-
-          {/* PHẦN A: 8 CÂU TRẮC NGHIỆM */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between bg-blue-50/70 p-3.5 rounded-2xl border border-blue-200">
-              <span className="font-extrabold text-xs text-blue-900 uppercase tracking-wider flex items-center gap-2">
-                <FileText className="w-4 h-4 text-blue-600" />
-                PHẦN A: 8 CÂU HỎI TRẮC NGHIỆM (4,0 ĐIỂM)
-              </span>
-              <span className="text-[11px] font-bold text-blue-700 bg-white px-2.5 py-0.5 rounded-full border border-blue-200">
-                0,5 điểm / câu
-              </span>
-            </div>
-
-            {shuffledExamMCQuestions.map((q, qIdx) => {
-              const selected = examMcAnswers[q.id];
-              return (
-                <div key={q.id} className="p-4.5 rounded-2xl border border-slate-200 bg-slate-50/50 space-y-2.5">
-                  <div className="flex items-center justify-between">
-                    <span className="font-black text-xs text-slate-600">
-                      Câu {qIdx + 1} (0,5 điểm)
-                    </span>
-                    <span className="text-[10px] font-bold text-slate-400">Trắc nghiệm</span>
+              {examViewMode === 'summary' ? (
+                <div className="space-y-6 text-center">
+                  <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-3xl flex items-center justify-center mx-auto shadow-xs">
+                    <Award className="w-10 h-10" />
                   </div>
 
-                  <p className="font-bold text-slate-900 text-xs">
-                    {q.question}
-                  </p>
+                  <div className="space-y-1 max-w-lg mx-auto">
+                    <div className="text-xs font-black text-emerald-600 uppercase tracking-widest">
+                      Xác Nhận Thành Tích Học Tập Xuất Sắc
+                    </div>
+                    <h3 className="text-2xl font-black text-slate-900">
+                      CHÚC MỪNG EM ĐÃ HOÀN THÀNH {lessonData.shortTitle.toUpperCase()}!
+                    </h3>
+                    <p className="text-xs text-slate-500 leading-relaxed">
+                      Điểm kiểm tra và tiến trình học tập đã được lưu vĩnh viễn trên cơ sở dữ liệu Cloud Firestore của Thầy/Cô.
+                    </p>
+                  </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {q.shuffledOptions.map((opt, oIdx) => {
-                      const label = ['A', 'B', 'C', 'D'][oIdx];
+                  {/* Bảng điểm tổng kết */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-xl mx-auto">
+                    <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 text-center">
+                      <div className="text-[11px] text-slate-500 font-bold">Tiến độ bài học</div>
+                      <div className="text-2xl font-black text-blue-600 mt-1">100%</div>
+                      <div className="text-[10px] text-slate-400 mt-0.5">4/4 mục hoàn thành</div>
+                    </div>
+
+                    <div className="bg-emerald-50 p-4 rounded-2xl border border-emerald-200 text-center">
+                      <div className="text-[11px] text-emerald-800 font-bold">Điểm Bài Kiểm Tra</div>
+                      <div className="text-2xl font-black text-emerald-700 mt-1">
+                        {examScore} / 10.0
+                      </div>
+                      <div className="text-[10px] text-emerald-600 mt-0.5">
+                        TN: {examMcScore}/4.0 • TL: {examEssayScore}/6.0
+                      </div>
+                    </div>
+
+                    <div className="bg-purple-50 p-4 rounded-2xl border border-purple-200 text-center">
+                      <div className="text-[11px] text-purple-800 font-bold">Điểm Luyện Tập</div>
+                      <div className="text-2xl font-black text-purple-700 mt-1">
+                        {practiceScore !== null ? `${practiceScore} / 10` : '10 / 10'}
+                      </div>
+                      <div className="text-[10px] text-purple-600 mt-0.5">10 câu 3 mức độ</div>
+                    </div>
+                  </div>
+
+                  {/* Đánh giá năng lực KHTN 9 đạt được */}
+                  <div className="max-w-xl mx-auto p-4.5 rounded-2xl bg-slate-50 border border-slate-200 text-left space-y-2.5">
+                    <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+                      <Sparkles className="w-4 h-4 text-amber-500" />
+                      Đánh giá năng lực Khoa học tự nhiên đạt được:
+                    </h4>
+                    <div className="space-y-2 text-xs text-slate-700">
+                      <div className="flex justify-between font-medium pb-1 border-b border-slate-200/60">
+                        <span>
+                          {lessonId === 4
+                            ? 'Khái niệm công & công suất máy móc:'
+                            : lessonId === 3 
+                              ? 'Khái niệm cơ năng Wc = Wđ + Wt:' 
+                              : lessonId === 2 
+                                ? 'Biểu thức động năng Wđ = 1/2 m v²:' 
+                                : 'Nhận biết dụng cụ & hoá chất thí nghiệm:'}
+                        </span>
+                        <span className="font-bold text-emerald-600">Thành thạo (100%)</span>
+                      </div>
+                      <div className="flex justify-between font-medium pb-1 border-b border-slate-200/60">
+                        <span>
+                          {lessonId === 4
+                            ? 'Vận dụng biểu thức A = F · s & P = F · v:'
+                            : lessonId === 3 
+                              ? 'Định luật bảo toàn cơ năng & con lắc đơn:' 
+                              : lessonId === 2 
+                                ? 'Biểu thức thế năng trọng trường Wt = Ph:' 
+                                : 'Phương pháp viết & thuyết trình báo cáo khoa học:'}
+                        </span>
+                        <span className="font-bold text-blue-600">Đạt yêu cầu (95%)</span>
+                      </div>
+                      <div className="flex justify-between font-medium">
+                        <span>
+                          {lessonId === 4
+                            ? 'Giải thích xe leo dốc & công suất động cơ:'
+                            : lessonId === 3 
+                              ? 'Vận dụng cơ năng giải thích kĩ thuật nhảy xa:' 
+                              : lessonId === 2 
+                                ? 'Vận dụng giải bài toán động năng & thế năng:' 
+                                : 'Vận dụng xử lý tình huống thực nghiệm:'}
+                        </span>
+                        <span className="font-bold text-purple-600">Tốt (92%)</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Nút hành động */}
+                  <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+                    <button
+                      onClick={handleRetakeExam}
+                      className="px-5 py-2.5 rounded-xl border border-rose-300 text-rose-700 hover:bg-rose-50 font-bold text-xs cursor-pointer flex items-center gap-1.5"
+                    >
+                      <RotateCcw className="w-4 h-4" /> Làm lại bài kiểm tra
+                    </button>
+
+                    <button
+                      onClick={() => setExamViewMode('review')}
+                      className="px-5 py-2.5 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-100 font-bold text-xs cursor-pointer flex items-center gap-1.5"
+                    >
+                      <FileText className="w-4 h-4" /> Xem lại đáp án & Lời giải
+                    </button>
+
+                    {lessonId < 4 ? (
+                      <button
+                        onClick={() => {
+                          onLessonCompleted(lessonId, examScore);
+                          onSelectOtherLesson();
+                        }}
+                        className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs rounded-xl shadow-xs cursor-pointer flex items-center gap-1.5"
+                      >
+                        <span>TIẾP TỤC SANG BÀI {lessonId + 1}</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          onLessonCompleted(4, examScore);
+                          onSelectOtherLesson();
+                        }}
+                        className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-xl shadow-xs cursor-pointer flex items-center gap-1.5"
+                      >
+                        <span>HOÀN THÀNH CHƯƠNG I (ĐÃ HOÀN THÀNH BÀI 1, 2, 3, 4)</span>
+                        <Check className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                /* CHẾ ĐỘ XEM LẠI ĐÁP ÁN VÀ LỜI GIẢI CHI TIẾT */
+                <div className="space-y-6">
+                  {/* Xem lại trắc nghiệm */}
+                  <div className="space-y-3">
+                    <h4 className="text-xs font-black text-blue-900 uppercase tracking-wider flex items-center gap-2">
+                      <FileText className="w-4 h-4 text-blue-600" />
+                      Phần A: 8 Câu hỏi trắc nghiệm (Điểm: {examMcScore}/4.0)
+                    </h4>
+                    {(shuffledExamMCQuestions || []).map((q, idx) => {
+                      const userChoice = examMcAnswers[q.id];
                       return (
-                        <button
-                          key={opt.id}
-                          disabled={examSubmitted}
-                          onClick={() => setExamMcAnswers(prev => ({ ...prev, [q.id]: opt.id }))}
-                          className={`w-full p-2.5 rounded-xl border text-left text-xs transition-all cursor-pointer flex items-center justify-between ${
-                            selected === opt.id
-                              ? 'bg-blue-50 border-blue-400 text-blue-900 font-bold'
-                              : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-100'
-                          }`}
-                        >
-                          <div className="flex items-center gap-2">
-                            <span className="font-bold text-slate-400">{label}.</span>
-                            <span>{opt.text}</span>
+                        <div key={q.id} className="p-4 rounded-xl border border-slate-200 bg-slate-50 space-y-2 text-xs">
+                          <p className="font-bold text-slate-900">
+                            Câu {idx + 1}: {q.question}
+                          </p>
+                          <div className="space-y-1.5">
+                            {(q.shuffledOptions || []).map((opt, oIdx) => {
+                              const label = ['A', 'B', 'C', 'D'][oIdx];
+                              const isUser = userChoice === opt.id;
+                              return (
+                                <div
+                                  key={opt.id}
+                                  className={`p-2.5 rounded-lg border flex items-center justify-between ${
+                                    opt.isCorrect
+                                      ? 'bg-emerald-50 border-emerald-400 text-emerald-900 font-bold'
+                                      : isUser
+                                        ? 'bg-rose-50 border-rose-300 text-rose-900 line-through'
+                                        : 'bg-white border-slate-200 text-slate-600'
+                                  }`}
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-bold">{label}.</span>
+                                    <span>{opt.text}</span>
+                                  </div>
+                                  {opt.isCorrect && <span className="text-[10px] text-emerald-700 font-bold">Đáp án đúng</span>}
+                                  {isUser && !opt.isCorrect && <span className="text-[10px] text-rose-700 font-bold">Em đã chọn</span>}
+                                </div>
+                              );
+                            })}
                           </div>
-                          {examSubmitted && opt.isCorrect && <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />}
-                        </button>
+                          <div className="p-2.5 bg-blue-50/70 rounded-lg text-blue-950 text-[11px] border border-blue-100">
+                            <strong>Giải thích SGK:</strong> {q.explanation}
+                          </div>
+                        </div>
                       );
                     })}
                   </div>
-                </div>
-              );
-            })}
-          </div>
 
-          {/* PHẦN B: 4 CÂU TỰ LUẬN */}
-          <div className="space-y-4 pt-4 border-t border-slate-100">
-            <div className="flex items-center justify-between bg-purple-50/70 p-3.5 rounded-2xl border border-purple-200">
-              <span className="font-extrabold text-xs text-purple-900 uppercase tracking-wider flex items-center gap-2">
-                <Lightbulb className="w-4 h-4 text-purple-600" />
-                PHẦN B: 4 BÀI TẬP TỰ LUẬN & PHÂN TÍCH (6,0 ĐIỂM)
-              </span>
-              <span className="text-[11px] font-bold text-purple-700 bg-white px-2.5 py-0.5 rounded-full border border-purple-200">
-                1,5 điểm / câu
-              </span>
-            </div>
+                  {/* Xem lại tự luận */}
+                  <div className="space-y-3 pt-4 border-t border-slate-100">
+                    <h4 className="text-xs font-black text-purple-900 uppercase tracking-wider flex items-center gap-2">
+                      <Lightbulb className="w-4 h-4 text-purple-600" />
+                      Phần B: 4 Câu tự luận (Điểm: {examEssayScore}/6.0)
+                    </h4>
+                    {(lessonData?.examEssayQuestions || []).map((eq, eIdx) => (
+                      <div key={eq.id} className="p-4 rounded-xl border border-slate-200 bg-slate-50 space-y-2 text-xs">
+                        <div className="font-bold text-purple-900">
+                          {eq.title}
+                        </div>
+                        <p className="text-slate-800 font-medium">{eq.prompt}</p>
+                        
+                        <div className="p-3 bg-white rounded-lg border border-slate-200">
+                          <span className="font-bold text-slate-500">Bài làm của em:</span>
+                          <p className="text-slate-800 whitespace-pre-line mt-1">
+                            {examEssayAnswers[eq.id] || '(Em chưa nhập câu trả lời)'}
+                          </p>
+                        </div>
 
-            {lessonData.examEssayQuestions.map((eq) => (
-              <div key={eq.id} className="p-5 rounded-2xl border border-slate-200 bg-slate-50/60 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="font-black text-xs text-purple-800 uppercase">
-                    {eq.title} (1,5 điểm)
-                  </span>
-                  <span className="text-[10px] font-bold text-slate-500">Tự luận</span>
-                </div>
-
-                <p className="font-bold text-slate-900 text-xs leading-relaxed">
-                  {eq.prompt}
-                </p>
-
-                <textarea
-                  disabled={examSubmitted}
-                  rows={4}
-                  value={examEssayAnswers[eq.id] || ''}
-                  onChange={(e) => setExamEssayAnswers(prev => ({ ...prev, [eq.id]: e.target.value }))}
-                  placeholder="Nhập câu trả lời tự luận chi tiết của em vào đây..."
-                  className="w-full p-3 rounded-xl border border-slate-300 text-xs text-slate-900 bg-white focus:ring-2 focus:ring-purple-400 focus:outline-none"
-                />
-
-                <div className="flex items-center justify-between text-[11px] text-slate-400">
-                  <span>Số từ: {(examEssayAnswers[eq.id] || '').trim().split(/\s+/).filter(Boolean).length} từ</span>
-                  <span>Tiêu chí: Lập luận khoa học & vận dụng đúng công thức SGK</span>
-                </div>
-
-                {examSubmitted && (
-                  <div className="p-3 bg-purple-50 rounded-xl border border-purple-200 text-xs space-y-1">
-                    <div className="font-bold text-purple-900">Đáp án tham khảo chuẩn SGK:</div>
-                    <p className="text-purple-950 whitespace-pre-line">{eq.sampleSolution}</p>
+                        <div className="p-3 bg-purple-50 rounded-lg border border-purple-200 text-purple-950 space-y-1">
+                          <span className="font-bold text-purple-900">Đáp án tham khảo chuẩn SGK:</span>
+                          <p className="whitespace-pre-line leading-relaxed">{eq.sampleSolution}</p>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                )}
-              </div>
-            ))}
-          </div>
 
-          <div className="pt-4 border-t border-slate-100 flex justify-end">
-            <button
-              disabled={isSubmitting || examSubmitted}
-              onClick={handleSubmitExam}
-              className="px-8 py-3.5 bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white font-black text-sm rounded-2xl shadow-lg transition-all flex items-center gap-2 cursor-pointer"
-            >
-              <Send className="w-4 h-4" />
-              <span>NỘP BÀI KIỂM TRA (CHẤM ĐIỂM & ĐỒNG BỘ FIRESTORE)</span>
-            </button>
-          </div>
+                  <div className="flex justify-end pt-2">
+                    <button
+                      onClick={() => setExamViewMode('summary')}
+                      className="px-5 py-2.5 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 transition-colors"
+                    >
+                      ← Quay lại Bảng tổng kết
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            /* TRƯỜNG HỢP 2: ĐANG LÀM BÀI KIỂM TRA CHƯA NỘP */
+            <div className="space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+                <div className="flex items-center gap-3">
+                  <span className="p-3 bg-rose-100 text-rose-700 rounded-2xl font-black text-lg">
+                    4
+                  </span>
+                  <div>
+                    <h2 className="text-xl font-black text-slate-900">TAB 4: BÀI KIỂM TRA ĐÁNH GIÁ (THANG ĐIỂM 10)</h2>
+                    <p className="text-xs text-slate-500 font-medium">8 câu trắc nghiệm (0,5đ/câu = 4,0 điểm) + 4 câu tự luận (1,5đ/câu = 6,0 điểm)</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 text-xs font-bold text-rose-700 bg-rose-50 px-3 py-1.5 rounded-full border border-rose-200">
+                  <Clock className="w-3.5 h-3.5" />
+                  <span>Thời gian khuyến nghị: 20 phút</span>
+                </div>
+              </div>
+
+              {/* PHẦN A: 8 CÂU TRẮC NGHIỆM */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between bg-blue-50/70 p-3.5 rounded-2xl border border-blue-200">
+                  <span className="font-extrabold text-xs text-blue-900 uppercase tracking-wider flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-blue-600" />
+                    PHẦN A: 8 CÂU HỎI TRẮC NGHIỆM (4,0 ĐIỂM)
+                  </span>
+                  <span className="text-[11px] font-bold text-blue-700 bg-white px-2.5 py-0.5 rounded-full border border-blue-200">
+                    0,5 điểm / câu
+                  </span>
+                </div>
+
+                {(shuffledExamMCQuestions || []).map((q, qIdx) => {
+                  const selected = examMcAnswers[q.id];
+                  return (
+                    <div key={q.id} className="p-4.5 rounded-2xl border border-slate-200 bg-slate-50/50 space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <span className="font-black text-xs text-slate-600">
+                          Câu {qIdx + 1} (0,5 điểm)
+                        </span>
+                        <span className="text-[10px] font-bold text-slate-400">Trắc nghiệm</span>
+                      </div>
+
+                      <p className="font-bold text-slate-900 text-xs">
+                        {q.question}
+                      </p>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {(q.shuffledOptions || []).map((opt, oIdx) => {
+                          const label = ['A', 'B', 'C', 'D'][oIdx];
+                          return (
+                            <button
+                              key={opt.id}
+                              onClick={() => setExamMcAnswers(prev => ({ ...prev, [q.id]: opt.id }))}
+                              className={`w-full p-2.5 rounded-xl border text-left text-xs transition-all cursor-pointer flex items-center justify-between ${
+                                selected === opt.id
+                                  ? 'bg-blue-50 border-blue-400 text-blue-900 font-bold'
+                                  : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-100'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2">
+                                <span className="font-bold text-slate-400">{label}.</span>
+                                <span>{opt.text}</span>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* PHẦN B: 4 CÂU TỰ LUẬN */}
+              <div className="space-y-4 pt-4 border-t border-slate-100">
+                <div className="flex items-center justify-between bg-purple-50/70 p-3.5 rounded-2xl border border-purple-200">
+                  <span className="font-extrabold text-xs text-purple-900 uppercase tracking-wider flex items-center gap-2">
+                    <Lightbulb className="w-4 h-4 text-purple-600" />
+                    PHẦN B: 4 BÀI TẬP TỰ LUẬN & PHÂN TÍCH (6,0 ĐIỂM)
+                  </span>
+                  <span className="text-[11px] font-bold text-purple-700 bg-white px-2.5 py-0.5 rounded-full border border-purple-200">
+                    1,5 điểm / câu
+                  </span>
+                </div>
+
+                {(lessonData?.examEssayQuestions || []).map((eq) => (
+                  <div key={eq.id} className="p-5 rounded-2xl border border-slate-200 bg-slate-50/60 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="font-black text-xs text-purple-800 uppercase">
+                        {eq.title} (1,5 điểm)
+                      </span>
+                      <span className="text-[10px] font-bold text-slate-500">Tự luận</span>
+                    </div>
+
+                    <p className="font-bold text-slate-900 text-xs leading-relaxed">
+                      {eq.prompt}
+                    </p>
+
+                    <textarea
+                      rows={4}
+                      value={examEssayAnswers[eq.id] || ''}
+                      onChange={(e) => setExamEssayAnswers(prev => ({ ...prev, [eq.id]: e.target.value }))}
+                      placeholder="Nhập câu trả lời tự luận chi tiết của em vào đây..."
+                      className="w-full p-3 rounded-xl border border-slate-300 text-xs text-slate-900 bg-white focus:ring-2 focus:ring-purple-400 focus:outline-none"
+                    />
+
+                    <div className="flex items-center justify-between text-[11px] text-slate-400">
+                      <span>Số từ: {(examEssayAnswers[eq.id] || '').trim().split(/\s+/).filter(Boolean).length} từ</span>
+                      <span>Tiêu chí: Lập luận khoa học & vận dụng đúng công thức SGK</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Nút nộp bài kiểm tra */}
+              <div className="pt-4 border-t border-slate-100 flex justify-end">
+                <button
+                  disabled={isSubmitting}
+                  onClick={() => setShowConfirmModal(true)}
+                  className="px-8 py-3.5 bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white font-black text-xs sm:text-sm rounded-2xl shadow-lg transition-all flex items-center gap-2 cursor-pointer"
+                >
+                  <Send className="w-4 h-4" />
+                  <span>NỘP BÀI KIỂM TRA (CHẤM ĐIỂM & ĐỒNG BỘ FIRESTORE)</span>
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
       {/* ================================================================
-          MỤC 5: HOÀN THÀNH & KẾT QUẢ
+          MODAL XÁC NHẬN NỘP BÀI KIỂM TRA
       ================================================================ */}
-      {activeSection === 'sec_5' && (
-        <div className="bg-white rounded-3xl p-6 md:p-8 border border-slate-200 shadow-sm space-y-6 text-center animate-in zoom-in-95 duration-200">
-          <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-3xl flex items-center justify-center mx-auto shadow-xs">
-            <Award className="w-10 h-10" />
-          </div>
-
-          <div className="space-y-1 max-w-md mx-auto">
-            <div className="text-xs font-black text-emerald-600 uppercase tracking-widest">
-              Xác Nhận Thành Tích Học Tập
-            </div>
-            <h2 className="text-2xl font-black text-slate-900">
-              CHÚC MỪNG EM ĐÃ HOÀN THÀNH {lessonData.shortTitle.toUpperCase()}!
-            </h2>
-            <p className="text-xs text-slate-500">
-              Toàn bộ kết quả bài kiểm tra và điểm luyện tập đã được lưu vĩnh viễn trên Cloud Firestore của Thầy/Cô.
-            </p>
-          </div>
-
-          {/* Bảng điểm tổng kết */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-xl mx-auto">
-            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200">
-              <div className="text-[11px] text-slate-500 font-bold">Tiến độ bài học</div>
-              <div className="text-2xl font-black text-blue-600 mt-1">100%</div>
-              <div className="text-[10px] text-slate-400 mt-0.5">5/5 mục hoàn thành</div>
+      {showConfirmModal && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 animate-in zoom-in-95 duration-200">
+            <div className="w-12 h-12 bg-rose-100 text-rose-600 rounded-2xl flex items-center justify-center mx-auto">
+              <AlertTriangle className="w-6 h-6" />
             </div>
 
-            <div className="bg-emerald-50 p-4 rounded-2xl border border-emerald-200">
-              <div className="text-[11px] text-emerald-800 font-bold">Điểm Kiểm Tra</div>
-              <div className="text-2xl font-black text-emerald-700 mt-1">
-                {examScore !== null ? `${examScore} / 10.0` : '10.0 / 10.0'}
-              </div>
-              <div className="text-[10px] text-emerald-600 mt-0.5">
-                TN: {examMcScore}/4.0 • TL: {examEssayScore}/6.0
-              </div>
+            <div className="text-center space-y-1.5">
+              <h3 className="text-lg font-black text-slate-900">Xác nhận nộp bài kiểm tra</h3>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                Em có chắc chắn muốn nộp bài kiểm tra này không?
+                <br />
+                Đã hoàn thành <strong>{Object.keys(examMcAnswers).length}/8</strong> câu trắc nghiệm và{' '}
+                <strong>{Object.keys(examEssayAnswers).length}/4</strong> câu tự luận.
+              </p>
             </div>
 
-            <div className="bg-purple-50 p-4 rounded-2xl border border-purple-200">
-              <div className="text-[11px] text-purple-800 font-bold">Điểm Luyện Tập</div>
-              <div className="text-2xl font-black text-purple-700 mt-1">
-                {practiceScore !== null ? `${practiceScore} / 10` : '10 / 10'}
-              </div>
-              <div className="text-[10px] text-purple-600 mt-0.5">10 câu 3 mức độ</div>
-            </div>
-          </div>
-
-          {/* Năng lực cốt lõi đạt được */}
-          <div className="max-w-xl mx-auto p-4 rounded-2xl bg-slate-50 border border-slate-200 text-left space-y-2">
-            <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider">
-              Đánh giá năng lực Khoa học tự nhiên (SGK KHTN 9):
-            </h4>
-            <div className="space-y-1.5 text-xs text-slate-600">
-              <div className="flex justify-between font-medium">
-                <span>
-                  {lessonId === 3 
-                    ? 'Khái niệm cơ năng Wc = Wđ + Wt:' 
-                    : lessonId === 2 
-                      ? 'Biểu thức động năng Wđ = 1/2 m v²:' 
-                      : 'Nhận biết dụng cụ & hoá chất thí nghiệm:'}
-                </span>
-                <span className="font-bold text-emerald-600">Thành thạo (100%)</span>
-              </div>
-              <div className="flex justify-between font-medium">
-                <span>
-                  {lessonId === 3 
-                    ? 'Định luật bảo toàn cơ năng & con lắc đơn:' 
-                    : lessonId === 2 
-                      ? 'Biểu thức thế năng trọng trường Wt = Ph:' 
-                      : 'Phương pháp viết & thuyết trình báo cáo khoa học:'}
-                </span>
-                <span className="font-bold text-blue-600">Đạt yêu cầu (95%)</span>
-              </div>
-              <div className="flex justify-between font-medium">
-                <span>
-                  {lessonId === 3 
-                    ? 'Vận dụng cơ năng giải thích kĩ thuật nhảy xa & xe thế năng:' 
-                    : lessonId === 2 
-                      ? 'Vận dụng giải bài toán động năng & thế năng:' 
-                      : 'Vận dụng xử lý tình huống thực nghiệm:'}
-                </span>
-                <span className="font-bold text-purple-600">Tốt (92%)</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Các nút hành động */}
-          <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
-            <button
-              onClick={() => {
-                setActiveSection('sec_2');
-                setCurrentTopicIdx(0);
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              }}
-              className="px-5 py-2.5 rounded-xl border border-slate-300 hover:bg-slate-100 text-slate-700 font-bold text-xs cursor-pointer flex items-center gap-1.5"
-            >
-              <RotateCcw className="w-4 h-4" /> Xem lại kiến thức SGK
-            </button>
-
-            <button
-              onClick={() => {
-                setActiveSection('sec_4');
-                setExamSubmitted(false);
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              }}
-              className="px-5 py-2.5 rounded-xl border border-rose-300 text-rose-700 hover:bg-rose-50 font-bold text-xs cursor-pointer flex items-center gap-1.5"
-            >
-              Làm lại bài kiểm tra
-            </button>
-
-            {lessonId === 1 ? (
+            <div className="flex items-center gap-3 pt-2">
               <button
-                onClick={() => {
-                  onLessonCompleted(1, examScore || 10);
-                  onSelectOtherLesson();
-                }}
-                className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs rounded-xl shadow-xs cursor-pointer flex items-center gap-1.5"
+                type="button"
+                onClick={() => setShowConfirmModal(false)}
+                className="flex-1 py-2.5 rounded-xl border border-slate-300 text-slate-700 font-bold text-xs hover:bg-slate-100 transition-colors cursor-pointer"
               >
-                <span>TIẾP TỤC SANG BÀI 2: ĐỘNG NĂNG. THẾ NĂNG</span>
-                <ArrowRight className="w-4 h-4" />
+                Tiếp tục làm bài
               </button>
-            ) : lessonId === 2 ? (
               <button
-                onClick={() => {
-                  onLessonCompleted(2, examScore || 10);
-                  onSelectOtherLesson();
-                }}
-                className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs rounded-xl shadow-xs cursor-pointer flex items-center gap-1.5"
+                type="button"
+                onClick={handleSubmitExam}
+                className="flex-1 py-2.5 rounded-xl bg-rose-600 text-white font-black text-xs hover:bg-rose-700 shadow-sm transition-colors cursor-pointer"
               >
-                <span>TIẾP TỤC SANG BÀI 3: CƠ NĂNG</span>
-                <ArrowRight className="w-4 h-4" />
+                Xác nhận nộp ngay
               </button>
-            ) : (
-              <button
-                onClick={() => {
-                  onLessonCompleted(3, examScore || 10);
-                  onSelectOtherLesson();
-                }}
-                className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-xl shadow-xs cursor-pointer flex items-center gap-1.5"
-              >
-                <span>HOÀN THÀNH CHƯƠNG I (ĐÃ HOÀN THÀNH BÀI 1, 2, 3)</span>
-                <Check className="w-4 h-4" />
-              </button>
-            )}
+            </div>
           </div>
         </div>
       )}

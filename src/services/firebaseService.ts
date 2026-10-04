@@ -6,7 +6,8 @@ import {
   signOut, 
   onAuthStateChanged, 
   User as FirebaseUser,
-  signInAnonymously
+  setPersistence,
+  browserLocalPersistence
 } from 'firebase/auth';
 import { 
   getFirestore, 
@@ -21,28 +22,37 @@ import {
 } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
 import { StudentProgressItem } from '../types';
-import { MOCK_STUDENTS } from '../data/teacherData';
 
-// 1. KHỞI TẠO FIREBASE SDK
+// ==========================================
+// 1. KHỞI TẠO FIREBASE SDK & AUTH PERSISTENCE
+// ==========================================
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
 export const auth = getAuth(app);
+
+// BẮT BUỘC (Lỗi 3): Thiết lập browserLocalPersistence để duy trì phiên đăng nhập sau khi đóng trình duyệt
+setPersistence(auth, browserLocalPersistence).catch((err) => {
+  console.warn('[Firebase Auth] Cảnh báo thiết lập persistence:', err);
+});
+
 export const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({ prompt: 'select_account' });
 
-// Kiểm tra kết nối Firestore lúc khởi động (theo hướng dẫn chuẩn Firebase skill)
+// Kiểm tra kết nối Firestore lúc khởi động
 export async function testFirestoreConnection() {
   try {
     await getDocFromServer(doc(db, 'test', 'connection'));
   } catch (error) {
     if (error instanceof Error && error.message.includes('the client is offline')) {
-      console.warn('Firebase client is offline. Vui lòng kiểm tra cấu hình mạng.');
+      console.warn('Firebase client is offline. Vui lòng kiểm tra kết nối mạng.');
     }
   }
 }
 testFirestoreConnection();
 
+// ==========================================
 // 2. ERROR HANDLER CHUẨN FIREBASE SKILL
+// ==========================================
 export enum OperationType {
   CREATE = 'create',
   UPDATE = 'update',
@@ -90,55 +100,51 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
   throw new Error(JSON.stringify(errInfo));
 }
 
-// 3. ĐỊNH NGHĨA DỮ LIỆU HỌC SINH TRONG CLOUD FIRESTORE
-export interface FirestoreStudent {
+// ==========================================
+// 3. ĐỊNH NGHĨA MODEL THEO ĐÚNG YÊU CẦU
+// ==========================================
+
+/**
+ * Hồ sơ người dùng chuẩn trong collection "users/{uid}" (Lỗi 2)
+ * 1 Firebase UID = 1 User = 1 Hồ sơ
+ */
+export interface FirestoreUserProfile {
   uid: string;
-  displayName: string;
   email: string;
-  classId: string;
-  role: 'STUDENT';
+  displayName: string;
+  photoURL: string;
+  role: 'student' | 'teacher';
+  classId: string; // 9A1..9A8, rỗng nếu chưa chọn, hoặc 'Tổ Tự Nhiên' cho giáo viên
   createdAt: string;
   lastLoginAt: string;
-  progressPercent: number;
-  completedLessons: number[];
-  scores: Array<{
-    lessonId: number;
-    score: number;
-    total: number;
-    date: string;
-    type?: 'practice' | 'test';
-    details?: any;
-  }>;
-  assessmentCount: number;
-
-  // Trường theo dõi tiến trình 5 mục bài học SGK (1. Khởi động, 2. Hình thành kiến thức, 3. Luyện tập, 4. Kiểm tra, 5. Hoàn thành)
-  currentLessonId?: number;
-  currentStepId?: string;
-  currentStepTitle?: string;
-  completedSteps?: string[];
-  lastActiveAt?: string;
-  practiceScore?: number | null; // Điểm phần Luyện tập (10 câu)
-  testScore?: number | null; // Điểm phần Kiểm tra (thang 10đ)
-  status?: 'completed' | 'in_progress' | 'not_started';
 }
 
-// 4. CHỨC NĂNG ĐĂNG NHẬP / ĐĂNG XUẤT BẰNG GOOGLE QUA FIREBASE AUTH THẬT
-export async function ensureAuthSession(): Promise<boolean> {
-  if (auth.currentUser) return true;
-  try {
-    await auth.authStateReady();
-    if (auth.currentUser) return true;
-  } catch {
-    // continue
-  }
-  try {
-    await signInAnonymously(auth);
-    return true;
-  } catch (e) {
-    console.warn('[Firebase] signInAnonymously:', e);
-    return false;
-  }
+/**
+ * Tiến trình từng bài học trong subcollection "studentProgress/{uid}/lessons/{lessonId}" (Lỗi 1)
+ */
+export interface FirestoreLessonProgress {
+  lessonId: number;
+  status: 'not_started' | 'in_progress' | 'completed';
+  progressPercent: number; // 0 .. 100
+  currentSection: string; // 'sec_1' .. 'sec_5'
+  lastViewedSection: string;
+  startedAt: string;
+  lastUpdatedAt: string;
+  completedAt: string | null;
+  // Chi tiết trạng thái phục hồi
+  completedSections?: string[];
+  currentTopicIdx?: number;
+  completedTopicIds?: string[];
+  practiceScore?: number | null;
+  practiceAnswers?: Record<string, string>;
+  examScore?: number | null;
+  examMcAnswers?: Record<string, string>;
+  examEssayAnswers?: Record<string, string>;
 }
+
+// ==========================================
+// 4. FIREBASE AUTH & SESSION MANAGEMENT
+// ==========================================
 
 export async function signInWithGoogle(): Promise<FirebaseUser> {
   try {
@@ -147,10 +153,10 @@ export async function signInWithGoogle(): Promise<FirebaseUser> {
   } catch (error: any) {
     console.error('Lỗi signInWithPopup Google:', error);
     if (error.code === 'auth/popup-blocked') {
-      throw new Error('Trình duyệt đã chặn cửa sổ Popup đăng nhập. Vui lòng cho phép mở popup và thử lại.');
+      throw new Error('Trình duyệt đã chặn cửa sổ Popup đăng nhập. Vui lòng cho phép popup và thử lại.');
     }
     if (error.code === 'auth/popup-closed-by-user') {
-      throw new Error('Cửa sổ đăng nhập đã bị đóng trước khi hoàn tất.');
+      throw new Error('Cửa sổ đăng nhập Google đã bị đóng trước khi hoàn tất.');
     }
     throw new Error(error.message || 'Đăng nhập Google thất bại. Vui lòng thử lại.');
   }
@@ -168,18 +174,100 @@ export function subscribeToAuthChanges(callback: (user: FirebaseUser | null) => 
   return onAuthStateChanged(auth, callback);
 }
 
-// 5. CÁC HÀM THAO TÁC FIRESTORE VỚI COLLECTION "students"
+// ==========================================
+// 5. USER PROFILE (users/{uid}) - SỬA TẬN GỐC LỖI 2
+// ==========================================
 
 /**
- * Đọc hồ sơ học sinh theo Firebase UID
+ * Đồng bộ hoặc khởi tạo User Profile theo Firebase Auth UID trong collection "users/{uid}"
+ * - Login lần đầu: tạo users/{uid}
+ * - Login lần sau: cùng UID -> KHÔNG tạo mới, chỉ cập nhật lastLoginAt, giữ nguyên classId, progress, role
+ * - Tuyệt đối KHÔNG dùng addDoc(), Math.random(), timestamp ID
  */
-export async function getStudentFromFirestore(uid: string): Promise<FirestoreStudent | null> {
-  const path = `students/${uid}`;
+export async function syncUserProfile(params: {
+  uid: string;
+  email: string;
+  displayName: string;
+  photoURL?: string;
+  classId?: string;
+}): Promise<FirestoreUserProfile> {
+  const cleanEmail = params.email.trim().toLowerCase();
+  const isTeacher = cleanEmail === 'nvphong.thcsphuninh@gmail.com';
+  const userDocRef = doc(db, 'users', params.uid);
+  const now = new Date().toISOString();
+
   try {
-    const docRef = doc(db, 'students', uid);
-    const docSnap = await getDoc(docRef);
-    if (docSnap.exists()) {
-      return docSnap.data() as FirestoreStudent;
+    const snap = await getDoc(userDocRef);
+
+    if (snap.exists()) {
+      // LOGIN LẦN SAU: User đã tồn tại, KHÔNG tạo bản ghi mới!
+      const existing = snap.data() as FirestoreUserProfile;
+      const updates: Partial<FirestoreUserProfile> = {
+        lastLoginAt: now,
+        displayName: params.displayName || existing.displayName,
+        photoURL: params.photoURL || existing.photoURL || '',
+        email: cleanEmail
+      };
+
+      // Giữ nguyên role & classId nếu đã có
+      if (params.classId && !existing.classId) {
+        updates.classId = params.classId;
+      }
+
+      await setDoc(userDocRef, updates, { merge: true });
+      return { ...existing, ...updates };
+    } else {
+      // LOGIN LẦN ĐẦU: Tạo users/{uid}
+      const newProfile: FirestoreUserProfile = {
+        uid: params.uid,
+        email: cleanEmail,
+        displayName: params.displayName || cleanEmail.split('@')[0],
+        photoURL: params.photoURL || '',
+        role: isTeacher ? 'teacher' : 'student',
+        classId: params.classId || (isTeacher ? 'Tổ Tự Nhiên' : ''),
+        createdAt: now,
+        lastLoginAt: now
+      };
+
+      await setDoc(userDocRef, newProfile);
+
+      // Đồng bộ bản sao tương thích legacy vào students/{uid} (với đúng UID, không tạo mới)
+      try {
+        await setDoc(doc(db, 'students', params.uid), {
+          uid: params.uid,
+          displayName: newProfile.displayName,
+          email: cleanEmail,
+          classId: newProfile.classId,
+          role: 'STUDENT',
+          createdAt: now,
+          lastLoginAt: now,
+          progressPercent: 0,
+          completedLessons: [],
+          scores: [],
+          assessmentCount: 0
+        }, { merge: true });
+      } catch {
+        // bỏ qua nếu có lỗi ghi legacy
+      }
+
+      return newProfile;
+    }
+  } catch (error) {
+    console.error('Lỗi khi syncUserProfile:', error);
+    handleFirestoreError(error, OperationType.WRITE, `users/${params.uid}`);
+  }
+}
+
+/**
+ * Đọc User Profile theo Firebase UID
+ */
+export async function getUserProfileFromFirestore(uid: string): Promise<FirestoreUserProfile | null> {
+  const path = `users/${uid}`;
+  try {
+    const docRef = doc(db, 'users', uid);
+    const snap = await getDoc(docRef);
+    if (snap.exists()) {
+      return snap.data() as FirestoreUserProfile;
     }
     return null;
   } catch (error) {
@@ -188,270 +276,292 @@ export async function getStudentFromFirestore(uid: string): Promise<FirestoreStu
 }
 
 /**
- * Ghi hồ sơ học sinh vào Cloud Firestore và kiểm tra xác nhận lại document
- * Áp dụng nghiêm ngặt Yêu cầu 4, 5, 6, 7:
- * - Document ID: Firebase Auth UID
- * - Xác nhận ghi thành công và đọc lại để kiểm tra: UID, displayName, email, classId, role
+ * Cập nhật lớp học cho học sinh vào users/{uid}
  */
-export async function saveAndVerifyStudentInFirestore(params: {
-  uid: string;
-  displayName: string;
-  email: string;
-  classId: string;
-}): Promise<{ success: boolean; student?: FirestoreStudent; message?: string }> {
-  await ensureAuthSession();
-  const path = `students/${params.uid}`;
-  const nowIso = new Date().toISOString();
-
-  // Đọc document hiện tại nếu có để bảo toàn dữ liệu tiến độ bài học
-  let existingStudent: FirestoreStudent | null = null;
+export async function updateUserClassInFirestore(uid: string, classId: string): Promise<boolean> {
   try {
-    existingStudent = await getStudentFromFirestore(params.uid);
-  } catch (err) {
-    console.warn('Lỗi đọc existing document (có thể chưa tồn tại):', err);
-  }
+    const userDocRef = doc(db, 'users', uid);
+    await setDoc(userDocRef, { classId, lastLoginAt: new Date().toISOString() }, { merge: true });
 
-  const studentData: FirestoreStudent = {
-    uid: params.uid,
-    displayName: params.displayName.trim() || params.email.split('@')[0],
-    email: params.email.trim().toLowerCase(),
-    classId: params.classId,
-    role: 'STUDENT',
-    createdAt: existingStudent?.createdAt || nowIso,
-    lastLoginAt: nowIso,
-    progressPercent: existingStudent?.progressPercent ?? 0,
-    completedLessons: existingStudent?.completedLessons ?? [],
-    scores: existingStudent?.scores ?? [],
-    assessmentCount: existingStudent?.assessmentCount ?? 0
-  };
-
-  try {
-    // 1. Ghi document thật vào Cloud Firestore
-    const docRef = doc(db, 'students', params.uid);
-    await setDoc(docRef, studentData);
-
-    // 2. Đọc lại document vừa tạo để xác nhận (Yêu cầu 6)
-    const verifySnap = await getDoc(docRef);
-    if (!verifySnap.exists()) {
-      return {
-        success: false,
-        message: 'Không thể lưu thông tin học sinh. Vui lòng thử lại.'
-      };
+    // Đồng bộ legacy students/{uid}
+    try {
+      await setDoc(doc(db, 'students', uid), { classId }, { merge: true });
+    } catch {
+      // ignore
     }
-
-    const verified = verifySnap.data() as FirestoreStudent;
-
-    // Xác nhận chi tiết các trường bắt buộc
-    const isUidMatch = verified.uid === params.uid;
-    const isEmailMatch = verified.email.toLowerCase() === params.email.toLowerCase();
-    const isClassMatch = verified.classId === params.classId;
-    const isRoleMatch = verified.role === 'STUDENT';
-    const isNameMatch = Boolean(verified.displayName);
-
-    if (!isUidMatch || !isEmailMatch || !isClassMatch || !isRoleMatch || !isNameMatch) {
-      console.error('Xác nhận document không khớp:', {
-        verified,
-        params,
-        checks: { isUidMatch, isEmailMatch, isClassMatch, isRoleMatch, isNameMatch }
-      });
-      return {
-        success: false,
-        message: 'Xác nhận thông tin hồ sơ trên máy chủ không khớp. Vui lòng thử lại.'
-      };
-    }
-
-    return {
-      success: true,
-      student: verified
-    };
+    return true;
   } catch (error) {
-    console.error('Lỗi khi lưu/xác nhận học sinh trên Firestore:', error);
-    return {
-      success: false,
-      message: 'Không thể lưu thông tin học sinh. Vui lòng thử lại.'
-    };
+    console.error('Lỗi updateUserClassInFirestore:', error);
+    return false;
   }
 }
 
+// ==========================================
+// 6. TIẾN TRÌNH HỌC TẬP (studentProgress/{uid}/lessons/{lessonId}) - SỬA TẬN GỐC LỖI 1
+// ==========================================
+
 /**
- * Cập nhật lastLoginAt và đồng bộ displayName/email khi học sinh đăng nhập lại (Yêu cầu 8)
- * Giữ nguyên: classId, progress, completedLessons, scores, assessmentCount
+ * Đọc tiến trình của một bài học từ "studentProgress/{uid}/lessons/{lessonId}"
  */
-export async function updateExistingStudentLogin(
+export async function getLessonProgressFromFirestore(
   uid: string, 
-  displayName: string, 
-  email: string
-): Promise<FirestoreStudent | null> {
-  const path = `students/${uid}`;
+  lessonId: number
+): Promise<FirestoreLessonProgress | null> {
   try {
-    const docRef = doc(db, 'students', uid);
-    const snap = await getDoc(docRef);
-    if (!snap.exists()) return null;
-
-    const existing = snap.data() as FirestoreStudent;
-    const updates: Partial<FirestoreStudent> = {
-      lastLoginAt: new Date().toISOString()
-    };
-    if (displayName && displayName !== existing.displayName) {
-      updates.displayName = displayName;
-    }
-    if (email && email.toLowerCase() !== existing.email.toLowerCase()) {
-      updates.email = email.toLowerCase();
+    // Kiểm tra định dạng ID số (ví dụ: '2')
+    const primaryRef = doc(db, 'studentProgress', uid, 'lessons', String(lessonId));
+    let snap = await getDoc(primaryRef);
+    if (snap.exists()) {
+      return snap.data() as FirestoreLessonProgress;
     }
 
-    await updateDoc(docRef, updates);
-    return { ...existing, ...updates };
+    // Dự phòng kiểm tra định dạng 'lesson2'
+    const fallbackRef = doc(db, 'studentProgress', uid, 'lessons', `lesson${lessonId}`);
+    snap = await getDoc(fallbackRef);
+    if (snap.exists()) {
+      return snap.data() as FirestoreLessonProgress;
+    }
+
+    return null;
   } catch (error) {
-    console.warn('Lỗi cập nhật lastLoginAt trên Firestore:', error);
+    console.warn(`Lỗi đọc studentProgress/${uid}/lessons/${lessonId}:`, error);
     return null;
   }
 }
 
 /**
- * Đọc trực tiếp danh sách học sinh từ Cloud Firestore cho Dashboard Giáo viên (Yêu cầu 9, 10, 11, 12, XVI, XVII)
- * Đọc từ collection 'students' thật, kiểm tra session Firebase Auth an toàn
+ * Lưu tiến trình bài học vào "studentProgress/{uid}/lessons/{lessonId}"
+ * Ghi đồng thời cả 2 key 'lessonId' (số và chuỗi) để đảm bảo 100% tương thích
  */
-export async function fetchStudentsFromFirestore(classFilter?: string): Promise<StudentProgressItem[]> {
-  const path = 'students';
-  
-  // Đảm bảo phiên Firebase Auth sẵn sàng
-  await ensureAuthSession();
+export async function saveLessonProgressToFirestore(
+  uid: string,
+  lessonId: number,
+  data: Partial<FirestoreLessonProgress>
+): Promise<void> {
+  const now = new Date().toISOString();
+  const docRefNum = doc(db, 'studentProgress', uid, 'lessons', String(lessonId));
+  const docRefStr = doc(db, 'studentProgress', uid, 'lessons', `lesson${lessonId}`);
+  const parentRef = doc(db, 'studentProgress', uid);
+
+  const payload: Partial<FirestoreLessonProgress> = {
+    ...data,
+    lessonId,
+    lastUpdatedAt: now
+  };
 
   try {
-    const studentsCol = collection(db, 'students');
-    let snapshot = await getDocs(studentsCol);
+    await Promise.all([
+      setDoc(docRefNum, payload, { merge: true }),
+      setDoc(docRefStr, payload, { merge: true }),
+      setDoc(parentRef, {
+        uid,
+        currentLessonId: lessonId,
+        lastActiveAt: now
+      }, { merge: true })
+    ]);
 
-    // NẾU CLOUD FIRESTORE CHƯA CÓ DỮ LIỆU: Tự động khởi tạo dữ liệu danh sách học sinh 8 lớp (9A1 -> 9A8)
-    if (snapshot.empty && MOCK_STUDENTS.length > 0) {
-      console.log('[Firestore] Khởi tạo đồng bộ danh sách học sinh 8 lớp vào Cloud Firestore...');
-      for (const mStudent of MOCK_STUDENTS) {
-        const docRef = doc(db, 'students', mStudent.id);
-        const fStudent: FirestoreStudent = {
-          uid: mStudent.id,
-          displayName: mStudent.studentName,
-          email: mStudent.email,
-          classId: mStudent.className,
-          role: 'STUDENT',
-          createdAt: new Date().toISOString(),
-          lastLoginAt: new Date().toISOString(),
-          progressPercent: mStudent.overallProgress,
-          completedLessons: mStudent.completedLessonIds,
-          scores: mStudent.lastQuizScore !== null ? [{
-            lessonId: 1,
-            score: mStudent.lastQuizScore,
-            total: 10,
-            date: new Date().toLocaleDateString('vi-VN')
-          }] : [],
-          assessmentCount: mStudent.completedTests,
-          currentLessonId: mStudent.currentLessonId || 1,
-          currentStepId: mStudent.completedLessonIds.length > 0 ? 'b1_s8' : 'b1_s1',
-          currentStepTitle: mStudent.completedLessonIds.length > 0 ? 'Luyện tập cuối bài' : 'Mục I.1 Dụng cụ quang học',
-          completedSteps: mStudent.completedLessonIds.length > 0 
-            ? ['b1_s0', 'b1_s1', 'b1_s2', 'b1_s3', 'b1_s4', 'b1_s5', 'b1_s6', 'b1_s7', 'b1_s8'] 
-            : ['b1_s0'],
-          lastActiveAt: new Date().toISOString()
-        };
-        await setDoc(docRef, fStudent);
-      }
-      snapshot = await getDocs(studentsCol);
+    // Đồng bộ nhanh vào legacy students/{uid} để các module cũ tiếp tục hoạt động trơn tru
+    try {
+      const studentDocRef = doc(db, 'students', uid);
+      const updates: any = {
+        currentLessonId: lessonId,
+        lastActiveAt: now
+      };
+      if (data.progressPercent !== undefined) updates.progressPercent = data.progressPercent;
+      if (data.currentSection) updates.currentStepId = data.currentSection;
+      if (data.status) updates.status = data.status;
+      if (data.completedSections) updates.completedSteps = data.completedSections;
+      if (data.practiceScore !== undefined) updates.practiceScore = data.practiceScore;
+      if (data.examScore !== undefined) updates.testScore = data.examScore;
+      await setDoc(studentDocRef, updates, { merge: true });
+    } catch {
+      // ignore legacy error
     }
+  } catch (error) {
+    console.error(`Lỗi ghi studentProgress/${uid}/lessons/${lessonId}:`, error);
+  }
+}
 
-    const items: StudentProgressItem[] = [];
-    const mainSectionKeys = ['sec_1', 'sec_2', 'sec_3', 'sec_4', 'sec_5'];
+/**
+ * Đọc toàn bộ tiến trình các bài học của học sinh từ subcollection "studentProgress/{uid}/lessons"
+ */
+export async function getStudentAllLessonsProgress(
+  uid: string
+): Promise<Record<number, FirestoreLessonProgress>> {
+  const result: Record<number, FirestoreLessonProgress> = {};
+  try {
+    const colRef = collection(db, 'studentProgress', uid, 'lessons');
+    const snapshot = await getDocs(colRef);
 
     snapshot.forEach(docSnap => {
-      const data = docSnap.data() as FirestoreStudent;
-      if (!data) return;
+      const data = docSnap.data() as FirestoreLessonProgress;
+      if (data && data.lessonId) {
+        const idNum = Number(data.lessonId);
+        // Ưu tiên bản ghi có progress cao hơn nếu có trùng lặp giữa '2' và 'lesson2'
+        if (!result[idNum] || (data.progressPercent || 0) >= (result[idNum].progressPercent || 0)) {
+          result[idNum] = data;
+        }
+      }
+    });
+  } catch (error) {
+    console.warn(`Lỗi getStudentAllLessonsProgress cho uid ${uid}:`, error);
+  }
+  return result;
+}
 
-      // Lọc theo lớp nếu được chọn (9A1 -> 9A8)
+// ==========================================
+// 7. DASHBOARD GIÁO VIÊN (ĐỌC THẬT TỪ USERS & STUDENTPROGRESS)
+// ==========================================
+
+/**
+ * Đọc danh sách học sinh THẬT cho Teacher Dashboard
+ * - Nguồn chính: collection "users" với role = "student"
+ * - Tiến trình: đọc từ subcollection "studentProgress/{uid}/lessons"
+ * - Số lượng học sinh = COUNT user profile duy nhất có role = student
+ * - TUYỆT ĐỐI KHÔNG dùng mock data, KHÔNG tự động tạo user khi render
+ */
+export async function fetchStudentsFromFirestore(classFilter?: string): Promise<StudentProgressItem[]> {
+  try {
+    const usersCol = collection(db, 'users');
+    const usersSnap = await getDocs(usersCol);
+
+    const items: StudentProgressItem[] = [];
+    const processedUids = new Set<string>();
+
+    for (const docSnap of usersSnap.docs) {
+      const userData = docSnap.data() as FirestoreUserProfile;
+      if (!userData) continue;
+
+      // 1. Chỉ lấy học sinh (role === 'student')
+      if (userData.role !== 'student') continue;
+
+      const uid = userData.uid || docSnap.id;
+      if (!uid || processedUids.has(uid)) continue;
+      // Bỏ qua các ID kiểm thử/mock cũ nếu có
+      if (uid.startsWith('hs-') || uid.startsWith('mock_')) continue;
+
+      processedUids.add(uid);
+
+      // Lọc theo lớp
       if (classFilter && classFilter !== 'all') {
-        if (data.classId !== classFilter) return;
+        if (userData.classId !== classFilter) continue;
       }
 
-      const completedStepsList = Array.isArray(data.completedSteps) ? data.completedSteps : [];
-      const hasCompletedLessons = Array.isArray(data.completedLessons) && data.completedLessons.length > 0;
-      const isFinished = hasCompletedLessons || 
-                         data.progressPercent === 100 || 
-                         completedStepsList.includes('sec_5') || 
-                         completedStepsList.includes('sec_4') ||
-                         (data.testScore !== null && data.testScore !== undefined);
+      // 2. Lấy dữ liệu tiến trình thật từ subcollection studentProgress/{uid}/lessons
+      const lessonsProgress = await getStudentAllLessonsProgress(uid);
+      const lessonEntries = Object.values(lessonsProgress);
 
-      // Xác định điểm số: ưu tiên testScore (kiểm tra chính thức) -> điểm bài thi gần nhất -> practiceScore
-      let lastScore: number | null = null;
-      if (data.testScore !== null && data.testScore !== undefined) {
-        lastScore = data.testScore;
-      } else if (Array.isArray(data.scores) && data.scores.length > 0) {
-        lastScore = data.scores[data.scores.length - 1].score;
-      } else if (data.practiceScore !== null && data.practiceScore !== undefined) {
-        lastScore = data.practiceScore;
+      // Xác định các bài đã hoàn thành
+      const completedLessonIds: number[] = [];
+      let latestActiveLessonId = 1;
+      let latestActiveLessonProgress = 0;
+      let latestActiveSection = 'sec_1';
+      let latestActiveStatus: 'completed' | 'in_progress' | 'not_started' = 'not_started';
+      let latestScore: number | null = null;
+      let latestPracticeScore: number | null = null;
+      let completedStepsList: string[] = [];
+
+      for (const lp of lessonEntries) {
+        if (lp.status === 'completed' || (lp.examScore !== null && lp.examScore !== undefined && lp.examScore >= 5.0)) {
+          if (!completedLessonIds.includes(lp.lessonId)) {
+            completedLessonIds.push(lp.lessonId);
+          }
+        }
+        if (lp.examScore !== null && lp.examScore !== undefined) {
+          latestScore = lp.examScore;
+        }
+        if (lp.practiceScore !== null && lp.practiceScore !== undefined) {
+          latestPracticeScore = lp.practiceScore;
+        }
+        if (lp.completedSections && Array.isArray(lp.completedSections)) {
+          completedStepsList = Array.from(new Set([...completedStepsList, ...lp.completedSections]));
+        }
+
+        // Chọn bài có tiến trình gần nhất
+        if (lp.status === 'in_progress' || lp.lessonId >= latestActiveLessonId) {
+          latestActiveLessonId = lp.lessonId;
+          latestActiveLessonProgress = lp.progressPercent || 0;
+          latestActiveSection = lp.currentSection || 'sec_1';
+          latestActiveStatus = lp.status || 'in_progress';
+        }
       }
 
-      // Đếm số mục chính đã hoàn thành (trong 5 mục chính)
-      let completedMainCount = mainSectionKeys.filter(k => completedStepsList.includes(k)).length;
-      if (isFinished && completedMainCount === 0) completedMainCount = 5;
-      else if (completedStepsList.length > 0 && completedMainCount === 0) completedMainCount = 1;
-
-      let status: 'completed' | 'in_progress' | 'not_started' = 'not_started';
-      if (isFinished) {
-        status = 'completed';
-      } else if (lastScore !== null || (data.progressPercent && data.progressPercent > 0) || completedStepsList.length > 0) {
-        status = 'in_progress';
+      // Mở khóa bài học: Bài 1 luôn mở, bài N mở nếu bài N-1 completed
+      const unlockedLessonIds = [1];
+      for (let i = 1; i <= 51; i++) {
+        if (completedLessonIds.includes(i) && !unlockedLessonIds.includes(i + 1)) {
+          unlockedLessonIds.push(i + 1);
+        }
       }
 
-      // Tiến độ % chuẩn 5 mục
-      let progressVal = isFinished ? 100 : (data.progressPercent || Math.min(100, completedMainCount * 20));
+      // Tính overallProgress
+      let overallProgress = latestActiveLessonProgress;
+      if (completedLessonIds.length > 0 && overallProgress === 0) {
+        overallProgress = 100;
+      }
+
+      let finalStatus: 'completed' | 'in_progress' | 'not_started' = 'not_started';
+      if (completedLessonIds.length > 0) {
+        finalStatus = 'completed';
+      } else if (latestActiveStatus === 'in_progress' || overallProgress > 0) {
+        finalStatus = 'in_progress';
+      }
 
       // Tính thời gian hoạt động gần nhất
-      let lastActiveStr = 'Chưa hoạt động';
-      const activeTimestamp = data.lastActiveAt || data.lastLoginAt;
-      if (activeTimestamp) {
+      let lastActiveStr = 'Vừa mới đây';
+      if (userData.lastLoginAt) {
         try {
-          lastActiveStr = new Date(activeTimestamp).toLocaleTimeString('vi-VN', {
+          lastActiveStr = new Date(userData.lastLoginAt).toLocaleTimeString('vi-VN', {
             hour: '2-digit',
             minute: '2-digit',
             day: '2-digit',
             month: '2-digit'
           });
         } catch {
-          lastActiveStr = 'Vừa mới đây';
+          lastActiveStr = 'Hôm nay';
         }
       }
 
       items.push({
-        id: data.uid || docSnap.id,
-        studentName: data.displayName || data.email?.split('@')[0] || 'Học sinh',
-        className: data.classId || 'Chưa chọn lớp',
-        currentLessonId: data.currentLessonId || 1,
-        currentStepId: data.currentStepId || 'sec_1',
-        currentStepTitle: data.currentStepTitle || '1. Khởi động',
+        id: uid,
+        studentName: userData.displayName || userData.email.split('@')[0] || 'Học sinh',
+        className: userData.classId || 'Chưa chọn lớp',
+        currentLessonId: latestActiveLessonId,
+        currentStepId: latestActiveSection,
+        currentStepTitle: `Bài ${latestActiveLessonId} (${latestActiveSection})`,
         completedSteps: completedStepsList,
         totalStepsInLesson: 5,
-        completedStepCount: completedMainCount,
-        unlockedLessonIds: isFinished ? [1, 2] : [1],
-        completedLessonIds: data.completedLessons || (isFinished ? [1] : []),
-        overallProgress: progressVal,
-        status: status,
-        completedTests: isFinished ? 1 : (data.assessmentCount || 0),
+        completedStepCount: completedStepsList.length,
+        unlockedLessonIds,
+        completedLessonIds,
+        overallProgress,
+        status: finalStatus,
+        completedTests: completedLessonIds.length,
         completedExercises: completedStepsList.length,
-        lastQuizScore: lastScore, // null nếu chưa làm bài -> Hiển thị "Chưa có điểm"
-        practiceScore: data.practiceScore,
-        testScore: data.testScore,
+        lastQuizScore: latestScore,
+        practiceScore: latestPracticeScore,
+        testScore: latestScore,
         lastActive: lastActiveStr,
-        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80',
-        email: data.email,
-        scoresHistory: data.scores || [],
-        competency: lastScore !== null ? {
-          nhanBietRate: Math.min(100, Math.round(lastScore * 10)),
-          thongHieuRate: Math.min(100, Math.round(lastScore * 9)),
-          vanDungRate: Math.min(100, Math.round(lastScore * 8))
+        avatar: userData.photoURL || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80',
+        email: userData.email,
+        scoresHistory: latestScore !== null ? [{
+          lessonId: latestActiveLessonId,
+          score: latestScore,
+          total: 10,
+          date: 'Hôm nay'
+        }] : [],
+        competency: latestScore !== null ? {
+          nhanBietRate: Math.min(100, Math.round(latestScore * 10)),
+          thongHieuRate: Math.min(100, Math.round(latestScore * 9)),
+          vanDungRate: Math.min(100, Math.round(latestScore * 8))
         } : {
           nhanBietRate: 0,
           thongHieuRate: 0,
           vanDungRate: 0
         },
         recentMistakes: []
-      } as StudentProgressItem);
-    });
+      });
+    }
 
     return items;
   } catch (error) {
@@ -461,119 +571,49 @@ export async function fetchStudentsFromFirestore(classFilter?: string): Promise<
 }
 
 /**
- * Lắng nghe thời gian thực (Real-time onSnapshot) danh sách học sinh từ Cloud Firestore
- * Giúp Dashboard giáo viên tự động nhận dữ liệu sau < 1 giây khi học sinh nộp bài
+ * Lắng nghe thời gian thực (Real-time snapshot) cho Teacher Dashboard
  */
 export function subscribeToStudentsFromFirestore(
   classFilter: string | undefined,
   callback: (students: StudentProgressItem[]) => void
 ): () => void {
-  const studentsCol = collection(db, 'students');
-  const mainSectionKeys = ['sec_1', 'sec_2', 'sec_3', 'sec_4', 'sec_5'];
+  const usersCol = collection(db, 'users');
 
-  return onSnapshot(studentsCol, (snapshot) => {
-    const items: StudentProgressItem[] = [];
-
-    snapshot.forEach(docSnap => {
-      const data = docSnap.data() as FirestoreStudent;
-      if (!data) return;
-
-      if (classFilter && classFilter !== 'all') {
-        if (data.classId !== classFilter) return;
-      }
-
-      const completedStepsList = Array.isArray(data.completedSteps) ? data.completedSteps : [];
-      const hasCompletedLessons = Array.isArray(data.completedLessons) && data.completedLessons.length > 0;
-      const isFinished = hasCompletedLessons || 
-                         data.progressPercent === 100 || 
-                         completedStepsList.includes('sec_5') || 
-                         completedStepsList.includes('sec_4') ||
-                         (data.testScore !== null && data.testScore !== undefined);
-
-      let lastScore: number | null = null;
-      if (data.testScore !== null && data.testScore !== undefined) {
-        lastScore = data.testScore;
-      } else if (Array.isArray(data.scores) && data.scores.length > 0) {
-        lastScore = data.scores[data.scores.length - 1].score;
-      } else if (data.practiceScore !== null && data.practiceScore !== undefined) {
-        lastScore = data.practiceScore;
-      }
-
-      let completedMainCount = mainSectionKeys.filter(k => completedStepsList.includes(k)).length;
-      if (isFinished && completedMainCount === 0) completedMainCount = 5;
-      else if (completedStepsList.length > 0 && completedMainCount === 0) completedMainCount = 1;
-
-      let status: 'completed' | 'in_progress' | 'not_started' = 'not_started';
-      if (isFinished) {
-        status = 'completed';
-      } else if (lastScore !== null || (data.progressPercent && data.progressPercent > 0) || completedStepsList.length > 0) {
-        status = 'in_progress';
-      }
-
-      let progressVal = isFinished ? 100 : (data.progressPercent || Math.min(100, completedMainCount * 20));
-
-      let lastActiveStr = 'Chưa hoạt động';
-      const activeTimestamp = data.lastActiveAt || data.lastLoginAt;
-      if (activeTimestamp) {
-        try {
-          lastActiveStr = new Date(activeTimestamp).toLocaleTimeString('vi-VN', {
-            hour: '2-digit',
-            minute: '2-digit',
-            day: '2-digit',
-            month: '2-digit'
-          });
-        } catch {
-          lastActiveStr = 'Vừa mới đây';
-        }
-      }
-
-      items.push({
-        id: data.uid || docSnap.id,
-        studentName: data.displayName || data.email?.split('@')[0] || 'Học sinh',
-        className: data.classId || 'Chưa chọn lớp',
-        currentLessonId: data.currentLessonId || 1,
-        currentStepId: data.currentStepId || 'sec_1',
-        currentStepTitle: data.currentStepTitle || '1. Khởi động',
-        completedSteps: completedStepsList,
-        totalStepsInLesson: 5,
-        completedStepCount: completedMainCount,
-        unlockedLessonIds: isFinished ? [1, 2] : [1],
-        completedLessonIds: data.completedLessons || (isFinished ? [1] : []),
-        overallProgress: progressVal,
-        status: status,
-        completedTests: isFinished ? 1 : (data.assessmentCount || 0),
-        completedExercises: completedStepsList.length,
-        lastQuizScore: lastScore,
-        practiceScore: data.practiceScore,
-        testScore: data.testScore,
-        lastActive: lastActiveStr,
-        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80',
-        email: data.email,
-        scoresHistory: data.scores || [],
-        competency: lastScore !== null ? {
-          nhanBietRate: Math.min(100, Math.round(lastScore * 10)),
-          thongHieuRate: Math.min(100, Math.round(lastScore * 9)),
-          vanDungRate: Math.min(100, Math.round(lastScore * 8))
-        } : {
-          nhanBietRate: 0,
-          thongHieuRate: 0,
-          vanDungRate: 0
-        },
-        recentMistakes: []
-      } as StudentProgressItem);
-    });
-
-    callback(items);
+  return onSnapshot(usersCol, async () => {
+    try {
+      const items = await fetchStudentsFromFirestore(classFilter);
+      callback(items);
+    } catch (err) {
+      console.warn('[subscribeToStudentsFromFirestore] Lỗi snapshot:', err);
+    }
   }, (err) => {
-    console.warn('[subscribeToStudentsFromFirestore] Lỗi snapshot:', err);
+    console.warn('[subscribeToStudentsFromFirestore] Lỗi:', err);
   });
 }
 
-/**
- * Đồng bộ tiến trình bước học SGK vào Cloud Firestore (Yêu cầu XIV, XV, XVI, XVII)
- * Lưu: completedSteps, currentStepId, currentLessonId, progressPercent, lastActiveAt
- * Sử dụng setDoc merge để ĐẢM BẢO KHÔNG BAO GIỜ BỊ MẤT DỮ LIỆU kể cả khi tài khoản mới tạo
- */
+// ==========================================
+// 8. CÁC HÀM HỖ TRỢ ĐỒNG BỘ TIẾN ĐỘ SGK & TƯƠNG THÍCH CŨ
+// ==========================================
+
+export async function saveAndVerifyStudentInFirestore(params: {
+  uid: string;
+  displayName: string;
+  email: string;
+  classId: string;
+}): Promise<{ success: boolean; student?: any; message?: string }> {
+  try {
+    const profile = await syncUserProfile({
+      uid: params.uid,
+      displayName: params.displayName,
+      email: params.email,
+      classId: params.classId
+    });
+    return { success: true, student: profile };
+  } catch (err: any) {
+    return { success: false, message: 'Không thể lưu thông tin học sinh. Vui lòng thử lại.' };
+  }
+}
+
 export async function updateStudentStepProgressInFirestore(params: {
   uid: string;
   lessonId: number;
@@ -583,125 +623,86 @@ export async function updateStudentStepProgressInFirestore(params: {
   totalStepsInLesson?: number;
 }): Promise<{ success: boolean; progressPercent: number; completedCount: number }> {
   try {
-    const docRef = doc(db, 'students', params.uid);
-    const snap = await getDoc(docRef);
-    const current = snap.exists() ? (snap.data() as FirestoreStudent) : ({} as Partial<FirestoreStudent>);
-    const completedSteps = Array.isArray(current.completedSteps) ? [...current.completedSteps] : [];
-    
-    if (params.completedStepId && !completedSteps.includes(params.completedStepId)) {
-      completedSteps.push(params.completedStepId);
+    const existing = await getLessonProgressFromFirestore(params.uid, params.lessonId);
+    const completedSections = existing?.completedSections ? [...existing.completedSections] : [];
+    if (params.completedStepId && !completedSections.includes(params.completedStepId)) {
+      completedSections.push(params.completedStepId);
     }
 
     const mainKeys = ['sec_1', 'sec_2', 'sec_3', 'sec_4', 'sec_5'];
-    const completedMainCount = mainKeys.filter(k => completedSteps.includes(k)).length;
+    const completedMainCount = mainKeys.filter(k => completedSections.includes(k)).length;
     const progressPercent = Math.min(100, completedMainCount * 20);
 
-    const updates: Partial<FirestoreStudent> = {
-      uid: params.uid,
-      completedSteps,
-      currentLessonId: params.lessonId,
-      currentStepId: params.stepId,
-      currentStepTitle: params.stepTitle || params.stepId,
+    await saveLessonProgressToFirestore(params.uid, params.lessonId, {
+      currentSection: params.stepId,
+      lastViewedSection: params.stepId,
       progressPercent,
-      lastActiveAt: new Date().toISOString(),
+      completedSections,
       status: progressPercent === 100 ? 'completed' : 'in_progress'
-    };
+    });
 
-    await setDoc(docRef, updates, { merge: true });
-    return { success: true, progressPercent, completedCount: completedSteps.length };
+    return { success: true, progressPercent, completedCount: completedSections.length };
   } catch (error) {
-    console.warn('Lỗi cập nhật tiến trình bước học vào Firestore:', error);
+    console.warn('Lỗi updateStudentStepProgressInFirestore:', error);
     return { success: false, progressPercent: 0, completedCount: 0 };
   }
 }
 
-/**
- * Cập nhật điểm kiểm tra / luyện tập vào Cloud Firestore
- * Lưu điểm (chuẩn hoá 10), completedLessons, completedSteps, testScore/practiceScore
- */
 export async function recordStudentQuizScoreInFirestore(params: {
   uid: string;
   lessonId: number;
-  score: number; // Thang điểm 10 (0 đến 10)
-  total: number; // 10
+  score: number;
+  total: number;
   completedStepId?: string;
-  testType?: 'practice' | 'test'; // Phân biệt luyện tập vs kiểm tra
+  testType?: 'practice' | 'test';
   details?: any;
 }): Promise<void> {
   try {
-    const docRef = doc(db, 'students', params.uid);
-    const snap = await getDoc(docRef);
-    const current = snap.exists() ? (snap.data() as FirestoreStudent) : ({} as Partial<FirestoreStudent>);
-    const scores = Array.isArray(current.scores) ? [...current.scores] : [];
-    const completedLessons = Array.isArray(current.completedLessons) ? [...current.completedLessons] : [];
-    const completedSteps = Array.isArray(current.completedSteps) ? [...current.completedSteps] : [];
-
-    scores.push({
-      lessonId: params.lessonId,
-      score: params.score,
-      total: params.total,
-      date: new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
-      type: params.testType || 'test',
-      details: params.details
-    });
-
-    if (params.completedStepId && !completedSteps.includes(params.completedStepId)) {
-      completedSteps.push(params.completedStepId);
+    const existing = await getLessonProgressFromFirestore(params.uid, params.lessonId);
+    const completedSections = existing?.completedSections ? [...existing.completedSections] : [];
+    if (params.completedStepId && !completedSections.includes(params.completedStepId)) {
+      completedSections.push(params.completedStepId);
     }
 
     const isOfficialTest = params.testType === 'test' || !params.testType;
-
-    if (isOfficialTest) {
-      if (!completedLessons.includes(params.lessonId)) {
-        completedLessons.push(params.lessonId);
-      }
-      if (!completedSteps.includes('sec_4')) completedSteps.push('sec_4');
-      if (!completedSteps.includes('sec_5')) completedSteps.push('sec_5');
-    } else {
-      if (!completedSteps.includes('sec_3')) completedSteps.push('sec_3');
-    }
-
-    const updates: Partial<FirestoreStudent> = {
-      uid: params.uid,
-      scores,
-      completedSteps,
-      assessmentCount: scores.length,
-      lastActiveAt: new Date().toISOString()
+    const updates: Partial<FirestoreLessonProgress> = {
+      completedSections
     };
 
     if (isOfficialTest) {
-      updates.testScore = params.score;
-      updates.completedLessons = completedLessons;
-      updates.progressPercent = 100;
-      updates.status = 'completed';
-      updates.currentStepId = 'sec_5';
-      updates.currentStepTitle = '5. Hoàn thành & Kết quả';
+      updates.examScore = params.score;
+      updates.completedAt = new Date().toISOString();
+      if (params.score >= 5.0) {
+        updates.status = 'completed';
+        updates.progressPercent = 100;
+        if (!completedSections.includes('sec_4')) completedSections.push('sec_4');
+        if (!completedSections.includes('sec_5')) completedSections.push('sec_5');
+        updates.currentSection = 'sec_5';
+        updates.lastViewedSection = 'sec_5';
+      }
     } else {
       updates.practiceScore = params.score;
-      if ((current.progressPercent || 0) < 60) {
-        updates.progressPercent = 60;
-      }
+      if (!completedSections.includes('sec_3')) completedSections.push('sec_3');
+      updates.currentSection = 'sec_4';
+      updates.lastViewedSection = 'sec_4';
+      updates.progressPercent = Math.max(existing?.progressPercent || 0, 60);
     }
 
-    await setDoc(docRef, updates, { merge: true });
+    await saveLessonProgressToFirestore(params.uid, params.lessonId, updates);
   } catch (error) {
-    console.warn('Lỗi ghi điểm vào Firestore:', error);
+    console.warn('Lỗi recordStudentQuizScoreInFirestore:', error);
   }
 }
 
-/**
- * Tải hồ sơ học sinh trực tiếp từ Cloud Firestore
- */
-export async function getStudentProfileFromFirestore(uid: string): Promise<FirestoreStudent | null> {
-  try {
-    const docRef = doc(db, 'students', uid);
-    const snap = await getDoc(docRef);
-    if (snap.exists()) {
-      return snap.data() as FirestoreStudent;
-    }
-    return null;
-  } catch (error) {
-    console.warn('Lỗi lấy thông tin học sinh từ Firestore:', error);
-    return null;
-  }
+export async function getStudentFromFirestore(uid: string): Promise<any | null> {
+  const profile = await getUserProfileFromFirestore(uid);
+  return profile;
+}
+
+export async function updateExistingStudentLogin(
+  uid: string,
+  displayName: string,
+  email: string
+): Promise<any | null> {
+  return syncUserProfile({ uid, displayName, email });
 }

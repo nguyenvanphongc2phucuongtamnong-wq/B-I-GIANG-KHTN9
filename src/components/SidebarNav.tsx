@@ -46,7 +46,7 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
   const [mobileStagesMenuOpen, setMobileStagesMenuOpen] = useState(false);
 
   const lessonStages: { id: LessonStage; label: string; icon: any; color: string }[] = [
-    { id: 'sgk_learning', label: 'Bài học (5 mục chuẩn)', icon: BookOpen, color: 'text-blue-600' }
+    { id: 'sgk_learning', label: 'Bài học (4 tab chuẩn)', icon: BookOpen, color: 'text-blue-600' }
   ];
 
   const handleMobileSelectStage = (stageId: LessonStage) => {
@@ -128,7 +128,7 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
             {!isCollapsed && (
               <div className="px-2 pb-1 text-[10px] font-extrabold text-slate-400 uppercase tracking-wider flex items-center justify-between">
                 <span>Bài {activeLessonId}: Tiến Trình</span>
-                <span className="text-blue-600 font-bold">5 Mục Chuẩn</span>
+                <span className="text-blue-600 font-bold">4 Tab Chuẩn</span>
               </div>
             )}
 

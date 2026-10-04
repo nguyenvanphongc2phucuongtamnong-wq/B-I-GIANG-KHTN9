@@ -28,10 +28,23 @@ import {
   FINAL_ASSESSMENT_QUIZ_3 
 } from '../data/lesson3Data';
 
+import {
+  HOOK_SCENARIO_4,
+  KNOWLEDGE_CARDS_4,
+  CORE_SUMMARY_4,
+  MATCHING_PAIRS_LESSON_4,
+  DETECTIVE_MISSIONS_LESSON_4,
+  PRACTICE_QUESTIONS_4,
+  REAL_WORLD_APPLICATION_4,
+  EXTENSION_CONTENT_4,
+  FINAL_ASSESSMENT_QUIZ_4
+} from '../data/lesson4Data';
+
 import { 
   ESSAY_QUESTION_LESSON_1, 
   ESSAY_QUESTION_LESSON_2, 
-  ESSAY_QUESTION_LESSON_3 
+  ESSAY_QUESTION_LESSON_3,
+  ESSAY_QUESTION_LESSON_4 
 } from '../data/essayQuestions';
 
 import { EssayQuestion, PracticeQuestion } from '../types';
@@ -266,6 +279,28 @@ export const REGISTERED_LESSONS: RegisteredLesson[] = [
     finalQuiz: FINAL_ASSESSMENT_QUIZ_3,
     essay: ESSAY_QUESTION_LESSON_3,
   },
+  {
+    id: 4,
+    lessonKey: 'lesson_04',
+    lessonNumber: 4,
+    title: 'Bài 4: Công và công suất',
+    shortTitle: 'Công & Công Suất',
+    subtitle: 'Chương I: Năng lượng cơ học - Trang 21 SGK KHTN 9 (Kết nối tri thức)',
+    chapterNumber: 1,
+    chapterTitle: 'Chương I: Năng Lượng Cơ Học',
+    page: 21,
+    coreKnowledge: 'Công cơ học A = F·s (J); điều kiện sinh công và các trường hợp A = 0; công suất P = A/t = F·v (W, kW, HP); ý nghĩa số ghi công suất.',
+    hook: HOOK_SCENARIO_4,
+    knowledgeCards: KNOWLEDGE_CARDS_4,
+    matchingPairs: MATCHING_PAIRS_LESSON_4,
+    summary: CORE_SUMMARY_4,
+    games: DETECTIVE_MISSIONS_LESSON_4,
+    practice: PRACTICE_QUESTIONS_4,
+    realWorld: REAL_WORLD_APPLICATION_4,
+    extension: EXTENSION_CONTENT_4,
+    finalQuiz: FINAL_ASSESSMENT_QUIZ_4,
+    essay: ESSAY_QUESTION_LESSON_4,
+  },
 ];
 
 // =========================================================================
@@ -316,7 +351,8 @@ export function isLessonRegistered(lessonId: number | string): boolean {
 export function computeUnlockedLessonIds(completedLessons: (number | string)[] = []): number[] {
   const unlocked = new Set<number>([1]); // Bài 1 luôn mở
 
-  const normalizedCompleted = completedLessons.map(id => {
+  const safeCompleted = Array.isArray(completedLessons) ? completedLessons : [];
+  const normalizedCompleted = safeCompleted.map(id => {
     if (typeof id === 'number') return id;
     const match = String(id).match(/\d+/);
     return match ? parseInt(match[0], 10) : NaN;
@@ -359,8 +395,9 @@ export function calculateStudentOverallProgress(completedLessons: (number | stri
   displayText: string;
 } {
   const total = REGISTERED_LESSONS.length;
+  const safeCompleted = Array.isArray(completedLessons) ? completedLessons : [];
   const normalizedCompleted = Array.from(new Set(
-    completedLessons.map(id => {
+    safeCompleted.map(id => {
       if (typeof id === 'number') return id;
       const match = String(id).match(/\d+/);
       return match ? parseInt(match[0], 10) : NaN;

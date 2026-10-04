@@ -1483,5 +1483,637 @@ export const PendulumEnergySim: React.FC = () => {
   );
 };
 
+// ============================================================================
+// THÍ NGHIỆM ẢO: CÔNG CƠ HỌC & CÔNG SUẤT (BÀI 4 SGK KHTN 9 TRANG 21 - 24)
+// ============================================================================
+export const WorkPowerSim: React.FC = () => {
+  const [pullForce, setPullForce] = useState<number>(150); // N (50 - 300)
+  const [angleDeg, setAngleDeg] = useState<number>(0); // 0, 30, 60, 90 degrees
+  const [distance, setDistance] = useState<number>(6); // m (2 - 10)
+  const [timeDuration, setTimeDuration] = useState<number>(4); // s (2 - 8)
+  const [hasFriction, setHasFriction] = useState<boolean>(true); // Friction force = 30 N
+
+  const [isRunning, setIsRunning] = useState<boolean>(false);
+  const [progress, setProgress] = useState<number>(0); // 0 to 100%
+
+  // Calculations
+  const angleRad = (angleDeg * Math.PI) / 180;
+  const cosAlpha = Math.cos(angleRad);
+  const frictionForce = hasFriction ? 30 : 0;
+  
+  // Work by pulling force: A_F = F * s * cos(alpha)
+  const workForce = Math.round(pullForce * distance * cosAlpha);
+  // Work by gravity: A_P = 0 (since P is perpendicular to displacement)
+  const workGravity = 0;
+  // Work by friction: A_ms = - F_ms * s
+  const workFriction = -Math.round(frictionForce * distance);
+  // Total work
+  const totalWork = workForce + workFriction;
+  // Power: P = A_F / t
+  const powerWatts = Math.round(workForce / timeDuration);
+  const powerHp = (powerWatts / 746).toFixed(2);
+
+  const handleStartPull = () => {
+    if (isRunning) return;
+    setIsRunning(true);
+    setProgress(0);
+
+    const stepMs = 30;
+    const totalSteps = (timeDuration * 1000) / stepMs;
+    let currentStep = 0;
+
+    const timer = setInterval(() => {
+      currentStep++;
+      const currentProgress = Math.min(100, Math.round((currentStep / totalSteps) * 100));
+      setProgress(currentProgress);
+
+      if (currentStep >= totalSteps) {
+        clearInterval(timer);
+        setIsRunning(false);
+      }
+    }, stepMs);
+  };
+
+  const handleReset = () => {
+    setProgress(0);
+    setIsRunning(false);
+  };
+
+  return (
+    <div className="bg-slate-900 text-white p-5 rounded-2xl border border-slate-700 shadow-xl space-y-4">
+      {/* Header */}
+      <div className="flex flex-wrap items-center justify-between border-b border-slate-700 pb-3 gap-2">
+        <div className="flex items-center gap-2">
+          <span className="p-1.5 bg-amber-500/20 text-amber-400 rounded-lg">
+            <Zap className="w-5 h-5" />
+          </span>
+          <div>
+            <h4 className="font-bold text-slate-100 text-base">Thí nghiệm Ảo: Khảo Sát Công Cơ Học & Công Suất</h4>
+            <p className="text-xs text-slate-400">Hình 4.1 & Hình 4.2 SGK KHTN 9 (trang 21 - 22) • A = F · s và P = A / t</p>
+          </div>
+        </div>
+        <button
+          onClick={handleReset}
+          disabled={isRunning}
+          className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg flex items-center gap-1.5 border border-slate-700 disabled:opacity-50"
+        >
+          <RotateCcw className="w-3.5 h-3.5" /> Đặt lại
+        </button>
+      </div>
+
+      {/* Main Grid: Visual Simulation & Analysis */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+        {/* Visual Track (7 cols) */}
+        <div className="lg:col-span-7 bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3">
+          <div className="flex items-center justify-between text-xs text-slate-400">
+            <span>Mặt sàn nằm ngang (s = {distance} m)</span>
+            <span className="font-mono text-amber-400 font-bold">
+              Tiến độ: {progress}% (đã đi {(distance * (progress / 100)).toFixed(1)} m)
+            </span>
+          </div>
+
+          {/* SVG Canvas */}
+          <div className="relative h-48 bg-gradient-to-b from-slate-900/60 to-slate-950 rounded-lg p-2 border border-slate-800/80 overflow-hidden flex flex-col justify-end">
+            <svg width="100%" height="160" className="overflow-visible">
+              {/* Mặt sàn */}
+              <line x1="20" y1="120" x2="98%" y2="120" stroke="#64748b" strokeWidth="4" />
+              {/* Các vạch chia khoảng cách trên sàn */}
+              {[0, 25, 50, 75, 100].map((pct, idx) => (
+                <g key={idx} transform={`translate(${40 + (pct * 2.2)}, 120)`}>
+                  <line x1="0" y1="0" x2="0" y2="8" stroke="#94a3b8" strokeWidth="1.5" />
+                  <text x="-6" y="20" fill="#94a3b8" fontSize="9" fontFamily="monospace">
+                    {((distance * pct) / 100).toFixed(0)}m
+                  </text>
+                </g>
+              ))}
+
+              {/* Thùng hàng trượt */}
+              {(() => {
+                const boxX = 40 + (progress * 2.2);
+                const boxY = 70;
+                const boxW = 55;
+                const boxH = 48;
+                const centerBoxX = boxX + boxW / 2;
+                const centerBoxY = boxY + boxH / 2;
+
+                // Force vectors
+                const forceLen = 45;
+                const fVecX = centerBoxX + forceLen * Math.cos(angleRad);
+                const fVecY = centerBoxY - forceLen * Math.sin(angleRad);
+
+                return (
+                  <g>
+                    {/* Thùng hàng gỗ */}
+                    <rect
+                      x={boxX}
+                      y={boxY}
+                      width={boxW}
+                      height={boxH}
+                      rx="4"
+                      fill="#b45309"
+                      stroke="#f59e0b"
+                      strokeWidth="2"
+                    />
+                    {/* Họa tiết thùng hàng */}
+                    <line x1={boxX} y1={boxY} x2={boxX + boxW} y2={boxY + boxH} stroke="#78350f" strokeWidth="1.5" />
+                    <line x1={boxX + boxW} y1={boxY} x2={boxX} y2={boxY + boxH} stroke="#78350f" strokeWidth="1.5" />
+                    <text x={boxX + 10} y={boxY + 28} fill="#fde68a" fontSize="10" fontWeight="bold">
+                      20 kg
+                    </text>
+
+                    {/* Vector Lực kéo F */}
+                    <line
+                      x1={centerBoxX}
+                      y1={centerBoxY}
+                      x2={fVecX}
+                      y2={fVecY}
+                      stroke="#f59e0b"
+                      strokeWidth="3"
+                      markerEnd="url(#arrow-f)"
+                    />
+                    <text x={fVecX + 4} y={fVecY - 2} fill="#f59e0b" fontSize="11" fontWeight="bold">
+                      F = {pullForce}N ({angleDeg}°)
+                    </text>
+
+                    {/* Vector Trọng lực P (hướng thẳng đứng xuống) */}
+                    <line
+                      x1={centerBoxX}
+                      y1={centerBoxY}
+                      x2={centerBoxX}
+                      y2={centerBoxY + 38}
+                      stroke="#ef4444"
+                      strokeWidth="2"
+                      strokeDasharray="2 2"
+                    />
+                    <text x={centerBoxX + 4} y={centerBoxY + 36} fill="#ef4444" fontSize="9" fontWeight="bold">
+                      P (A=0)
+                    </text>
+
+                    {/* Vector Phản lực N (hướng thẳng đứng lên) */}
+                    <line
+                      x1={centerBoxX}
+                      y1={centerBoxY}
+                      x2={centerBoxX}
+                      y2={centerBoxY - 35}
+                      stroke="#a855f7"
+                      strokeWidth="2"
+                      strokeDasharray="2 2"
+                    />
+                    <text x={centerBoxX + 4} y={centerBoxY - 28} fill="#a855f7" fontSize="9" fontWeight="bold">
+                      N (A=0)
+                    </text>
+
+                    {/* Vector Lực ma sát F_ms (ngược hướng chuyển động) */}
+                    {hasFriction && (
+                      <g>
+                        <line
+                          x1={boxX}
+                          y1={boxY + boxH}
+                          x2={boxX - 28}
+                          y2={boxY + boxH}
+                          stroke="#ec4899"
+                          strokeWidth="2.5"
+                        />
+                        <text x={boxX - 42} y={boxY + boxH - 4} fill="#ec4899" fontSize="9" fontWeight="bold">
+                          Fms
+                        </text>
+                      </g>
+                    )}
+                  </g>
+                );
+              })()}
+            </svg>
+          </div>
+
+          {/* Special Science Insight Banner */}
+          {angleDeg === 90 ? (
+            <div className="p-2.5 rounded-lg bg-rose-950/80 border border-rose-600 text-xs text-rose-200 flex items-start gap-2">
+              <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+              <div>
+                <strong className="text-white">Hiện tượng đặc biệt SGK:</strong> Lực kéo vuông góc với sàn (α = 90°, cos 90° = 0) nên <strong>Công A_F = 0 Jun</strong>! Lực kéo không làm vật tăng tốc theo phương ngang nên KHÔNG SINH CÔNG!
+              </div>
+            </div>
+          ) : (
+            <div className="p-2.5 rounded-lg bg-emerald-950/60 border border-emerald-700 text-xs text-emerald-200 flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+              <span>
+                Lực kéo tạo góc {angleDeg}° với sàn: Công cơ học <strong>A = {workForce} J</strong>; Công suất <strong>P = {powerWatts} W</strong>.
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* Controls & Metrics Panel (5 cols) */}
+        <div className="lg:col-span-5 bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-4">
+          <div className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+            <Layers className="w-4 h-4 text-amber-500" /> Bảng Thông Số & Kết Quả Đo
+          </div>
+
+          {/* Live Data Cards */}
+          <div className="grid grid-cols-2 gap-2.5">
+            <div className="p-2.5 rounded-lg bg-slate-900 border border-slate-800">
+              <span className="text-[10px] text-slate-400 block">Công lực kéo (A):</span>
+              <span className="text-lg font-mono font-bold text-amber-400">{workForce} J</span>
+              <span className="text-[10px] text-slate-500 block">({(workForce / 1000).toFixed(2)} kJ)</span>
+            </div>
+
+            <div className="p-2.5 rounded-lg bg-slate-900 border border-slate-800">
+              <span className="text-[10px] text-slate-400 block">Công suất kéo (P):</span>
+              <span className="text-lg font-mono font-bold text-sky-400">{powerWatts} W</span>
+              <span className="text-[10px] text-slate-500 block">(≈ {powerHp} HP)</span>
+            </div>
+
+            <div className="p-2.5 rounded-lg bg-slate-900 border border-slate-800">
+              <span className="text-[10px] text-slate-400 block">Công trọng lực (A_P):</span>
+              <span className="text-sm font-mono font-bold text-rose-400">0 J (Vuông góc)</span>
+            </div>
+
+            <div className="p-2.5 rounded-lg bg-slate-900 border border-slate-800">
+              <span className="text-[10px] text-slate-400 block">Công cản ma sát:</span>
+              <span className="text-sm font-mono font-bold text-pink-400">{workFriction} J</span>
+            </div>
+          </div>
+
+          {/* Parameter Sliders */}
+          <div className="space-y-3 pt-1 border-t border-slate-800 text-xs">
+            {/* Lực kéo F */}
+            <div>
+              <div className="flex justify-between text-slate-300 mb-1">
+                <span>Lực kéo (F):</span>
+                <span className="font-mono font-bold text-amber-400">{pullForce} N</span>
+              </div>
+              <input
+                type="range"
+                min="50"
+                max="300"
+                step="25"
+                value={pullForce}
+                disabled={isRunning}
+                onChange={(e) => setPullForce(Number(e.target.value))}
+                className="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-amber-500"
+              />
+            </div>
+
+            {/* Góc kéo alpha */}
+            <div>
+              <div className="flex justify-between text-slate-300 mb-1">
+                <span>Góc hợp với phương ngang (α):</span>
+                <span className="font-mono font-bold text-indigo-400">{angleDeg}° (cos α = {cosAlpha.toFixed(2)})</span>
+              </div>
+              <div className="grid grid-cols-4 gap-1.5">
+                {[0, 30, 60, 90].map((deg) => (
+                  <button
+                    key={deg}
+                    onClick={() => setAngleDeg(deg)}
+                    disabled={isRunning}
+                    className={`py-1 rounded text-[11px] font-bold border ${
+                      angleDeg === deg
+                        ? 'bg-amber-600 border-amber-400 text-white'
+                        : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    {deg}°
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Quãng đường & Thời gian */}
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-[10px] text-slate-400 block mb-1">Quãng đường (s):</label>
+                <input
+                  type="range"
+                  min="2"
+                  max="10"
+                  step="1"
+                  value={distance}
+                  disabled={isRunning}
+                  onChange={(e) => setDistance(Number(e.target.value))}
+                  className="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+                />
+                <span className="text-[11px] font-mono text-emerald-400 font-bold">{distance} m</span>
+              </div>
+
+              <div>
+                <label className="text-[10px] text-slate-400 block mb-1">Thời gian (t):</label>
+                <input
+                  type="range"
+                  min="2"
+                  max="8"
+                  step="1"
+                  value={timeDuration}
+                  disabled={isRunning}
+                  onChange={(e) => setTimeDuration(Number(e.target.value))}
+                  className="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-sky-500"
+                />
+                <span className="text-[11px] font-mono text-sky-400 font-bold">{timeDuration} s</span>
+              </div>
+            </div>
+
+            {/* Toggle Lực ma sát */}
+            <div className="flex items-center justify-between pt-1">
+              <span className="text-[11px] text-slate-400">Lực ma sát sàn (30 N):</span>
+              <button
+                onClick={() => setHasFriction(!hasFriction)}
+                disabled={isRunning}
+                className={`text-[11px] px-2 py-0.5 rounded border font-medium ${
+                  hasFriction ? 'bg-pink-950/80 border-pink-600 text-pink-300' : 'bg-slate-800 border-slate-700 text-slate-400'
+                }`}
+              >
+                {hasFriction ? 'BẬT (30 N)' : 'TẮT (Mặt sàn trơn)'}
+              </button>
+            </div>
+          </div>
+
+          {/* Action Button */}
+          <button
+            onClick={handleStartPull}
+            disabled={isRunning}
+            className={`w-full py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-lg transition-all ${
+              isRunning
+                ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                : 'bg-amber-600 hover:bg-amber-500 text-white shadow-amber-900/40'
+            }`}
+          >
+            {isRunning ? '⏳ ĐANG KÉO HÒM HÀNG...' : `🚀 KÉO HÒM HÀNG ĐI ${distance} M`}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ============================================================================
+// THÍ NGHIỆM ẢO: CẦN CẨU NÂNG HÀNG & CÔNG SUẤT ĐỘNG CƠ (SGK TRANG 23 - 24)
+// ============================================================================
+export const CranePowerSim: React.FC = () => {
+  const [loadMass, setLoadMass] = useState<number>(500); // kg (200 - 1500)
+  const [liftHeight, setLiftHeight] = useState<number>(12); // m (5 - 20)
+  const [enginePowerKw, setEnginePowerKw] = useState<number>(6); // 3, 6, 12 kW
+
+  const [isLifting, setIsLifting] = useState<boolean>(false);
+  const [currentHeight, setCurrentHeight] = useState<number>(0);
+  const [elapsedTime, setElapsedTime] = useState<number>(0);
+
+  // Calculations
+  const g = 10; // m/s^2
+  const loadWeight = loadMass * g; // P_tl = m * g (N)
+  const totalWork = loadWeight * liftHeight; // A = P * h (J)
+  const enginePowerWatts = enginePowerKw * 1000; // P in W
+  const requiredTime = totalWork / enginePowerWatts; // t = A / P (s)
+  const liftSpeed = liftHeight / requiredTime; // v = P / F (m/s)
+
+  const handleStartLift = () => {
+    if (isLifting) return;
+    setIsLifting(true);
+    setCurrentHeight(0);
+    setElapsedTime(0);
+
+    const intervalMs = 40;
+    const totalSteps = (requiredTime * 1000) / intervalMs;
+    let step = 0;
+
+    const timer = setInterval(() => {
+      step++;
+      const currentH = Math.min(liftHeight, (step / totalSteps) * liftHeight);
+      const currentT = Math.min(requiredTime, (step * intervalMs) / 1000);
+      setCurrentHeight(currentH);
+      setElapsedTime(currentT);
+
+      if (step >= totalSteps) {
+        clearInterval(timer);
+        setIsLifting(false);
+      }
+    }, intervalMs);
+  };
+
+  const handleReset = () => {
+    setCurrentHeight(0);
+    setElapsedTime(0);
+    setIsLifting(false);
+  };
+
+  return (
+    <div className="bg-slate-900 text-white p-5 rounded-2xl border border-slate-700 shadow-xl space-y-4">
+      {/* Header */}
+      <div className="flex flex-wrap items-center justify-between border-b border-slate-700 pb-3 gap-2">
+        <div className="flex items-center gap-2">
+          <span className="p-1.5 bg-sky-500/20 text-sky-400 rounded-lg">
+            <Zap className="w-5 h-5" />
+          </span>
+          <div>
+            <h4 className="font-bold text-slate-100 text-base">Thí nghiệm Ảo: Cần Cẩu Nâng Khối Bê Tông & Khảo Sát Công Suất</h4>
+            <p className="text-xs text-slate-400">Hình 4.3 SGK KHTN 9 (trang 23) • So sánh tốc độ sinh công P = A / t giữa các động cơ</p>
+          </div>
+        </div>
+        <button
+          onClick={handleReset}
+          disabled={isLifting}
+          className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg flex items-center gap-1.5 border border-slate-700 disabled:opacity-50"
+        >
+          <RotateCcw className="w-3.5 h-3.5" /> Đặt lại
+        </button>
+      </div>
+
+      {/* Main Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+        {/* Crane Animation SVG (7 cols) */}
+        <div className="lg:col-span-7 bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3">
+          <div className="flex items-center justify-between text-xs text-slate-400">
+            <span>Cần cẩu tháp công trình cao tầng</span>
+            <span className="font-mono text-sky-400 font-bold">
+              Độ cao nâng: {currentHeight.toFixed(1)} / {liftHeight} m ({elapsedTime.toFixed(1)} s)
+            </span>
+          </div>
+
+          <div className="relative h-64 bg-slate-900/60 rounded-lg p-2 border border-slate-800 overflow-hidden flex flex-col justify-end">
+            <svg width="100%" height="240" className="overflow-visible">
+              {/* Mặt đất */}
+              <line x1="10" y1="210" x2="98%" y2="210" stroke="#475569" strokeWidth="4" />
+
+              {/* Tháp cần cẩu (Cột đứng) */}
+              <line x1="60" y1="210" x2="60" y2="30" stroke="#f59e0b" strokeWidth="6" />
+              {/* Giằng chéo tháp */}
+              <line x1="57" y1="180" x2="63" y2="150" stroke="#d97706" strokeWidth="2" />
+              <line x1="57" y1="140" x2="63" y2="110" stroke="#d97706" strokeWidth="2" />
+              <line x1="57" y1="100" x2="63" y2="70" stroke="#d97706" strokeWidth="2" />
+
+              {/* Tay cần ngang (Boom) */}
+              <line x1="20" y1="30" x2="88%" y2="30" stroke="#f59e0b" strokeWidth="5" />
+              {/* Buồng lái & Cáp néo đỉnh */}
+              <polygon points="50,30 60,10 70,30" fill="#f59e0b" />
+              <line x1="60" y1="10" x2="85%" y2="30" stroke="#cbd5e1" strokeWidth="1" strokeDasharray="3 3" />
+
+              {/* Xe con lăn trên tay cần */}
+              <rect x="180" y="24" width="24" height="12" rx="2" fill="#38bdf8" />
+
+              {/* Dây cáp tời rủ xuống và khối bê tông */}
+              {(() => {
+                const cableStartX = 192;
+                const cableStartY = 36;
+                const groundY = 210;
+                const maxLiftPx = 140; // Pixel range for liftHeight
+                const liftRatio = liftHeight > 0 ? currentHeight / liftHeight : 0;
+                const hookY = (groundY - 25) - (liftRatio * maxLiftPx);
+
+                return (
+                  <g>
+                    {/* Dây cáp kim loại */}
+                    <line
+                      x1={cableStartX}
+                      y1={cableStartY}
+                      x2={cableStartX}
+                      y2={hookY}
+                      stroke="#e2e8f0"
+                      strokeWidth="2"
+                    />
+                    {/* Móc cẩu */}
+                    <circle cx={cableStartX} cy={hookY} r="4" fill="#94a3b8" />
+
+                    {/* Dây xích giữ khối tải */}
+                    <line x1={cableStartX} y1={hookY} x2={cableStartX - 15} y2={hookY + 12} stroke="#94a3b8" strokeWidth="1.5" />
+                    <line x1={cableStartX} y1={hookY} x2={cableStartX + 15} y2={hookY + 12} stroke="#94a3b8" strokeWidth="1.5" />
+
+                    {/* Khối bê tông tải trọng */}
+                    <rect
+                      x={cableStartX - 25}
+                      y={hookY + 12}
+                      width="50"
+                      height="30"
+                      rx="3"
+                      fill="#64748b"
+                      stroke="#94a3b8"
+                      strokeWidth="1.5"
+                    />
+                    <text x={cableStartX - 20} y={hookY + 31} fill="#ffffff" fontSize="10" fontWeight="bold">
+                      {loadMass} kg
+                    </text>
+                  </g>
+                );
+              })()}
+
+              {/* Thước đo độ cao cạnh công trình */}
+              <line x1="280" y1="210" x2="280" y2="70" stroke="#475569" strokeWidth="2" strokeDasharray="2 2" />
+              <text x="286" y="208" fill="#94a3b8" fontSize="9">0m (Mặt đất)</text>
+              <text x="286" y="75" fill="#38bdf8" fontSize="9" fontWeight="bold">h = {liftHeight}m</text>
+            </svg>
+          </div>
+
+          <div className="bg-slate-900 p-2.5 rounded-lg border border-slate-800 text-xs text-slate-300 flex items-center justify-between">
+            <span className="flex items-center gap-1.5">
+              <span className={`w-2 h-2 rounded-full ${isLifting ? 'bg-amber-400 animate-ping' : 'bg-emerald-400'}`} />
+              Trạng thái: <strong className="text-white">{isLifting ? 'ĐANG NÂNG TẢI...' : currentHeight >= liftHeight ? 'HOÀN THÀNH ĐỘ CAO' : 'CHỜ LỆNH NÂNG'}</strong>
+            </span>
+            <span className="font-mono text-amber-400">
+              Vận tốc kéo: <strong>{liftSpeed.toFixed(2)} m/s</strong>
+            </span>
+          </div>
+        </div>
+
+        {/* Controls & Power Engine Selection (5 cols) */}
+        <div className="lg:col-span-5 bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-4">
+          <div className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+            <Zap className="w-4 h-4 text-sky-400" /> Chọn Động Cơ & Tải Trọng
+          </div>
+
+          {/* Engine Selector */}
+          <div>
+            <label className="text-[11px] text-slate-400 block mb-1.5">Chọn loại Động cơ Cần cẩu:</label>
+            <div className="grid grid-cols-3 gap-1.5">
+              {[
+                { kw: 3, label: 'ĐC 3 kW', desc: 'Mini' },
+                { kw: 6, label: 'ĐC 6 kW', desc: 'Tiêu chuẩn' },
+                { kw: 12, label: 'ĐC 12 kW', desc: 'Siêu tốc' },
+              ].map((eng) => (
+                <button
+                  key={eng.kw}
+                  onClick={() => setEnginePowerKw(eng.kw)}
+                  disabled={isLifting}
+                  className={`p-2 rounded-lg text-center border transition-all ${
+                    enginePowerKw === eng.kw
+                      ? 'bg-sky-950/80 border-sky-400 text-sky-200 shadow-sm'
+                      : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  <div className="font-bold text-xs">{eng.label}</div>
+                  <div className="text-[9px] text-slate-500">{eng.desc}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Load & Height Sliders */}
+          <div className="space-y-3 pt-1 border-t border-slate-800 text-xs">
+            <div>
+              <div className="flex justify-between text-slate-300 mb-1">
+                <span>Khối lượng hàng nâng (m):</span>
+                <span className="font-mono font-bold text-amber-400">{loadMass} kg (P = {loadWeight} N)</span>
+              </div>
+              <input
+                type="range"
+                min="200"
+                max="1500"
+                step="100"
+                value={loadMass}
+                disabled={isLifting}
+                onChange={(e) => setLoadMass(Number(e.target.value))}
+                className="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-amber-500"
+              />
+            </div>
+
+            <div>
+              <div className="flex justify-between text-slate-300 mb-1">
+                <span>Độ cao cần nâng (h):</span>
+                <span className="font-mono font-bold text-emerald-400">{liftHeight} m</span>
+              </div>
+              <input
+                type="range"
+                min="5"
+                max="20"
+                step="1"
+                value={liftHeight}
+                disabled={isLifting}
+                onChange={(e) => setLiftHeight(Number(e.target.value))}
+                className="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+              />
+            </div>
+          </div>
+
+          {/* Results Summary Box */}
+          <div className="p-3 rounded-lg bg-slate-900 border border-slate-800 space-y-2 text-xs">
+            <div className="flex justify-between">
+              <span className="text-slate-400">Công cơ học cần sinh (A = P·h):</span>
+              <span className="font-mono font-bold text-amber-400">{totalWork.toLocaleString()} J ({(totalWork / 1000).toFixed(1)} kJ)</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-400">Công suất động cơ (P):</span>
+              <span className="font-mono font-bold text-sky-400">{enginePowerKw} kW ({enginePowerWatts} W)</span>
+            </div>
+            <div className="flex justify-between border-t border-slate-800 pt-1.5">
+              <span className="text-slate-300 font-semibold">Thời gian nâng lý thuyết (t = A/P):</span>
+              <span className="font-mono font-bold text-emerald-400">{requiredTime.toFixed(1)} giây</span>
+            </div>
+          </div>
+
+          {/* Action Button */}
+          <button
+            onClick={handleStartLift}
+            disabled={isLifting}
+            className={`w-full py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-lg transition-all ${
+              isLifting
+                ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                : 'bg-sky-600 hover:bg-sky-500 text-white shadow-sky-900/40'
+            }`}
+          >
+            {isLifting ? '⏳ ĐANG VẬN HÀNH NÂNG HÀNG...' : `🏗️ BẮT ĐẦU NÂNG HÀNG LÊN ${liftHeight} M`}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+
 
 

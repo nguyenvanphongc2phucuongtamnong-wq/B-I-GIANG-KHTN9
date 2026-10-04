@@ -249,7 +249,7 @@ export const FinalQuiz: React.FC<FinalQuizProps> = ({
 
             {/* Shuffled Options */}
             <div className="space-y-3">
-              {currentShuffled.options.map((opt, idx) => {
+              {(currentShuffled?.options || []).map((opt, idx) => {
                 const isSelected = selectedAnswers[currentQ.id] === opt.id;
                 const optLetter = String.fromCharCode(65 + idx);
 

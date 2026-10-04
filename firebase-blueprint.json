@@ -1,29 +1,66 @@
 {
   "entities": {
+    "User": {
+      "title": "User",
+      "description": "Hồ sơ người dùng (học sinh hoặc giáo viên) theo Firebase UID duy nhất",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Firebase Auth UID của người dùng" },
+        "email": { "type": "string", "format": "email", "description": "Email Google của người dùng" },
+        "displayName": { "type": "string", "description": "Họ và tên thật từ Google" },
+        "photoURL": { "type": "string", "description": "Ảnh đại diện Google" },
+        "role": { "type": "string", "enum": ["student", "teacher"], "description": "Vai trò người dùng" },
+        "classId": { "type": "string", "description": "Lớp học (9A1 - 9A8)" },
+        "createdAt": { "type": "string", "description": "Thời điểm tạo hồ sơ" },
+        "lastLoginAt": { "type": "string", "description": "Thời điểm đăng nhập gần nhất" }
+      },
+      "required": ["uid", "email", "displayName", "role"]
+    },
+    "LessonProgress": {
+      "title": "LessonProgress",
+      "description": "Tiến trình học tập chi tiết của từng bài học",
+      "type": "object",
+      "properties": {
+        "lessonId": { "type": "number", "description": "Mã bài học" },
+        "status": { "type": "string", "enum": ["not_started", "in_progress", "completed"], "description": "Trạng thái bài học" },
+        "progressPercent": { "type": "number", "description": "Phần trăm hoàn thành bài học" },
+        "currentSection": { "type": "string", "description": "Phần đang học (sec_1 .. sec_5)" },
+        "lastViewedSection": { "type": "string", "description": "Phần cuối cùng đã mở" },
+        "startedAt": { "type": "string", "description": "Thời điểm bắt đầu học" },
+        "lastUpdatedAt": { "type": "string", "description": "Thời điểm cập nhật gần nhất" },
+        "completedAt": { "type": "string", "description": "Thời điểm hoàn thành bài học" }
+      },
+      "required": ["lessonId", "status", "progressPercent", "currentSection", "lastViewedSection"]
+    },
     "Student": {
       "title": "Student",
-      "description": "Hồ sơ và kết quả học tập của học sinh KHTN 9",
+      "description": "Hồ sơ và kết quả học tập của học sinh KHTN 9 (legacy)",
       "type": "object",
       "properties": {
         "uid": { "type": "string", "description": "Firebase Auth UID của học sinh" },
         "displayName": { "type": "string", "description": "Họ và tên thật của học sinh từ Google" },
         "email": { "type": "string", "format": "email", "description": "Email Google của học sinh" },
         "classId": { "type": "string", "description": "Lớp học (9A1 - 9A8)" },
-        "role": { "type": "string", "enum": ["STUDENT"], "description": "Vai trò của học sinh" },
+        "role": { "type": "string", "enum": ["STUDENT", "student"], "description": "Vai trò của học sinh" },
         "createdAt": { "type": "string", "description": "Thời điểm tạo hồ sơ" },
         "lastLoginAt": { "type": "string", "description": "Thời điểm đăng nhập gần nhất" },
-        "progressPercent": { "type": "number", "description": "Tiến độ học tập tổng thể (%)" },
-        "completedLessons": { "type": "array", "description": "Danh sách mã bài học đã hoàn thành" },
-        "scores": { "type": "array", "description": "Danh sách điểm các bài kiểm tra" },
-        "assessmentCount": { "type": "number", "description": "Số bài kiểm tra đã làm" }
+        "progressPercent": { "type": "number", "description": "Tiến độ học tập tổng thể (%)" }
       },
       "required": ["uid", "displayName", "email", "classId", "role"]
     }
   },
   "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Collection lưu thông tin người dùng (1 UID = 1 document duy nhất)"
+    },
+    "/studentProgress/{userId}/lessons/{lessonId}": {
+      "schema": "LessonProgress",
+      "description": "Tiến trình chi tiết của từng bài học cho mỗi học sinh"
+    },
     "/students/{studentId}": {
       "schema": "Student",
-      "description": "Collection chứa danh sách và tiến độ học tập của từng học sinh"
+      "description": "Collection legacy đồng bộ"
     }
   }
 }

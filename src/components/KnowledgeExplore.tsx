@@ -281,21 +281,23 @@ export const KnowledgeExplore: React.FC<KnowledgeExploreProps> = ({
         )}
 
         {/* 4. Practical Examples */}
-        <div className="space-y-2">
-          <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-            4. Ví dụ thực hành:
-          </div>
+        {currentCard.examples && currentCard.examples.length > 0 && (
           <div className="space-y-2">
-            {currentCard.examples.map((ex, idx) => (
-              <div key={idx} className="flex items-start gap-2 text-xs text-slate-700 bg-slate-50/80 p-3 rounded-lg border border-slate-200">
-                <span className="text-blue-600 font-bold">
-                  ✓
-                </span>
-                <span>{ex}</span>
-              </div>
-            ))}
+            <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+              4. Ví dụ thực hành:
+            </div>
+            <div className="space-y-2">
+              {currentCard.examples.map((ex, idx) => (
+                <div key={idx} className="flex items-start gap-2 text-xs text-slate-700 bg-slate-50/80 p-3 rounded-lg border border-slate-200">
+                  <span className="text-blue-600 font-bold">
+                    ✓
+                  </span>
+                  <span>{ex}</span>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* 5. Quick Check with Shuffled Options A/B/C/D */}
         <div className="p-5 bg-slate-50/80 rounded-xl border border-slate-200 space-y-4">

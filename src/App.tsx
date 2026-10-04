@@ -48,9 +48,11 @@ import { isAuthorizedTeacherEmail } from './config/authConfig';
 import { recordQuizAttempt, registerStudentInDirectory } from './services/studentService';
 import { apiSyncLegacyStudents, apiGetStudentDetails } from './services/apiService';
 import { 
-  saveAndVerifyStudentInFirestore, 
-  recordStudentQuizScoreInFirestore, 
-  signOutFirebase 
+  signOutFirebase, 
+  subscribeToAuthChanges,
+  syncUserProfile,
+  updateUserClassInFirestore,
+  getStudentAllLessonsProgress
 } from './services/firebaseService';
 import { 
   getAllRegisteredLessons, 
@@ -64,47 +66,100 @@ import {
 } from './services/lessonRegistry';
 
 export default function App() {
-  // User & Authentication state (strictly authenticated via email)
-  const [currentUser, setCurrentUser] = useState<UserAccount | null>(() => {
-    const saved = localStorage.getItem('khtn9_user_profile');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved) as UserAccount;
-        if (!parsed || !parsed.email) return null;
+  const [authLoading, setAuthLoading] = useState<boolean>(true);
+  const [currentUser, setCurrentUser] = useState<UserAccount | null>(null);
 
-        // QUY TẮC BẢO MẬT BẮT BUỘC:
-        // Vai trò được xác định bằng email, không cho phép học sinh tự nhận quyền giáo viên
-        const isTeacher = isAuthorizedTeacherEmail(parsed.email);
-        if (isTeacher) {
-          parsed.role = 'teacher';
-        } else {
-          parsed.role = 'student';
-          // Tự động tính toán các bài được mở khóa dựa trên dữ liệu hoàn thành
-          const autoUnlocked = computeUnlockedLessonIds(parsed.completedLessonIds || []);
-          parsed.unlockedLessonIds = Array.from(new Set([...(parsed.unlockedLessonIds || [1]), ...autoUnlocked]));
-        }
-        return parsed;
-      } catch (e) {
-        return null;
-      }
-    }
-    return null;
-  });
-
-  // Tự động đồng bộ các học sinh từ localStorage lên Database chung (QUY TẮC XIV: MIGRATION)
+  // Tự động khôi phục phiên Firebase Authentication & tiến trình học tập (Lỗi 1, 2, 3)
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem('khtn9_students_registry');
-      if (raw) {
-        const registry = JSON.parse(raw);
-        const legacyStudents = Object.values(registry) as UserAccount[];
-        if (legacyStudents.length > 0) {
-          apiSyncLegacyStudents(legacyStudents).catch(e => console.warn('Lỗi migration:', e));
+    let isMounted = true;
+
+    const unsubscribe = subscribeToAuthChanges(async (firebaseUser) => {
+      if (!firebaseUser) {
+        if (isMounted) {
+          setCurrentUser(null);
+          setAuthLoading(false);
+        }
+        return;
+      }
+
+      try {
+        const email = (firebaseUser.email || '').trim().toLowerCase();
+        const isTeacher = isAuthorizedTeacherEmail(email);
+
+        // 1. Đồng bộ / Khôi phục User Profile từ collection "users/{uid}" (1 UID = 1 document)
+        const profile = await syncUserProfile({
+          uid: firebaseUser.uid,
+          email,
+          displayName: firebaseUser.displayName || '',
+          photoURL: firebaseUser.photoURL || ''
+        });
+
+        // 2. Khôi phục toàn bộ tiến trình các bài học từ subcollection "studentProgress/{uid}/lessons"
+        const lessonsProgress = await getStudentAllLessonsProgress(firebaseUser.uid);
+
+        const completedLessonIds: number[] = [];
+        let latestActiveLessonId = 1;
+        let latestTimestamp = 0;
+
+        Object.values(lessonsProgress).forEach((lp) => {
+          if (lp.status === 'completed' || (lp.examScore !== null && lp.examScore !== undefined && lp.examScore >= 5.0)) {
+            if (!completedLessonIds.includes(lp.lessonId)) {
+              completedLessonIds.push(lp.lessonId);
+            }
+          }
+          const t = lp.lastUpdatedAt ? new Date(lp.lastUpdatedAt).getTime() : 0;
+          if (t >= latestTimestamp) {
+            latestTimestamp = t;
+            latestActiveLessonId = lp.lessonId;
+          }
+        });
+
+        const autoUnlocked = computeUnlockedLessonIds(completedLessonIds);
+
+        // Đảm bảo activeLessonId thuộc danh sách mở khóa
+        if (!autoUnlocked.includes(latestActiveLessonId)) {
+          latestActiveLessonId = Math.max(...autoUnlocked, 1);
+        }
+
+        const userAccount: UserAccount = {
+          id: firebaseUser.uid,
+          email,
+          name: profile.displayName || firebaseUser.displayName || email.split('@')[0],
+          avatar: profile.photoURL || firebaseUser.photoURL || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80',
+          role: isTeacher ? 'teacher' : 'student',
+          gradeClass: profile.classId || '',
+          school: 'Trường THCS Phú Ninh',
+          joinDate: profile.createdAt ? new Date(profile.createdAt).toLocaleDateString('vi-VN') : new Date().toLocaleDateString('vi-VN'),
+          xp: 0,
+          streakDays: 1,
+          unlockedLessonIds: autoUnlocked,
+          completedLessonIds,
+          currentLessonId: latestActiveLessonId,
+          quizRecords: {},
+          badges: isTeacher ? ['teacher_mentor', 'lab_master'] : ['learner_bronze']
+        };
+
+        if (isMounted) {
+          setCurrentUser(userAccount);
+          setActiveLessonId(latestActiveLessonId);
+          setUnlockedLessonIds(autoUnlocked);
+          if (isTeacher) {
+            setCurrentTab('teacher_dashboard');
+          }
+          setAuthLoading(false);
+        }
+      } catch (err) {
+        console.error('Lỗi khi khôi phục session Firebase:', err);
+        if (isMounted) {
+          setAuthLoading(false);
         }
       }
-    } catch (e) {
-      console.warn('Lỗi đọc legacy students:', e);
-    }
+    });
+
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
   }, []);
 
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
@@ -307,46 +362,28 @@ export default function App() {
     }
 
     try {
-      // BƯỚC 1: GHI DỮ LIỆU THẬT VÀO CLOUD FIRESTORE & ĐỌC LẠI XÁC NHẬN (Yêu cầu 4, 5, 6, 7)
-      const saveResult = await saveAndVerifyStudentInFirestore({
-        uid: currentUser.id,
-        displayName: currentUser.name,
-        email: currentUser.email,
-        classId: selectedClass
-      });
-
-      if (!saveResult.success || !saveResult.student) {
-        // NẾU THẤT BẠI: Hiển thị đúng câu lỗi bắt buộc và KHÔNG cho vào học (Yêu cầu 7)
+      // Ghi classId trực tiếp vào users/{uid} trên Cloud Firestore
+      const ok = await updateUserClassInFirestore(currentUser.id, selectedClass);
+      if (!ok) {
         return { 
           success: false, 
-          message: saveResult.message || 'Không thể lưu thông tin học sinh. Vui lòng thử lại.' 
+          message: 'Không thể lưu thông tin học sinh. Vui lòng thử lại.' 
         };
       }
 
-      const verified = saveResult.student;
-
-      // BƯỚC 2: CẬP NHẬT TRẠNG THÁI SAU KHI XÁC NHẬN GHI THÀNH CÔNG (Yêu cầu 6)
       const updatedUser: UserAccount = {
         ...currentUser,
-        id: verified.uid,
-        name: verified.displayName || currentUser.name,
-        role: 'student',
-        gradeClass: selectedClass,
-        completedLessonIds: verified.completedLessons || [],
-        currentLessonId: 1,
-        xp: 0
+        gradeClass: selectedClass
       };
 
       if (updatedUser.email) {
         localStorage.setItem(`khtn9_student_${updatedUser.email.trim().toLowerCase()}`, JSON.stringify(updatedUser));
       }
       localStorage.setItem('khtn9_user_profile', JSON.stringify(updatedUser));
-      registerStudentInDirectory(updatedUser);
 
-      // Đợi 600ms để học sinh thấy thông báo thành công
-      await new Promise((r) => setTimeout(r, 600));
+      // Đợi 400ms để học sinh thấy thông báo thành công
+      await new Promise((r) => setTimeout(r, 400));
 
-      // BƯỚC 3: CHỈ KHI THÀNH CÔNG MỚI CHO HỌC SINH VÀO TRANG HỌC (Yêu cầu 6)
       setCurrentUser(updatedUser);
       return { success: true };
     } catch (err: any) {
@@ -375,7 +412,26 @@ export default function App() {
     }
   };
 
-  // 🚨 QUY TẮC 1: NẾU CHƯA ĐĂNG NHẬP (authenticated === false)
+  // 🚨 QUY TẮC BẮT BUỘC (Lỗi 3): Khi app vừa mở, chờ Firebase xác định session
+  // authLoading = true -> hiển thị loading, không kết luận vội là đã đăng xuất
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-4">
+        <div className="text-center space-y-4">
+          <div className="w-16 h-16 rounded-2xl bg-blue-600 text-white flex items-center justify-center mx-auto shadow-lg shadow-blue-500/30 animate-pulse">
+            <GraduationCap className="w-9 h-9" />
+          </div>
+          <div className="space-y-1">
+            <h2 className="text-lg font-bold text-white tracking-tight">KHOA HỌC TỰ NHIÊN 9</h2>
+            <p className="text-sm text-slate-400">Đang khôi phục phiên đăng nhập...</p>
+          </div>
+          <div className="w-8 h-8 border-3 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto" />
+        </div>
+      </div>
+    );
+  }
+
+  // 🚨 QUY TẮC 1: NẾU CHƯA ĐĂNG NHẬP (authenticated === false sau khi Firebase xác định)
   // Chỉ hiển thị màn hình Đăng nhập bằng Google
   if (!currentUser) {
     return <LoginScreen onLogin={handleLogin} />;

@@ -37,7 +37,7 @@ export const ExtensionStage: React.FC<ExtensionStageProps> = ({
 
       {/* Extension Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {extension.topics.map((topic, idx) => (
+        {(extension?.topics || []).map((topic, idx) => (
           <div 
             key={idx}
             className="bg-white rounded-2xl p-5 border border-slate-200 shadow-xs space-y-3 flex flex-col justify-between hover:border-slate-300 transition-colors"

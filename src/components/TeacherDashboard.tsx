@@ -905,7 +905,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                 </div>
                 <div className="bg-white p-3 rounded-xl border border-slate-200">
                   <div className="text-[11px] text-slate-500 font-medium">Số bài hoàn thành</div>
-                  <div className="text-base font-extrabold text-purple-600 mt-1">{selectedStudent.completedLessonIds.length}/{getTotalRegisteredLessons()} bài</div>
+                  <div className="text-base font-extrabold text-purple-600 mt-1">{(selectedStudent.completedLessonIds || []).length}/{getTotalRegisteredLessons()} bài</div>
                 </div>
                 <div className="bg-white p-3 rounded-xl border border-slate-200">
                   <div className="text-[11px] text-slate-500 font-medium">Tiến độ tổng thể</div>
@@ -927,10 +927,9 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                 <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
                   {[
                     { id: 'sec_1', num: 1, title: '1. Khởi động', desc: 'Tình huống mở đầu & Đố vui tương tác' },
-                    { id: 'sec_2', num: 2, title: '2. Hình thành kiến thức', desc: 'Bám sát thứ tự SGK: I.1 Quang học, I.2 Điện từ, I.3 Hoá chất, II.1 Báo cáo, II.2 Thuyết trình' },
+                    { id: 'sec_2', num: 2, title: '2. Hình thành kiến thức', desc: 'Bám sát thứ tự SGK, thí nghiệm ảo & câu hỏi tương tác' },
                     { id: 'sec_3', num: 3, title: '3. Luyện tập', desc: '10 câu trắc nghiệm đủ 3 mức độ (Biết, Hiểu, Vận dụng)' },
-                    { id: 'sec_4', num: 4, title: '4. Kiểm tra', desc: 'Thang điểm 10 chuẩn: 8 trắc nghiệm (4đ) + 4 tự luận (6đ)' },
-                    { id: 'sec_5', num: 5, title: '5. Hoàn thành & Kết quả', desc: 'Tổng kết năng lực, chứng chỉ bài học' }
+                    { id: 'sec_4', num: 4, title: '4. Kiểm tra & Tổng kết', desc: 'Thang điểm 10 chuẩn: 8 trắc nghiệm (4đ) + 4 tự luận (6đ) & Báo cáo năng lực' }
                   ].map((sec) => {
                     const isDone = selectedStudent.completedSteps?.includes(sec.id) || 
                       selectedStudent.status === 'completed' ||

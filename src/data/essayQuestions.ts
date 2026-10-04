@@ -165,3 +165,61 @@ export const ESSAY_QUESTION_LESSON_3: EssayQuestion = {
 - Lượng cơ năng bị hao phí này không mất đi mà đã chuyển hoá thành nhiệt năng (làm nóng bánh xe toa tàu, thanh ray và không khí xung quanh) cùng năng lượng âm thanh (tiếng rít cọ xát).`
 };
 
+export const ESSAY_QUESTION_LESSON_4: EssayQuestion = {
+  id: 'essay-lesson-4',
+  title: 'Tự luận Vận dụng Thực tiễn: Tính Toán Công & Công Suất Cần Cẩu Xây Dựng',
+  level: 'van_dung',
+  levelName: 'Mức 3: Vận dụng thực tế',
+  points: 3.0,
+  context: 'Tại công trường xây dựng một toà chung cư cao tầng, một chiếc cần cẩu tháp sử dụng động cơ điện kéo một thùng vữa bê tông có khối lượng m = 1 200 kg chuyển động thẳng đều từ mặt đất lên sàn tầng 6 ở độ cao h = 18 m trong khoảng thời gian t = 36 giây. Lấy gia tốc trọng trường g = 10 m/s². Bỏ qua lực cản của không khí và ma sát ở các ròng rọc.',
+  question: `Hãy hoàn thành 3 yêu cầu kĩ thuật sau:\n1. Tính độ lớn lực kéo của sợi dây cáp cần cẩu và tính công cơ học mà động cơ cần cẩu đã thực hiện để nâng thùng bê tông lên độ cao 18 m (theo đơn vị kJ).\n2. Tính công suất có ích của động cơ cần cẩu trong quá trình nâng. Nêu ý nghĩa con số công suất tính được.\n3. Khi thùng bê tông đã lên đến sàn tầng 6 và dừng lại, cần cẩu quay tay cần sang ngang để di chuyển thùng bê tông theo phương ngang một đoạn s = 8 m với vận tốc không đổi. Hãy cho biết trong quá trình dịch chuyển ngang này, trọng lực của thùng bê tông có sinh công không? Giải thích rõ lí do theo định nghĩa công cơ học.`,
+  guidelines: [
+    'Phần 1 (1.0 điểm): Tính đúng lực kéo F = P = m·g = 12 000 N. Công nâng A = F·h = 216 000 J = 216 kJ.',
+    'Phần 2 (1.0 điểm): Tính công suất P = A / t = 216 000 / 36 = 6 000 W = 6 kW. Nêu đúng ý nghĩa: Mỗi giây động cơ sinh công 6 000 J.',
+    'Phần 3 (1.0 điểm): Khẳng định trọng lực KHÔNG sinh công (A = 0) vì phương của trọng lực (thẳng đứng hướng xuống) vuông góc với phương dịch chuyển nằm ngang (alpha = 90°, cos 90° = 0).'
+  ],
+  rubric: [
+    {
+      id: 'r1',
+      criterion: 'Tính Lực kéo và Công của cần cẩu',
+      maxPoints: 1.0,
+      description: 'Nêu F_kéo = P = 12 000 N; công A = F · h = 12 000 · 18 = 216 000 J = 216 kJ.',
+      keywords: ['12000', '12 000', '216000', '216 kJ', 'công']
+    },
+    {
+      id: 'r2',
+      criterion: 'Tính Công suất và Giải thích ý nghĩa',
+      maxPoints: 1.0,
+      description: 'P = A / t = 216 000 / 36 = 6 000 W = 6 kW; giải thích: Trong mỗi 1 giây động cơ thực hiện một công 6 000 J.',
+      keywords: ['6000', '6 kW', 'mỗi giây', '6 000 J', 'công suất']
+    },
+    {
+      id: 'r3',
+      criterion: 'Phân tích công của trọng lực khi dịch chuyển ngang',
+      maxPoints: 1.0,
+      description: 'Khẳng định A = 0; giải thích vì phương trọng lực thẳng đứng vuông góc với phương dịch chuyển ngang nên không sinh công cơ học.',
+      keywords: ['không sinh công', 'bằng 0', 'vuông góc', 'A = 0', 'thẳng đứng', 'nằm ngang']
+    }
+  ],
+  sampleAnswer: `1. Lực kéo của dây cáp và công cơ học của cần cẩu:
+- Do thùng vữa bê tông được kéo chuyển động thẳng đều nên lực kéo của dây cáp cân bằng với trọng lượng của vật:
+  F_kéo = P_vật = m · g = 1 200 · 10 = 12 000 N.
+- Công cơ học mà động cơ cần cẩu thực hiện khi nâng thùng hàng lên cao h = 18 m:
+  A = F_kéo · h = 12 000 · 18 = 216 000 J = 216 kJ.
+
+2. Công suất có ích của động cơ cần cẩu và ý nghĩa vật lí:
+- Áp dụng công thức tính công suất:
+  P = A / t = 216 000 / 36 = 6 000 W = 6 kW.
+- Ý nghĩa vật lí của con số 6 kW (6 000 W):
+  Công suất 6 000 W cho biết tốc độ thực hiện công của động cơ cần cẩu, nghĩa là cứ trong mỗi 1 giây hoạt động bình thường, động cơ cần cẩu có khả năng sinh ra một công cơ học là 6 000 Jun để kéo vật.
+
+3. Phân tích công của trọng lực khi thùng bê tông di chuyển theo phương ngang:
+- Trong quá trình thùng bê tông chuyển động theo phương ngang, trọng lực của thùng bê tông KHÔNG SINH CÔNG CƠ HỌC (A = 0 J).
+- Giải thích bản chất vật lí:
+  Theo định nghĩa, công cơ học chỉ xuất hiện khi lực tác dụng có phương không vuông góc với phương dịch chuyển. Ở đây:
+  + Trọng lực P luôn có phương thẳng đứng, hướng từ trên xuống dưới.
+  + Thùng bê tông dịch chuyển theo phương nằm ngang.
+  Do phương của trọng lực VUÔNG GÓC với phương chuyển dời của vật (góc α = 90°, cos 90° = 0), lực không làm vật tăng tốc hay dời chỗ theo phương thẳng đứng nên trọng lực không sinh công.`
+};
+
+

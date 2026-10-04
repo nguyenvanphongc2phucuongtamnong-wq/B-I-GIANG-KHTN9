@@ -40,7 +40,7 @@ export interface SgkTopicItem {
   coreSummary: string[];
   exampleTitle: string;
   exampleText: string;
-  simulation?: 'optics' | 'galvanometer' | 'chemistry' | 'kinetic_ramp' | 'potential_gravity' | 'mechanical_energy' | 'pendulum_energy';
+  simulation?: 'optics' | 'galvanometer' | 'chemistry' | 'kinetic_ramp' | 'potential_gravity' | 'mechanical_energy' | 'pendulum_energy' | 'work_power' | 'crane_power';
   quickQuiz: {
     question: string;
     options: SgkQuestionOption[];
@@ -1455,8 +1455,374 @@ export const LESSON_3_DATA: SgkLessonPackage = {
   ]
 };
 
-// Hàm lấy dữ liệu bài học theo ID (hỗ trợ Bài 1, Bài 2 và Bài 3 bám sát SGK)
+// ============================================================================
+// BÀI 4: CÔNG VÀ CÔNG SUẤT (SGK KHTN 9 TRANG 21 - 24)
+// ============================================================================
+export const LESSON_4_DATA: SgkLessonPackage = {
+  id: 4,
+  title: 'BÀI 4: CÔNG VÀ CÔNG SUẤT',
+  shortTitle: 'Bài 4: Công và công suất',
+  chapterTitle: 'CHƯƠNG I: NĂNG LƯỢNG CƠ HỌC • SGK KHTN 9 (KẾT NỐI TRI THỨC VỚI CUỘC SỐNG)',
+  pageInfo: 'SGK trang 21 - 24',
+  warmup: {
+    scenarioTitle: 'Tình huống mở đầu SGK trang 21: Ai mới thực sự sinh công?',
+    scenarioText: 'Trong đời sống, một người gắng hết sức đẩy một bức tường bê tông kiên cố suốt 15 phút, mồ hôi ướt đẫm, cơ bắp căng mỏi nhưng bức tường không hề xê dịch 1 mm nào. Cùng lúc đó, một chiếc xe nâng điện nhẹ nhàng nhấc kiện hàng 500 kg lên cao 1,5 mét trong 3 giây. Tại sao trong Vật lí học, các nhà khoa học lại khẳng định người đẩy tường KHÔNG HỀ SINH CÔNG CƠ HỌC (A = 0), trong khi xe nâng điện lại sinh công với CÔNG SUẤT rất lớn?',
+    question: 'Điều kiện tiên quyết và cốt lõi nhất để xuất hiện công cơ học trong Vật lí là gì?',
+    options: [
+      { id: 'w4_1', text: 'Phải có lực tác dụng vào vật và vật phải DỊCH CHUYỂN theo phương không vuông góc với lực', isCorrect: true },
+      { id: 'w4_2', text: 'Chỉ cần người tác dụng một lực thật mạnh làm cơ thể toát nhiều mồ hôi', isCorrect: false },
+      { id: 'w4_3', text: 'Vật chịu lực phải có khối lượng rất lớn và đặt trên mặt phẳng nghiêng', isCorrect: false },
+      { id: 'w4_4', text: 'Lực tác dụng phải luôn vuông góc với mặt đất nằm ngang', isCorrect: false }
+    ],
+    explanation: 'SGK trang 21: Chỉ có công cơ học khi có lực tác dụng vào vật và làm cho vật chuyển dời theo phương không vuông góc với phương của lực (A = F · s). Bức tường không dịch chuyển (s = 0) nên công A = 0.'
+  },
+  topics: [
+    {
+      id: 'topic_4_1',
+      order: 'I',
+      title: 'Công cơ học (Mechanical Work)',
+      badge: 'Vật lí • Cơ học năng lượng',
+      page: 'SGK trang 21 - 22',
+      newKnowledge: [
+        'Khái niệm công cơ học: Chỉ được dùng khi có lực tác dụng vào vật và vật chuyển dời theo phương không vuông góc với phương của lực.',
+        'Công thức tính công khi lực F cùng hướng với hướng chuyển dời: A = F · s (với F là lực đo bằng N, s là quãng đường đo bằng m, A là công đo bằng J).',
+        'Đơn vị của công trong hệ SI là Jun (kí hiệu là J): 1 J = 1 N · 1 m = 1 N·m. Các bội số: 1 kJ = 1 000 J; 1 MJ = 1 000 000 J.',
+        'Trường hợp lực KHÔNG sinh công: Khi lực tác dụng có phương VUÔNG GÓC với phương chuyển dời (alpha = 90°), ví dụ trọng lực của hòm hàng khi ta kéo trượt ngang trên sàn.'
+      ],
+      coreSummary: [
+        'Điều kiện có công cơ học: Có lực tác dụng F và có độ chuyển dời s không vuông góc với lực.',
+        'Công thức tính: A = F · s (khi lực F cùng chiều chuyển động của vật).',
+        'Đơn vị chuẩn SI: Jun (J), 1 J = 1 N·m. Bội số: 1 kJ = 10³ J, 1 MJ = 10⁶ J.',
+        'Khi phương của lực vuông góc với phương chuyển dời: A = 0 (lực không sinh công).'
+      ],
+      exampleTitle: 'Ví dụ tính toán SGK trang 22',
+      exampleText: 'Một xe ngựa kéo xe hàng bằng một lực kéo F = 200 N theo phương ngang. Xe hàng đi được quãng đường s = 25 m trên đường bằng phẳng. Công của lực kéo ngựa thực hiện: A = F · s = 200 · 25 = 5 000 J = 5 kJ. Trọng lực của xe hàng vuông góc với mặt đường nên công của trọng lực A_P = 0 J.',
+      simulation: 'work_power',
+      quickQuiz: {
+        question: 'Một bạn học sinh xách cặp sách nặng 35 N đi bộ thẳng đều trên sân trường nằm ngang một đoạn 10 m. Công của trọng lực tác dụng lên cặp sách trong chuyển dời này bằng:',
+        options: [
+          { id: 'q4_1_a', text: '0 J (vì trọng lực hướng thẳng đứng vuông góc với mặt đất nằm ngang)', isCorrect: true },
+          { id: 'q4_1_b', text: '350 J', isCorrect: false },
+          { id: 'q4_1_c', text: '35 J', isCorrect: false },
+          { id: 'q4_1_d', text: '3,5 J', isCorrect: false }
+        ],
+        explanation: 'Trọng lực có phương thẳng đứng, hướng xuống dưới, vuông góc với hướng chuyển dời nằm ngang (alpha = 90°). Vì vậy trọng lực không sinh công (A = 0 J).'
+      },
+      keyTakeaway: 'Ghi nhớ: A = F · s (Jun). Có công khi có lực và có quãng đường không vuông góc. Lực vuông góc thì A = 0.'
+    },
+    {
+      id: 'topic_4_2',
+      order: 'II',
+      title: 'Công suất (Power)',
+      badge: 'Vật lí • Tốc độ sinh công',
+      page: 'SGK trang 22 - 24',
+      newKnowledge: [
+        'Khái niệm: Để biết người nào làm việc khoẻ hơn hay cỗ máy nào hoạt động mạnh hơn, người ta so sánh CÔNG THỰC HIỆN ĐƯỢC TRONG CÙNG MỘT ĐƠN VỊ THỜI GIAN.',
+        'Định nghĩa công suất: Công suất là đại lượng đặc trưng cho tốc độ thực hiện công, được xác định bằng công thực hiện được trong một đơn vị thời gian.',
+        'Biểu thức tính công suất: P = A / t (trong đó A là công tính bằng J, t là thời gian tính bằng s, P là công suất tính bằng W).',
+        'Hệ quả: Khi vật chuyển động thẳng đều với vận tốc v dưới tác dụng của lực kéo F: P = F · v.',
+        'Đơn vị công suất trong hệ SI là Oát (W): 1 W = 1 J/s. Bội số: 1 kW = 1 000 W; 1 MW = 10⁶ W. Mã lực: 1 HP ≈ 746 W.',
+        'Ý nghĩa số ghi trên thiết bị: Cho biết công mà thiết bị có thể sinh ra trong 1 giây khi hoạt động định mức.'
+      ],
+      coreSummary: [
+        'Công suất đặc trưng cho tốc độ sinh công: P = A / t.',
+        'Đơn vị: Oát (W), 1 W = 1 J/s; 1 kW = 1 000 W; 1 MW = 1 000 000 W. Mã lực 1 HP ≈ 746 W.',
+        'Khi vật chuyển động đều: P = F · v (vận tốc v = P / F).',
+        'Số ghi công suất trên máy móc: Công mà động cơ thực hiện trong mỗi giây vận hành bình thường.'
+      ],
+      exampleTitle: 'Ví dụ tính toán SGK trang 23: Cần cẩu bốc dỡ hàng',
+      exampleText: 'Cần cẩu nâng thùng hàng có khối lượng m = 800 kg lên cao h = 15 m trong thời gian t = 20 giây (lấy g = 10 m/s²). Lực nâng F = P = 8 000 N. Công nâng A = F · h = 8 000 · 15 = 120 000 J = 120 kJ. Công suất của cần cẩu: P = A / t = 120 000 / 20 = 6 000 W = 6 kW.',
+      simulation: 'crane_power',
+      quickQuiz: {
+        question: 'Động cơ một chiếc máy bơm nước nông nghiệp có ghi "1,5 kW". Ý nghĩa của con số này là:',
+        options: [
+          { id: 'q4_2_a', text: 'Cứ mỗi 1 giây hoạt động bình thường, máy bơm thực hiện được một công là 1 500 Jun', isCorrect: true },
+          { id: 'q4_2_b', text: 'Máy bơm chỉ có thể bơm được tối đa 1 500 lít nước mỗi giờ', isCorrect: false },
+          { id: 'q4_2_c', text: 'Máy bơm nặng 1,5 kilôgam', isCorrect: false },
+          { id: 'q4_2_d', text: 'Máy bơm sinh ra lực đẩy 1 500 Niutơn', isCorrect: false }
+        ],
+        explanation: '1,5 kW = 1 500 W = 1 500 J/s. Nghĩa là trong mỗi 1 giây vận hành bình thường, máy bơm thực hiện một công là 1 500 Jun.'
+      },
+      keyTakeaway: 'Ghi nhớ: P = A / t (W). Công suất cho biết tốc độ sinh công nhanh hay chậm của máy móc và con người.'
+    }
+  ],
+  practiceQuestions: [
+    {
+      id: 'p4_sgk_1',
+      level: 'BIẾT',
+      levelColor: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+      question: 'Trường hợp nào dưới đây có công cơ học theo định nghĩa của Vật lí?',
+      subText: 'Câu hỏi mức độ Nhận biết • SGK KHTN 9 trang 21',
+      options: [
+        { id: 'p4_1_a', text: 'Một con ngựa đang dùng sức kéo cỗ xe chuyển động trên đường', isCorrect: true },
+        { id: 'p4_2_b', text: 'Một người đứng yên một chỗ vác thùng hàng nặng 20 kg trên vai suốt nửa giờ', isCorrect: false },
+        { id: 'p4_3_c', text: 'Khối tạ nằm bất động trên sàn nhà tập thể hình', isCorrect: false },
+        { id: 'p4_4_d', text: 'Hai người đẩy hai phía đối diện của một cánh cổng đóng kín làm cổng đứng yên', isCorrect: false }
+      ],
+      explanation: 'Con ngựa tác dụng lực kéo F lên cỗ xe và cỗ xe chuyển dời một quãng đường s theo hướng của lực kéo, thoả mãn đầy đủ điều kiện có công cơ học A = F · s.'
+    },
+    {
+      id: 'p4_sgk_2',
+      level: 'BIẾT',
+      levelColor: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+      question: 'Đơn vị nào sau đây là đơn vị đo CÔNG SUẤT trong hệ đo lường quốc tế (SI)?',
+      subText: 'Câu hỏi mức độ Nhận biết • SGK KHTN 9 trang 23',
+      options: [
+        { id: 'p4_2_a', text: 'Oát (W)', isCorrect: true },
+        { id: 'p4_2_b', text: 'Jun (J)', isCorrect: false },
+        { id: 'p4_2_c', text: 'Niutơn (N)', isCorrect: false },
+        { id: 'p4_2_d', text: 'Jun nhân giây (J · s)', isCorrect: false }
+      ],
+      explanation: 'Đơn vị đo công suất trong hệ SI là Oát (W), 1 W = 1 J/s. Jun (J) là đơn vị của công và năng lượng.'
+    },
+    {
+      id: 'p4_sgk_3',
+      level: 'BIẾT',
+      levelColor: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+      question: 'Biểu thức nào sau đây dùng để tính công suất của một vật chuyển động thẳng đều với vận tốc v dưới tác dụng của lực kéo F?',
+      subText: 'Câu hỏi mức độ Nhận biết • SGK KHTN 9 trang 23',
+      options: [
+        { id: 'p4_3_a', text: 'P = F · v', isCorrect: true },
+        { id: 'p4_3_b', text: 'P = F / v', isCorrect: false },
+        { id: 'p4_3_c', text: 'P = F · v²', isCorrect: false },
+        { id: 'p4_3_d', text: 'P = v / F', isCorrect: false }
+      ],
+      explanation: 'Ta có P = A / t = (F · s) / t. Vì chuyển động thẳng đều nên v = s / t => P = F · v.'
+    },
+    {
+      id: 'p4_sgk_4',
+      level: 'HIỂU',
+      levelColor: 'bg-blue-50 text-blue-700 border-blue-200',
+      question: 'Một người tác dụng lực kéo 150 N kéo một xe đẩy di chuyển được quãng đường 20 m theo phương ngang trong thời gian 10 giây. Công cơ học đã thực hiện là:',
+      subText: 'Câu hỏi mức độ Thông hiểu • SGK KHTN 9 trang 22',
+      options: [
+        { id: 'p4_4_a', text: '3 000 J (3 kJ)', isCorrect: true },
+        { id: 'p4_4_b', text: '300 J', isCorrect: false },
+        { id: 'p4_4_c', text: '1 500 J', isCorrect: false },
+        { id: 'p4_4_d', text: '75 J', isCorrect: false }
+      ],
+      explanation: 'Áp dụng công thức A = F · s = 150 N · 20 m = 3 000 J = 3 kJ.'
+    },
+    {
+      id: 'p4_sgk_5',
+      level: 'HIỂU',
+      levelColor: 'bg-blue-50 text-blue-700 border-blue-200',
+      question: 'Công suất của người kéo xe ở câu hỏi trên (thực hiện công 3 000 J trong 10 giây) là bao nhiêu?',
+      subText: 'Câu hỏi mức độ Thông hiểu • SGK KHTN 9 trang 23',
+      options: [
+        { id: 'p4_5_a', text: '300 W', isCorrect: true },
+        { id: 'p4_5_b', text: '30 W', isCorrect: false },
+        { id: 'p4_5_c', text: '3 000 W', isCorrect: false },
+        { id: 'p4_5_d', text: '30 000 W', isCorrect: false }
+      ],
+      explanation: 'P = A / t = 3 000 J / 10 s = 300 W.'
+    },
+    {
+      id: 'p4_sgk_6',
+      level: 'HIỂU',
+      levelColor: 'bg-blue-50 text-blue-700 border-blue-200',
+      question: 'Vì sao khi kéo một kiện hàng trượt trên mặt sàn nằm ngang phẳng, trọng lực tác dụng lên kiện hàng KHÔNG SINH CÔNG?',
+      subText: 'Câu hỏi mức độ Thông hiểu • SGK KHTN 9 trang 22',
+      options: [
+        { id: 'p4_6_a', text: 'Vì phương của trọng lực (thẳng đứng) vuông góc với phương dịch chuyển nằm ngang (alpha = 90°)', isCorrect: true },
+        { id: 'p4_6_b', text: 'Vì trọng lực của vật luôn bằng 0 khi trượt trên sàn', isCorrect: false },
+        { id: 'p4_6_c', text: 'Vì phản lực của sàn đã triệt tiêu hoàn toàn công của trọng lực', isCorrect: false },
+        { id: 'p4_6_d', text: 'Vì lực kéo của người quá mạnh lấn át trọng lực', isCorrect: false }
+      ],
+      explanation: 'Khi phương của lực vuông góc với phương dịch chuyển của vật thì lực đó không sinh công cơ học (cos 90° = 0 => A = 0).'
+    },
+    {
+      id: 'p4_sgk_7',
+      level: 'HIỂU',
+      levelColor: 'bg-blue-50 text-blue-700 border-blue-200',
+      question: 'Để so sánh xem người thợ nào làm việc khoẻ hơn hay cỗ máy nào mạnh hơn, người ta căn cứ vào đại lượng nào?',
+      subText: 'Câu hỏi mức độ Thông hiểu • SGK KHTN 9 trang 23',
+      options: [
+        { id: 'p4_7_a', text: 'Công suất (công thực hiện được trong cùng 1 đơn vị thời gian)', isCorrect: true },
+        { id: 'p4_7_b', text: 'Tổng thời gian người đó làm việc suốt cả ngày', isCorrect: false },
+        { id: 'p4_7_c', text: 'Khối lượng cơ thể của người thợ đó', isCorrect: false },
+        { id: 'p4_7_d', text: 'Quãng đường người thợ đi lại trong nhà xưởng', isCorrect: false }
+      ],
+      explanation: 'Công suất P = A / t đặc trưng cho tốc độ thực hiện công, cho biết ai thực hiện được nhiều công hơn trong cùng một đơn vị thời gian.'
+    },
+    {
+      id: 'p4_sgk_8',
+      level: 'VẬN DỤNG',
+      levelColor: 'bg-amber-50 text-amber-700 border-amber-200',
+      question: 'Một máy kéo có công suất 10 kW chuyển động thẳng đều kéo cày với vận tốc v = 2 m/s (7,2 km/h). Lực kéo của máy kéo tác dụng lên lưỡi cày là:',
+      subText: 'Câu hỏi mức độ Vận dụng • SGK KHTN 9 trang 23',
+      options: [
+        { id: 'p4_8_a', text: '5 000 N (5 kN)', isCorrect: true },
+        { id: 'p4_8_b', text: '20 000 N', isCorrect: false },
+        { id: 'p4_8_c', text: '2 000 N', isCorrect: false },
+        { id: 'p4_8_d', text: '500 N', isCorrect: false }
+      ],
+      explanation: 'Ta có P = 10 kW = 10 000 W. Từ P = F · v => F = P / v = 10 000 / 2 = 5 000 N.'
+    },
+    {
+      id: 'p4_sgk_9',
+      level: 'VẬN DỤNG',
+      levelColor: 'bg-amber-50 text-amber-700 border-amber-200',
+      question: 'Một thang máy có tải trọng toàn phần m = 600 kg được kéo lên thẳng đều đến độ cao h = 24 m trong thời gian 16 giây (lấy g = 10 m/s²). Công suất có ích của động cơ kéo thang máy là:',
+      subText: 'Câu hỏi mức độ Vận dụng • SGK KHTN 9 trang 24',
+      options: [
+        { id: 'p4_9_a', text: '9 000 W (tức 9 kW)', isCorrect: true },
+        { id: 'p4_9_b', text: '14 400 W', isCorrect: false },
+        { id: 'p4_9_c', text: '144 kW', isCorrect: false },
+        { id: 'p4_9_d', text: '900 W', isCorrect: false }
+      ],
+      explanation: 'Trọng lượng thang máy P = 600 · 10 = 6 000 N. Công nâng A = P · h = 6 000 · 24 = 144 000 J. Công suất P = A / t = 144 000 / 16 = 9 000 W = 9 kW.'
+    },
+    {
+      id: 'p4_sgk_10',
+      level: 'VẬN DỤNG',
+      levelColor: 'bg-amber-50 text-amber-700 border-amber-200',
+      question: 'Một trái tim người bình thường có công suất trung bình khoảng 1,4 W. Trong một ngày đêm (24 giờ = 86 400 giây), trái tim thực hiện một công cơ học bơm máu xấp xỉ bằng bao nhiêu?',
+      subText: 'Câu hỏi mức độ Vận dụng thực tế • SGK KHTN 9 trang 24',
+      options: [
+        { id: 'p4_10_a', text: 'Khoảng 120 960 J (xấp xỉ 121 kJ)', isCorrect: true },
+        { id: 'p4_10_b', text: 'Khoảng 1 200 J', isCorrect: false },
+        { id: 'p4_10_c', text: 'Khoảng 33,6 kJ', isCorrect: false },
+        { id: 'p4_10_d', text: 'Khoảng 86,4 kJ', isCorrect: false }
+      ],
+      explanation: 'Ta có A = P · t = 1,4 W · 86 400 s = 120 960 J ≈ 121 kJ. Công này tương đương công nâng một vật nặng 1,2 tấn lên cao 10 mét!'
+    }
+  ],
+  examMCQuestions: [
+    {
+      id: 'e4_mc1',
+      points: 0.5,
+      question: 'Dấu hiệu nào sau đây cho biết một lực tác dụng ĐÃ THỰC HIỆN CÔNG CƠ HỌC?',
+      options: [
+        { id: 'e4_1_a', text: 'Vật chuyển dời theo phương không vuông góc với phương của lực tác dụng.', isCorrect: true },
+        { id: 'e4_1_b', text: 'Vật chỉ biến dạng mà không hề dịch chuyển khỏi vị trí ban đầu.', isCorrect: false },
+        { id: 'e4_1_c', text: 'Lực có phương vuông góc hoàn toàn với phương chuyển động của vật.', isCorrect: false },
+        { id: 'e4_1_d', text: 'Vật đứng yên bất động dưới tác dụng của lực ép cực kì lớn.', isCorrect: false }
+      ],
+      explanation: 'SGK trang 21 khẳng định điều kiện có công cơ học: Phải có lực tác dụng và vật phải dịch chuyển theo phương không vuông góc với lực.'
+    },
+    {
+      id: 'e4_mc2',
+      points: 0.5,
+      question: 'Công thức tính công cơ học khi lực F cùng hướng với hướng chuyển dời của vật là:',
+      options: [
+        { id: 'e4_2_a', text: 'A = F · s', isCorrect: true },
+        { id: 'e4_2_b', text: 'A = F / s', isCorrect: false },
+        { id: 'e4_2_c', text: 'A = F · t', isCorrect: false },
+        { id: 'e4_2_d', text: 'A = m · g · s', isCorrect: false }
+      ],
+      explanation: 'A = F · s (với F là lực tác dụng, s là quãng đường vật dịch chuyển).'
+    },
+    {
+      id: 'e4_mc3',
+      points: 0.5,
+      question: 'Đơn vị đo công trong hệ SI là Jun (J). 1 Jun tương đương với:',
+      options: [
+        { id: 'e4_3_a', text: '1 Niutơn nhân mét (1 N · m)', isCorrect: true },
+        { id: 'e4_3_b', text: '1 Niutơn trên mét (1 N / m)', isCorrect: false },
+        { id: 'e4_3_c', text: '1 Oát nhân giây (1 W / s)', isCorrect: false },
+        { id: 'e4_3_d', text: '1 Kilôgam nhân mét (1 kg · m)', isCorrect: false }
+      ],
+      explanation: '1 J = 1 N · 1 m = 1 N·m.'
+    },
+    {
+      id: 'e4_mc4',
+      points: 0.5,
+      question: 'Công suất là đại lượng được đo bằng:',
+      options: [
+        { id: 'e4_4_a', text: 'Công thực hiện được trong một đơn vị thời gian: P = A / t.', isCorrect: true },
+        { id: 'e4_4_b', text: 'Tích của công thực hiện được nhân với thời gian: P = A · t.', isCorrect: false },
+        { id: 'e4_4_c', text: 'Lực tác dụng nhân với thời gian thực hiện: P = F · t.', isCorrect: false },
+        { id: 'e4_4_d', text: 'Khối lượng của vật chia cho quãng đường dịch chuyển.', isCorrect: false }
+      ],
+      explanation: 'Công suất đặc trưng cho tốc độ thực hiện công: P = A / t.'
+    },
+    {
+      id: 'e4_mc5',
+      points: 0.5,
+      question: 'Trường hợp nào sau đây lực tác dụng KHÔNG SINH CÔNG CƠ HỌC (A = 0)?',
+      options: [
+        { id: 'e4_5_a', text: 'Quả nặng được treo đứng yên trên sợi dây cáp của cần cẩu.', isCorrect: true },
+        { id: 'e4_5_b', text: 'Cần cẩu kéo khối bê tông từ từ lên cao 10 m.', isCorrect: false },
+        { id: 'e4_5_c', text: 'Đầu tàu hoả kéo đoàn tàu chuyển động rời ga.', isCorrect: false },
+        { id: 'e4_5_d', text: 'Một hòn sỏi rơi từ trên cầu xuống mặt nước dưới sông.', isCorrect: false }
+      ],
+      explanation: 'Khi quả nặng đứng yên thì quãng đường dịch chuyển s = 0, do đó A = F · 0 = 0 J.'
+    },
+    {
+      id: 'e4_mc6',
+      points: 0.5,
+      question: 'Một máy nâng thực hiện một công A = 48 000 J trong thời gian 24 giây. Công suất của máy nâng là:',
+      options: [
+        { id: 'e4_6_a', text: '2 000 W (tức 2 kW)', isCorrect: true },
+        { id: 'e4_6_b', text: '1 152 kW', isCorrect: false },
+        { id: 'e4_6_c', text: '200 W', isCorrect: false },
+        { id: 'e4_6_d', text: '20 kW', isCorrect: false }
+      ],
+      explanation: 'P = A / t = 48 000 J / 24 s = 2 000 W = 2 kW.'
+    },
+    {
+      id: 'e4_mc7',
+      points: 0.5,
+      question: 'Một chiếc ô tô chạy thẳng đều trên xa lộ với vận tốc v = 90 km/h (25 m/s). Lực kéo của động cơ ô tô là 800 N. Công suất của động cơ ô tô khi đó là:',
+      options: [
+        { id: 'e4_7_a', text: '20 kW (tức 20 000 W)', isCorrect: true },
+        { id: 'e4_7_b', text: '72 kW', isCorrect: false },
+        { id: 'e4_7_c', text: '32 W', isCorrect: false },
+        { id: 'e4_7_d', text: '200 kW', isCorrect: false }
+      ],
+      explanation: 'Đổi v = 90 km/h = 25 m/s. Áp dụng P = F · v = 800 N · 25 m/s = 20 000 W = 20 kW.'
+    },
+    {
+      id: 'e4_mc8',
+      points: 0.5,
+      question: 'Máy bơm A có công suất 1 kW, máy bơm B có công suất 2 kW. Để bơm cùng một lượng nước lên cùng một độ cao (thực hiện cùng một công A) thì:',
+      options: [
+        { id: 'e4_8_a', text: 'Máy bơm B hoàn thành chỉ mất một nửa thời gian so với máy bơm A.', isCorrect: true },
+        { id: 'e4_8_b', text: 'Máy bơm A hoàn thành nhanh gấp đôi máy bơm B.', isCorrect: false },
+        { id: 'e4_8_c', text: 'Hai máy bơm hoàn thành trong khoảng thời gian như nhau.', isCorrect: false },
+        { id: 'e4_8_d', text: 'Máy bơm B thực hiện công lớn gấp đôi máy bơm A.', isCorrect: false }
+      ],
+      explanation: 'Vì cùng một công A nên t = A / P. Máy B có công suất gấp đôi (PB = 2 PA) nên thời gian bơm tB = tA / 2 (nhanh gấp đôi).'
+    }
+  ],
+  examEssayQuestions: [
+    {
+      id: 'e4_es1',
+      points: 1.5,
+      title: 'Câu 1: Điều kiện có công cơ học và các trường hợp không sinh công',
+      prompt: 'Hãy nêu định nghĩa công cơ học, viết công thức tính công cơ học khi lực cùng hướng chuyển dời và nêu rõ tên cùng đơn vị của các đại lượng trong công thức. Nêu 2 trường hợp cụ thể trong đời sống mà lực tác dụng lên vật nhưng KHÔNG SINH CÔNG CƠ HỌC.',
+      sampleSolution: '1. Khái niệm: Công cơ học là đại lượng đặc trưng cho tác dụng làm dịch chuyển vật thể của một lực, xuất hiện khi có lực tác dụng vào vật và vật chuyển dời theo phương không vuông góc với lực.\n2. Biểu thức: A = F · s.\nTrong đó:\n- F: Lực tác dụng vào vật (đơn vị: Niutơn, N).\n- s: Quãng đường vật dịch chuyển theo hướng của lực (đơn vị: mét, m).\n- A: Công cơ học của lực F (đơn vị: Jun, J).\n3. Hai trường hợp lực không sinh công (A = 0):\n- Trường hợp 1: Có lực tác dụng nhưng vật đứng yên không dịch chuyển (s = 0), ví dụ: Người gắng sức đẩy một bức tường bê tông kiên cố.\n- Trường hợp 2: Lực tác dụng có phương vuông góc với phương chuyển dời của vật (alpha = 90°), ví dụ: Trọng lực tác dụng lên kiện hàng khi ta kéo kiện hàng trượt theo phương ngang trên mặt sàn phẳng.'
+    },
+    {
+      id: 'e4_es2',
+      points: 1.5,
+      title: 'Câu 2: Khái niệm công suất và ý nghĩa số ghi trên thiết bị',
+      prompt: 'Trình bày định nghĩa công suất, viết công thức tính công suất và nêu tên, đơn vị của các đại lượng. Hãy giải thích ý nghĩa con số ghi trên nhãn một máy kéo nông nghiệp: "Công suất định mức: 35 kW".',
+      sampleSolution: '1. Định nghĩa: Công suất là đại lượng đặc trưng cho tốc độ thực hiện công, được xác định bằng công thực hiện được trong một đơn vị thời gian.\n2. Biểu thức tính công suất: P = A / t.\nTrong đó:\n- A: Công thực hiện được (đơn vị: Jun, J).\n- t: Thời gian thực hiện công đó (đơn vị: giây, s).\n- P: Công suất (đơn vị: Oát, W). Ngoài ra còn dùng bội số kW (1 kW = 1 000 W), MW (1 MW = 1 000 000 W) hoặc mã lực HP (1 HP ≈ 746 W).\n3. Ý nghĩa số ghi "35 kW" trên máy kéo:\n- Đổi: 35 kW = 35 000 W = 35 000 J/s.\n- Con số này có ý nghĩa: Khi máy kéo hoạt động bình thường ở chế độ định mức, trong mỗi 1 giây máy kéo có khả năng thực hiện một công cơ học là 35 000 Jun.'
+    },
+    {
+      id: 'e4_es3',
+      points: 1.5,
+      title: 'Câu 3: Bài toán tính công và công suất cần cẩu (SGK trang 23)',
+      prompt: 'Một chiếc cần cẩu xây dựng dùng động cơ điện nâng một khối đá nặng m = 1 500 kg lên cao h = 16 m trong thời gian t = 25 giây (lấy g = 10 m/s²). Bỏ qua mọi ma sát và lực cản không khí. Hãy:\na) Tính công cơ học của lực kéo cần cẩu để nâng khối đá lên cao (theo đơn vị kJ).\nb) Tính công suất có ích của động cơ cần cẩu.',
+      sampleSolution: 'a) Tính công cơ học của cần cẩu:\n- Khối đá chuyển động thẳng đều nên lực kéo của dây cáp cân bằng với trọng lượng khối đá:\n  F_kéo = P_vật = m · g = 1 500 · 10 = 15 000 N.\n- Công cơ học cần cẩu thực hiện khi nâng khối đá lên cao h = 16 m là:\n  A = F_kéo · h = 15 000 · 16 = 240 000 J = 240 kJ.\n\nb) Tính công suất có ích của cần cẩu:\n- Áp dụng công thức tính công suất:\n  P = A / t = 240 000 / 25 = 9 600 W = 9,6 kW.\n➔ Công suất của động cơ cần cẩu là 9,6 kW.'
+    },
+    {
+      id: 'e4_es4',
+      points: 1.5,
+      title: 'Câu 4: Vận dụng công thức P = F · v giải thích hiện tượng xe leo dốc',
+      prompt: 'Dựa vào mối liên hệ giữa công suất, lực kéo và vận tốc (P = F · v), em hãy giải thích vì sao khi một chiếc ô tô hoặc xe máy chở nặng bắt đầu leo lên một đoạn dốc đứng, người lái xe phải chuyển về số thấp (số 1 hoặc số 2) để xe chạy chậm lại?',
+      sampleSolution: '1. Mối liên hệ vật lí: Từ công thức P = F · v, ta suy ra lực kéo của động cơ: F = P / v.\n2. Phân tích hiện tượng leo dốc:\n- Động cơ xe có một công suất tối đa định mức P không đổi.\n- Khi xe leo dốc đứng, ngoài lực ma sát cản trở, xe còn phải thắng thành phần trọng lực của chính nó kéo lùi xuống dốc. Do đó xe đòi hỏi một lực kéo F rất lớn từ động cơ.\n- Muốn tăng độ lớn của lực kéo F lên cực đại trong khi công suất P không đổi, bắt buộc phải giảm vận tốc chuyển động v của xe xuống nhỏ (vì F tỉ lệ nghịch với v).\n3. Kết luận: Việc người lái xe chuyển về số thấp (số 1 hoặc 2) giúp giảm tốc độ vòng quay bánh xe (giảm v), từ đó khuếch đại mô-men xoắn và lực kéo F lên cực đại, giúp xe leo qua dốc an toàn mà không bị chết máy!'
+    }
+  ]
+};
+
+// Hàm lấy dữ liệu bài học theo ID (hỗ trợ Bài 1, Bài 2, Bài 3 và Bài 4 bám sát SGK)
 export function getSgkLessonData(lessonId: number): SgkLessonPackage {
+  if (lessonId === 4) {
+    return LESSON_4_DATA;
+  }
   if (lessonId === 3) {
     return LESSON_3_DATA;
   }
@@ -1465,4 +1831,5 @@ export function getSgkLessonData(lessonId: number): SgkLessonPackage {
   }
   return LESSON_1_DATA;
 }
+
 

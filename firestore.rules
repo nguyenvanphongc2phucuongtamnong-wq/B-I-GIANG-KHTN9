@@ -15,8 +15,8 @@ service cloud.firestore {
         );
     }
 
-    function isOwner(studentId) {
-      return isSignedIn() && request.auth.uid == studentId;
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
     }
 
     // Default deny all other documents
@@ -29,11 +29,26 @@ service cloud.firestore {
       allow read, write: if true;
     }
 
-    // Students collection
+    // User Profile collection (1 UID = 1 document)
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow write: if isOwner(userId) || isTeacher();
+    }
+
+    // Student Progress collection and subcollection
+    match /studentProgress/{userId} {
+      allow read: if isSignedIn();
+      allow write: if isOwner(userId) || isTeacher();
+
+      match /lessons/{lessonId} {
+        allow read: if isSignedIn();
+        allow write: if isOwner(userId) || isTeacher();
+      }
+    }
+
+    // Legacy students collection
     match /students/{studentId} {
-      // Cho phép đọc và ghi dữ liệu học sinh đồng bộ thời gian thực giữa học sinh và giáo viên
       allow read, write: if true;
     }
   }
 }
-
