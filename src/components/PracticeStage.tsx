@@ -15,6 +15,7 @@ import {
   HelpCircle 
 } from 'lucide-react';
 import { shuffleQuestionsWithBalancedAnswers, ShuffledQuestion } from '../services/quizShuffleService';
+import { MathText } from './MathRenderer';
 
 interface PracticeStageProps {
   onAddXP: (amount: number) => void;
@@ -230,13 +231,13 @@ export const PracticeStage: React.FC<PracticeStageProps> = ({
 
               {/* Question Content */}
               <div>
-                <p className="font-bold text-slate-900 text-sm md:text-base leading-relaxed">
-                  {q.question}
-                </p>
+                <div className="font-bold text-slate-900 text-sm md:text-base leading-relaxed">
+                  <MathText text={q.question} />
+                </div>
                 {q.subText && (
-                  <p className="text-xs text-slate-500 mt-1 italic">
-                    {q.subText}
-                  </p>
+                  <div className="text-xs text-slate-500 mt-1 italic">
+                    <MathText text={q.subText} />
+                  </div>
                 )}
               </div>
 
@@ -285,7 +286,7 @@ export const PracticeStage: React.FC<PracticeStageProps> = ({
                           </span>
                         )}
                       </div>
-                      <span className="leading-snug">{opt.text}</span>
+                      <span className="leading-snug"><MathText text={opt.text} /></span>
                     </button>
                   );
                 })}
@@ -322,7 +323,7 @@ export const PracticeStage: React.FC<PracticeStageProps> = ({
                     <Lightbulb className="w-3.5 h-3.5 text-amber-600" />
                     <span>Gợi ý tư duy:</span>
                   </div>
-                  <p className="leading-relaxed">{q.hint}</p>
+                  <div className="leading-relaxed"><MathText text={q.hint} /></div>
                 </div>
               )}
 
@@ -348,7 +349,7 @@ export const PracticeStage: React.FC<PracticeStageProps> = ({
                   </div>
                   <div className="leading-relaxed text-slate-800">
                     <strong>Giải thích khoa học: </strong>
-                    {q.explanation}
+                    <MathText text={q.explanation} />
                   </div>
                 </div>
               )}

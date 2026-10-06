@@ -22,6 +22,7 @@ import {
 } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
 import { StudentProgressItem } from '../types';
+import { isAuthorizedTeacherEmail } from '../config/authConfig';
 
 // ==========================================
 // 1. KHỞI TẠO FIREBASE SDK & AUTH PERSISTENCE
@@ -192,7 +193,7 @@ export async function syncUserProfile(params: {
   classId?: string;
 }): Promise<FirestoreUserProfile> {
   const cleanEmail = params.email.trim().toLowerCase();
-  const isTeacher = cleanEmail === 'nvphong.thcsphuninh@gmail.com';
+  const isTeacher = isAuthorizedTeacherEmail(cleanEmail);
   const userDocRef = doc(db, 'users', params.uid);
   const now = new Date().toISOString();
 
@@ -209,8 +210,11 @@ export async function syncUserProfile(params: {
         email: cleanEmail
       };
 
-      // Giữ nguyên role & classId nếu đã có
-      if (params.classId && !existing.classId) {
+      // Tự động nâng cấp quyền Teacher nếu email thuộc danh sách Giáo viên
+      if (isTeacher && existing.role !== 'teacher') {
+        updates.role = 'teacher';
+        updates.classId = 'Tổ Tự Nhiên - Khối 9';
+      } else if (params.classId && !existing.classId) {
         updates.classId = params.classId;
       }
 
@@ -224,30 +228,33 @@ export async function syncUserProfile(params: {
         displayName: params.displayName || cleanEmail.split('@')[0],
         photoURL: params.photoURL || '',
         role: isTeacher ? 'teacher' : 'student',
-        classId: params.classId || (isTeacher ? 'Tổ Tự Nhiên' : ''),
+        classId: isTeacher ? 'Tổ Tự Nhiên - Khối 9' : (params.classId || ''),
         createdAt: now,
         lastLoginAt: now
       };
 
       await setDoc(userDocRef, newProfile);
 
-      // Đồng bộ bản sao tương thích legacy vào students/{uid} (với đúng UID, không tạo mới)
-      try {
-        await setDoc(doc(db, 'students', params.uid), {
-          uid: params.uid,
-          displayName: newProfile.displayName,
-          email: cleanEmail,
-          classId: newProfile.classId,
-          role: 'STUDENT',
-          createdAt: now,
-          lastLoginAt: now,
-          progressPercent: 0,
-          completedLessons: [],
-          scores: [],
-          assessmentCount: 0
-        }, { merge: true });
-      } catch {
-        // bỏ qua nếu có lỗi ghi legacy
+      // Chỉ đồng bộ bản sao legacy vào collection "students/{uid}" khi KHÔNG PHẢI giáo viên (isTeacher === false)
+      // Tuyệt đối không tạo document trong "students" cho tài khoản giáo viên
+      if (!isTeacher) {
+        try {
+          await setDoc(doc(db, 'students', params.uid), {
+            uid: params.uid,
+            displayName: newProfile.displayName,
+            email: cleanEmail,
+            classId: newProfile.classId,
+            role: 'STUDENT',
+            createdAt: now,
+            lastLoginAt: now,
+            progressPercent: 0,
+            completedLessons: [],
+            scores: [],
+            assessmentCount: 0
+          }, { merge: true });
+        } catch {
+          // bỏ qua nếu có lỗi ghi legacy
+        }
       }
 
       return newProfile;
@@ -414,57 +421,109 @@ export async function getStudentAllLessonsProgress(
 // ==========================================
 
 /**
- * Đọc danh sách học sinh THẬT cho Teacher Dashboard
- * - Nguồn chính: collection "users" với role = "student"
- * - Tiến trình: đọc từ subcollection "studentProgress/{uid}/lessons"
- * - Số lượng học sinh = COUNT user profile duy nhất có role = student
- * - TUYỆT ĐỐI KHÔNG dùng mock data, KHÔNG tự động tạo user khi render
+ * Logic so sánh ưu tiên bản ghi có dữ liệu học tập thực tế khi hai document có cùng email
+ * (Ví dụ: 1 document legacy 'std_<slug_email>' có điểm thi/tiến độ thực và 1 document 'Firebase Auth UID' mới tạo 0%).
+ * 
+ * NGUYÊN TẮC:
+ * - TUYỆT ĐỐI KHÔNG gộp điểm bằng Math.max() máy móc.
+ * - Ưu tiên bản ghi có dữ liệu học tập thực tế, có điểm thi thực tế (lastQuizScore != null).
+ * - Ưu tiên bản ghi có tiến độ học tập thực tế (overallProgress > 0).
+ * - Ưu tiên bản ghi có danh sách bài học và bước học đã làm thực tế.
+ * - Ưu tiên bản ghi có classId hợp lệ (9A1 -> 9A8).
+ * - Không tự ý thay đổi, cộng điểm hay ghi ngược vào Firestore.
+ */
+function isBetterStudentRecord(candidate: StudentProgressItem, existing: StudentProgressItem): boolean {
+  // 1. Ưu tiên số 1: Có điểm thi thực tế (khác null và undefined)
+  const candidateHasScore = candidate.lastQuizScore !== null && candidate.lastQuizScore !== undefined;
+  const existingHasScore = existing.lastQuizScore !== null && existing.lastQuizScore !== undefined;
+  if (candidateHasScore && !existingHasScore) return true;
+  if (!candidateHasScore && existingHasScore) return false;
+
+  // 2. Ưu tiên số 2: Có lịch sử bài kiểm tra nhiều hơn
+  const candidateHistoryCount = candidate.scoresHistory ? candidate.scoresHistory.length : 0;
+  const existingHistoryCount = existing.scoresHistory ? existing.scoresHistory.length : 0;
+  if (candidateHistoryCount > existingHistoryCount) return true;
+  if (candidateHistoryCount < existingHistoryCount) return false;
+
+  // 3. Ưu tiên số 3: Có tiến độ học tập thực tế (overallProgress > 0)
+  const candidateHasProgress = candidate.overallProgress > 0;
+  const existingHasProgress = existing.overallProgress > 0;
+  if (candidateHasProgress && !existingHasProgress) return true;
+  if (!candidateHasProgress && existingHasProgress) return false;
+  if (candidate.overallProgress > existing.overallProgress) return true;
+  if (candidate.overallProgress < existing.overallProgress) return false;
+
+  // 4. Ưu tiên số 4: Có danh sách bài học đã hoàn thành
+  const candidateLessonsCount = candidate.completedLessonIds ? candidate.completedLessonIds.length : 0;
+  const existingLessonsCount = existing.completedLessonIds ? existing.completedLessonIds.length : 0;
+  if (candidateLessonsCount > existingLessonsCount) return true;
+  if (candidateLessonsCount < existingLessonsCount) return false;
+
+  // 5. Ưu tiên số 5: Có classId hợp lệ thuộc 8 lớp khối 9 (9A1 -> 9A8)
+  const isCandidateClassValid = /^9A[1-8]$/i.test(candidate.className || '');
+  const isExistingClassValid = /^9A[1-8]$/i.test(existing.className || '');
+  if (isCandidateClassValid && !isExistingClassValid) return true;
+  if (!isCandidateClassValid && isExistingClassValid) return false;
+
+  // 6. Ưu tiên số 6: Trạng thái học tập thực tế
+  if (candidate.status === 'completed' && existing.status !== 'completed') return true;
+  if (candidate.status === 'in_progress' && existing.status === 'not_started') return true;
+
+  return false;
+}
+
+/**
+ * Đọc danh sách học sinh THẬT cho Teacher Dashboard từ Firestore collection "students"
+ * - Nguồn chính: collection "students"
+ * - Loại bỏ tài khoản giáo viên (không hiển thị trong danh sách học sinh)
+ * - Xử lý role an toàn: chấp nhận 'STUDENT', 'student' (không phân biệt chữ hoa/thường)
+ * - Chống trùng lặp theo email chuẩn hóa (coi các document cùng email là 1 học sinh duy nhất)
+ * - Ưu tiên bản ghi có dữ liệu học tập thực tế mà KHÔNG dùng Math.max() máy móc
+ * - TUYỆT ĐỐI KHÔNG dùng mock data, đọc 100% dữ liệu thật từ Firestore
  */
 export async function fetchStudentsFromFirestore(classFilter?: string): Promise<StudentProgressItem[]> {
   try {
-    const usersCol = collection(db, 'users');
-    const usersSnap = await getDocs(usersCol);
+    const studentsCol = collection(db, 'students');
+    const studentsSnap = await getDocs(studentsCol);
 
-    const items: StudentProgressItem[] = [];
-    const processedUids = new Set<string>();
+    const studentMap = new Map<string, StudentProgressItem>();
 
-    for (const docSnap of usersSnap.docs) {
-      const userData = docSnap.data() as FirestoreUserProfile;
-      if (!userData) continue;
+    for (const docSnap of studentsSnap.docs) {
+      const studentData = docSnap.data() as any;
+      if (!studentData) continue;
 
-      // 1. Chỉ lấy học sinh (role === 'student')
-      if (userData.role !== 'student') continue;
+      // 1. Loại bỏ tài khoản giáo viên (bỏ qua khi hiển thị, không xóa dữ liệu Firestore)
+      const emailClean = String(studentData.email || '').trim().toLowerCase();
+      if (isAuthorizedTeacherEmail(emailClean)) continue;
 
-      const uid = userData.uid || docSnap.id;
-      if (!uid || processedUids.has(uid)) continue;
-      // Bỏ qua các ID kiểm thử/mock cũ nếu có
-      if (uid.startsWith('hs-') || uid.startsWith('mock_')) continue;
+      // 2. Xử lý role an toàn: chấp nhận 'STUDENT' và 'student', bỏ qua tài khoản có role khác nếu có
+      const roleStr = String(studentData.role || '').trim().toUpperCase();
+      if (roleStr && roleStr !== 'STUDENT') continue;
 
-      processedUids.add(uid);
+      const uid = studentData.uid || docSnap.id;
+      if (!uid) continue;
+      // Bỏ qua các ID mock test nếu có
+      if (uid.startsWith('mock_')) continue;
 
-      // Lọc theo lớp
-      if (classFilter && classFilter !== 'all') {
-        if (userData.classId !== classFilter) continue;
-      }
-
-      // 2. Lấy dữ liệu tiến trình thật từ subcollection studentProgress/{uid}/lessons
+      // 3. Lấy dữ liệu tiến trình thật từ subcollection studentProgress/{uid}/lessons (nếu có)
       const lessonsProgress = await getStudentAllLessonsProgress(uid);
       const lessonEntries = Object.values(lessonsProgress);
 
-      // Xác định các bài đã hoàn thành
-      const completedLessonIds: number[] = [];
-      let latestActiveLessonId = 1;
-      let latestActiveLessonProgress = 0;
-      let latestActiveSection = 'sec_1';
-      let latestActiveStatus: 'completed' | 'in_progress' | 'not_started' = 'not_started';
+      // Xác định các bài đã hoàn thành từ subcollection
+      const completedLessonIdsFromSubcol: number[] = [];
+      let latestActiveLessonId = Number(studentData.currentLessonId) || 1;
+      let latestActiveLessonProgress = typeof studentData.progressPercent === 'number' ? studentData.progressPercent : 0;
+      let latestActiveSection = studentData.currentStepId || 'sec_1';
+      let latestActiveStatus: 'completed' | 'in_progress' | 'needs_help' | 'not_started' = 
+        studentData.status || (latestActiveLessonProgress > 0 ? 'in_progress' : 'not_started');
       let latestScore: number | null = null;
       let latestPracticeScore: number | null = null;
-      let completedStepsList: string[] = [];
+      let completedStepsList: string[] = Array.isArray(studentData.completedSteps) ? [...studentData.completedSteps] : [];
 
       for (const lp of lessonEntries) {
         if (lp.status === 'completed' || (lp.examScore !== null && lp.examScore !== undefined && lp.examScore >= 5.0)) {
-          if (!completedLessonIds.includes(lp.lessonId)) {
-            completedLessonIds.push(lp.lessonId);
+          if (!completedLessonIdsFromSubcol.includes(lp.lessonId)) {
+            completedLessonIdsFromSubcol.push(lp.lessonId);
           }
         }
         if (lp.examScore !== null && lp.examScore !== undefined) {
@@ -477,14 +536,23 @@ export async function fetchStudentsFromFirestore(classFilter?: string): Promise<
           completedStepsList = Array.from(new Set([...completedStepsList, ...lp.completedSections]));
         }
 
-        // Chọn bài có tiến trình gần nhất
+        // Ưu tiên bài có tiến trình gần nhất nếu subcol mới hơn
         if (lp.status === 'in_progress' || lp.lessonId >= latestActiveLessonId) {
           latestActiveLessonId = lp.lessonId;
-          latestActiveLessonProgress = lp.progressPercent || 0;
-          latestActiveSection = lp.currentSection || 'sec_1';
-          latestActiveStatus = lp.status || 'in_progress';
+          latestActiveLessonProgress = Math.max(latestActiveLessonProgress, lp.progressPercent || 0);
+          latestActiveSection = lp.currentSection || latestActiveSection;
+          latestActiveStatus = (lp.status as any) || latestActiveStatus;
         }
       }
+
+      // Hợp nhất danh sách bài học đã hoàn thành từ doc data và subcollection
+      let completedLessonIds: number[] = [];
+      if (Array.isArray(studentData.completedLessons)) {
+        completedLessonIds = studentData.completedLessons.map((n: any) => Number(n)).filter((n: number) => !isNaN(n));
+      } else if (Array.isArray(studentData.completedLessonIds)) {
+        completedLessonIds = studentData.completedLessonIds.map((n: any) => Number(n)).filter((n: number) => !isNaN(n));
+      }
+      completedLessonIds = Array.from(new Set([...completedLessonIds, ...completedLessonIdsFromSubcol]));
 
       // Mở khóa bài học: Bài 1 luôn mở, bài N mở nếu bài N-1 completed
       const unlockedLessonIds = [1];
@@ -494,14 +562,55 @@ export async function fetchStudentsFromFirestore(classFilter?: string): Promise<
         }
       }
 
+      // Xử lý điểm số từ trường scores của document (hỗ trợ array hoặc object hoặc field trực tiếp)
+      let scoresHistory: Array<{ lessonId: number; score: number; total: number; date: string }> = [];
+      if (Array.isArray(studentData.scores)) {
+        for (const sc of studentData.scores) {
+          if (typeof sc === 'number') {
+            latestScore = sc;
+            scoresHistory.push({ lessonId: latestActiveLessonId, score: sc, total: 10, date: 'Đã nộp' });
+          } else if (sc && typeof sc === 'object') {
+            const val = typeof sc.score === 'number' ? sc.score : (typeof sc.point === 'number' ? sc.point : null);
+            if (val !== null) {
+              latestScore = val;
+              scoresHistory.push({
+                lessonId: Number(sc.lessonId) || latestActiveLessonId,
+                score: val,
+                total: Number(sc.maxScore || sc.total) || 10,
+                date: sc.submittedAt || sc.date || 'Đã nộp'
+              });
+            }
+          }
+        }
+      } else if (studentData.scores && typeof studentData.scores === 'object') {
+        for (const [k, v] of Object.entries(studentData.scores)) {
+          const lId = parseInt(k.replace(/\D/g, ''), 10) || latestActiveLessonId;
+          if (typeof v === 'number') {
+            latestScore = v;
+            scoresHistory.push({ lessonId: lId, score: v, total: 10, date: 'Đã nộp' });
+          } else if (v && typeof (v as any).score === 'number') {
+            latestScore = (v as any).score;
+            scoresHistory.push({ lessonId: lId, score: (v as any).score, total: (v as any).total || 10, date: 'Đã nộp' });
+          }
+        }
+      }
+
+      // Điểm trực tiếp từ các trường đơn nếu có
+      if (typeof studentData.testScore === 'number') latestScore = studentData.testScore;
+      if (typeof studentData.lastQuizScore === 'number') latestScore = studentData.lastQuizScore;
+      if (typeof studentData.practiceScore === 'number') latestPracticeScore = studentData.practiceScore;
+
       // Tính overallProgress
       let overallProgress = latestActiveLessonProgress;
       if (completedLessonIds.length > 0 && overallProgress === 0) {
         overallProgress = 100;
       }
 
-      let finalStatus: 'completed' | 'in_progress' | 'not_started' = 'not_started';
-      if (completedLessonIds.length > 0) {
+      // Trạng thái học tập
+      let finalStatus: 'completed' | 'in_progress' | 'needs_help' | 'not_started' = 'not_started';
+      if (studentData.status && ['completed', 'in_progress', 'needs_help', 'not_started'].includes(studentData.status)) {
+        finalStatus = studentData.status;
+      } else if (completedLessonIds.length > 0) {
         finalStatus = 'completed';
       } else if (latestActiveStatus === 'in_progress' || overallProgress > 0) {
         finalStatus = 'in_progress';
@@ -509,9 +618,10 @@ export async function fetchStudentsFromFirestore(classFilter?: string): Promise<
 
       // Tính thời gian hoạt động gần nhất
       let lastActiveStr = 'Vừa mới đây';
-      if (userData.lastLoginAt) {
+      const rawActive = studentData.lastActiveAt || studentData.lastLoginAt || studentData.createdAt;
+      if (rawActive) {
         try {
-          lastActiveStr = new Date(userData.lastLoginAt).toLocaleTimeString('vi-VN', {
+          lastActiveStr = new Date(rawActive).toLocaleTimeString('vi-VN', {
             hour: '2-digit',
             minute: '2-digit',
             day: '2-digit',
@@ -522,13 +632,13 @@ export async function fetchStudentsFromFirestore(classFilter?: string): Promise<
         }
       }
 
-      items.push({
+      const currentItem: StudentProgressItem = {
         id: uid,
-        studentName: userData.displayName || userData.email.split('@')[0] || 'Học sinh',
-        className: userData.classId || 'Chưa chọn lớp',
+        studentName: studentData.displayName || (studentData.email ? studentData.email.split('@')[0] : 'Học sinh'),
+        className: studentData.classId || 'Chưa chọn lớp',
         currentLessonId: latestActiveLessonId,
         currentStepId: latestActiveSection,
-        currentStepTitle: `Bài ${latestActiveLessonId} (${latestActiveSection})`,
+        currentStepTitle: studentData.currentStepTitle || `Bài ${latestActiveLessonId} (${latestActiveSection})`,
         completedSteps: completedStepsList,
         totalStepsInLesson: 5,
         completedStepCount: completedStepsList.length,
@@ -542,14 +652,14 @@ export async function fetchStudentsFromFirestore(classFilter?: string): Promise<
         practiceScore: latestPracticeScore,
         testScore: latestScore,
         lastActive: lastActiveStr,
-        avatar: userData.photoURL || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80',
-        email: userData.email,
-        scoresHistory: latestScore !== null ? [{
+        avatar: studentData.photoURL || studentData.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80',
+        email: studentData.email || '',
+        scoresHistory: scoresHistory.length > 0 ? scoresHistory : (latestScore !== null ? [{
           lessonId: latestActiveLessonId,
           score: latestScore,
           total: 10,
           date: 'Hôm nay'
-        }] : [],
+        }] : []),
         competency: latestScore !== null ? {
           nhanBietRate: Math.min(100, Math.round(latestScore * 10)),
           thongHieuRate: Math.min(100, Math.round(latestScore * 9)),
@@ -560,7 +670,45 @@ export async function fetchStudentsFromFirestore(classFilter?: string): Promise<
           vanDungRate: 0
         },
         recentMistakes: []
-      });
+      };
+
+      // 4. Nhận diện học sinh duy nhất theo email chuẩn hóa (chống trùng lặp giữa std_<slug> và Auth UID)
+      const dedupKey = emailClean || uid;
+      if (!studentMap.has(dedupKey)) {
+        studentMap.set(dedupKey, currentItem);
+      } else {
+        const existing = studentMap.get(dedupKey)!;
+        // So sánh để ưu tiên bản ghi có dữ liệu học tập thực tế (KHÔNG gộp điểm bằng Math.max)
+        if (isBetterStudentRecord(currentItem, existing)) {
+          // currentItem đầy đủ hơn: chọn currentItem, bổ sung lớp học/tên từ existing nếu currentItem thiếu
+          if (!/^9A[1-8]$/i.test(currentItem.className || '') && /^9A[1-8]$/i.test(existing.className || '')) {
+            currentItem.className = existing.className;
+          }
+          if ((!currentItem.studentName || currentItem.studentName === 'Học sinh') && existing.studentName && existing.studentName !== 'Học sinh') {
+            currentItem.studentName = existing.studentName;
+          }
+          studentMap.set(dedupKey, currentItem);
+        } else {
+          // existing đầy đủ hơn: giữ existing, bổ sung lớp học/tên từ currentItem nếu existing thiếu
+          if (!/^9A[1-8]$/i.test(existing.className || '') && /^9A[1-8]$/i.test(currentItem.className || '')) {
+            existing.className = currentItem.className;
+          }
+          if ((!existing.studentName || existing.studentName === 'Học sinh') && currentItem.studentName && currentItem.studentName !== 'Học sinh') {
+            existing.studentName = currentItem.studentName;
+          }
+          studentMap.set(dedupKey, existing);
+        }
+      }
+    }
+
+    // 5. Lọc theo lớp học sau khi đã gộp bản ghi đầy đủ nhất
+    const items: StudentProgressItem[] = [];
+    for (const student of studentMap.values()) {
+      if (classFilter && classFilter !== 'all') {
+        const studentClass = String(student.className || '').trim().toLowerCase();
+        if (studentClass !== classFilter.trim().toLowerCase()) continue;
+      }
+      items.push(student);
     }
 
     return items;
@@ -571,15 +719,15 @@ export async function fetchStudentsFromFirestore(classFilter?: string): Promise<
 }
 
 /**
- * Lắng nghe thời gian thực (Real-time snapshot) cho Teacher Dashboard
+ * Lắng nghe thời gian thực (Real-time snapshot) cho Teacher Dashboard từ collection "students"
  */
 export function subscribeToStudentsFromFirestore(
   classFilter: string | undefined,
   callback: (students: StudentProgressItem[]) => void
 ): () => void {
-  const usersCol = collection(db, 'users');
+  const studentsCol = collection(db, 'students');
 
-  return onSnapshot(usersCol, async () => {
+  return onSnapshot(studentsCol, async () => {
     try {
       const items = await fetchStudentsFromFirestore(classFilter);
       callback(items);

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { UserAccount, VALID_CLASSES, ClassId } from '../types';
 import { isAuthorizedTeacherEmail } from '../config/authConfig';
+import { getAllRegisteredLessons } from '../services/lessonRegistry';
 import { 
   signInWithGoogle, 
   syncUserProfile,
@@ -49,6 +50,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
       });
 
       if (isTeacher) {
+        const allLessonIds = getAllRegisteredLessons().map(l => l.id);
         const teacherAccount: UserAccount = {
           id: firebaseUser.uid,
           email,
@@ -60,9 +62,9 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
           joinDate: userProfile.createdAt ? new Date(userProfile.createdAt).toLocaleDateString('vi-VN') : '01/09/2026',
           xp: 500,
           streakDays: 7,
-          unlockedLessonIds: [1, 2, 3, 4],
+          unlockedLessonIds: allLessonIds,
           currentLessonId: 1,
-          completedLessonIds: [1],
+          completedLessonIds: allLessonIds,
           quizRecords: {},
           badges: ['teacher_mentor', 'lab_master']
         };
@@ -134,7 +136,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
           </div>
           <ul className="text-[11px] leading-relaxed text-slate-500 list-disc list-inside space-y-0.5">
             <li>
-              Tài khoản giáo viên: <strong className="text-purple-700 font-mono">nvphong.thcsphuninh@gmail.com</strong>
+              Tài khoản giáo viên: <strong className="text-purple-700 font-mono">nvphong.thcsphuninh@gmail.com</strong> / <strong className="text-purple-700 font-mono">nvphong.thcsphusninh@gmail.com</strong> (Tự động mở khóa 100% tất cả các bài học).
             </li>
             <li>Tất cả tài khoản Google khác tự động phân quyền là <strong>HỌC SINH</strong>.</li>
             <li>Học sinh mới chọn lớp (9A1 → 9A8) ở lần đăng nhập đầu tiên và được lưu cố định.</li>

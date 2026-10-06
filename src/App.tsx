@@ -114,7 +114,8 @@ export default function App() {
           }
         });
 
-        const autoUnlocked = computeUnlockedLessonIds(completedLessonIds);
+        const allRegisteredLessonIds = getAllRegisteredLessons().map(l => l.id);
+        const autoUnlocked = isTeacher ? allRegisteredLessonIds : computeUnlockedLessonIds(completedLessonIds);
 
         // Đảm bảo activeLessonId thuộc danh sách mở khóa
         if (!autoUnlocked.includes(latestActiveLessonId)) {
@@ -127,13 +128,13 @@ export default function App() {
           name: profile.displayName || firebaseUser.displayName || email.split('@')[0],
           avatar: profile.photoURL || firebaseUser.photoURL || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80',
           role: isTeacher ? 'teacher' : 'student',
-          gradeClass: profile.classId || '',
+          gradeClass: isTeacher ? 'Tổ Tự Nhiên - Khối 9' : (profile.classId || ''),
           school: 'Trường THCS Phú Ninh',
           joinDate: profile.createdAt ? new Date(profile.createdAt).toLocaleDateString('vi-VN') : new Date().toLocaleDateString('vi-VN'),
-          xp: 0,
+          xp: isTeacher ? 500 : 0,
           streakDays: 1,
           unlockedLessonIds: autoUnlocked,
-          completedLessonIds,
+          completedLessonIds: isTeacher ? allRegisteredLessonIds : completedLessonIds,
           currentLessonId: latestActiveLessonId,
           quizRecords: {},
           badges: isTeacher ? ['teacher_mentor', 'lab_master'] : ['learner_bronze']
@@ -189,8 +190,23 @@ export default function App() {
 
   const [activeLessonId, setActiveLessonId] = useState<number>(currentUser?.currentLessonId || 1);
   const [unlockedLessonIds, setUnlockedLessonIds] = useState<number[]>(() => {
+    const isTeacher = currentUser?.role === 'teacher' || isAuthorizedTeacherEmail(currentUser?.email);
+    if (isTeacher) {
+      return getAllRegisteredLessons().map(l => l.id);
+    }
     return computeUnlockedLessonIds(currentUser?.completedLessonIds || []);
   });
+
+  // Tự động đảm bảo tất cả bài học được mở khóa khi tài khoản là Giáo viên
+  useEffect(() => {
+    if (currentUser) {
+      const isTeacher = currentUser.role === 'teacher' || isAuthorizedTeacherEmail(currentUser.email);
+      if (isTeacher) {
+        const allIds = getAllRegisteredLessons().map(l => l.id);
+        setUnlockedLessonIds(allIds);
+      }
+    }
+  }, [currentUser?.email, currentUser?.role]);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
   const [teacherViewMode, setTeacherViewMode] = useState<'dashboard' | 'preview_lesson'>('dashboard');
 
@@ -326,11 +342,18 @@ export default function App() {
   };
 
   const handleLogin = (newUser: UserAccount) => {
-    const computedUnlocked = computeUnlockedLessonIds(newUser.completedLessonIds || []);
-    const mergedUnlocked = Array.from(new Set([...(newUser.unlockedLessonIds || [1]), ...computedUnlocked]));
+    const isTeacher = newUser.role === 'teacher' || isAuthorizedTeacherEmail(newUser.email);
+    const allLessonIds = getAllRegisteredLessons().map(l => l.id);
+    const computedUnlocked = isTeacher
+      ? allLessonIds
+      : computeUnlockedLessonIds(newUser.completedLessonIds || []);
+    const mergedUnlocked = isTeacher
+      ? allLessonIds
+      : Array.from(new Set([...(newUser.unlockedLessonIds || [1]), ...computedUnlocked]));
     const synchronizedUser: UserAccount = {
       ...newUser,
-      unlockedLessonIds: mergedUnlocked
+      unlockedLessonIds: mergedUnlocked,
+      completedLessonIds: isTeacher ? allLessonIds : (newUser.completedLessonIds || [])
     };
     setCurrentUser(synchronizedUser);
     setUnlockedLessonIds(mergedUnlocked);
@@ -508,6 +531,11 @@ export default function App() {
           <TeacherDashboard
             currentUser={currentUser}
             onBackToStudy={() => setTeacherViewMode('preview_lesson')}
+            onSelectLesson={(lessonId) => {
+              setActiveLessonId(lessonId);
+              setTeacherViewMode('preview_lesson');
+              setCurrentTab('sgk_learning');
+            }}
             onApproveTransferRequest={handleApproveTransferRequest}
           />
         </main>
@@ -570,7 +598,8 @@ export default function App() {
           <div className="hidden lg:flex items-center gap-2">
             <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-xl border border-slate-200 text-xs">
               {getAllRegisteredLessons().map((lesson) => {
-                const isUnlocked = unlockedLessonIds.includes(lesson.id);
+                const isTeacher = currentUser.role === 'teacher' || isAuthorizedTeacherEmail(currentUser.email);
+                const isUnlocked = isTeacher || unlockedLessonIds.includes(lesson.id);
                 const isActive = activeLessonId === lesson.id && currentTab !== 'content_map' && currentTab !== 'teacher_dashboard';
                 return (
                   <button
@@ -579,13 +608,15 @@ export default function App() {
                       if (isUnlocked) {
                         setActiveLessonId(lesson.id);
                         if (currentTab === 'content_map' || currentTab === 'teacher_dashboard') {
-                          setCurrentTab('hook');
+                          setCurrentTab('sgk_learning');
                         }
                       }
                     }}
                     disabled={!isUnlocked}
                     title={
-                      !isUnlocked 
+                      isTeacher 
+                        ? `[Giáo viên] Xem Bài ${lesson.lessonNumber}: ${lesson.shortTitle}`
+                        : !isUnlocked 
                         ? `Hoàn thành Bài ${lesson.lessonNumber - 1} để mở khoá` 
                         : `Chuyển sang Bài ${lesson.lessonNumber}: ${lesson.shortTitle}`
                     }
@@ -598,6 +629,7 @@ export default function App() {
                     }`}
                   >
                     {!isUnlocked && <Lock className="w-3 h-3" />}
+                    {isTeacher && <Sparkles className="w-3 h-3 text-purple-600" />}
                     <span>Bài {lesson.lessonNumber}: {lesson.shortTitle}</span>
                   </button>
                 );
@@ -743,6 +775,7 @@ export default function App() {
             <ContentMapView
               activeLessonId={activeLessonId}
               unlockedLessonIds={unlockedLessonIds}
+              isTeacher={currentUser.role === 'teacher' || isAuthorizedTeacherEmail(currentUser.email)}
               onSelectLesson={(id) => {
                 setActiveLessonId(id);
                 setCurrentTab('sgk_learning');

@@ -11,7 +11,8 @@
  * Thầy/Cô hãy thay "EMAIL_GIAO_VIEN_CUA_TOI" bằng địa chỉ Gmail thật của Thầy/Cô.
  */
 export const AUTHORIZED_TEACHER_EMAILS: string[] = [
-  "nvphong.thcsphuninh@gmail.com"
+  "nvphong.thcsphuninh@gmail.com",
+  "nvphong.thcsphusninh@gmail.com"
 ];
 
 /**
@@ -28,7 +29,12 @@ export function isAuthorizedTeacherEmail(email?: string | null): boolean {
   );
   if (isMatch) return true;
 
-  // 2. Kiểm tra trong danh sách giáo viên được cấp quyền lưu bổ sung tại localStorage (nếu có)
+  // 2. Chấp nhận các biến thể tên trường Phú Ninh (có hoặc không có chữ 's')
+  if (/^nvphong\.thcsphu(s)?ninh@gmail\.com$/i.test(cleanEmail)) {
+    return true;
+  }
+
+  // 3. Kiểm tra trong danh sách giáo viên được cấp quyền lưu bổ sung tại localStorage (nếu có)
   try {
     const customList = JSON.parse(localStorage.getItem('khtn9_authorized_teachers') || '[]');
     if (Array.isArray(customList)) {

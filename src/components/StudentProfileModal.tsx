@@ -132,7 +132,7 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({
           <div className="p-3 bg-blue-50/70 border border-blue-200/80 rounded-xl text-center">
             <div className="text-[11px] text-blue-700 font-medium">Bài đã mở khoá</div>
             <div className="text-xl font-extrabold text-blue-600">
-              {currentUser.unlockedLessonIds?.length || 1} / 51
+              {currentUser.role === 'teacher' ? 'Toàn bộ (GV)' : `${currentUser.unlockedLessonIds?.length || 1} / 51`}
             </div>
           </div>
 

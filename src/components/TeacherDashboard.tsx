@@ -18,7 +18,7 @@ import {
   apiRejectTransfer,
   apiGetStudentDetails 
 } from '../services/apiService';
-import { getTotalRegisteredLessons } from '../services/lessonRegistry';
+import { getTotalRegisteredLessons, getAllRegisteredLessons } from '../services/lessonRegistry';
 import { 
   Users, 
   CheckCircle2, 
@@ -49,12 +49,14 @@ import {
 interface TeacherDashboardProps {
   currentUser: UserAccount;
   onBackToStudy: () => void;
+  onSelectLesson?: (lessonId: number) => void;
   onApproveTransferRequest?: (request: ClassTransferRequest) => void;
 }
 
 export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ 
   currentUser, 
   onBackToStudy,
+  onSelectLesson,
   onApproveTransferRequest
 }) => {
   // 8 Class Filter state: 'all' or '9A1'..'9A8'
@@ -120,7 +122,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
         </div>
         <h2 className="text-xl font-bold text-slate-900">Quyền Truy Cập Bị Giới Hạn</h2>
         <p className="text-sm text-slate-600 leading-relaxed">
-          Trang quản lý (Teacher Dashboard) chỉ dành riêng cho Giáo viên THCS được cấp quyền (email: <strong>nvphong.thcsphuninh@gmail.com</strong>).
+          Trang quản lý (Teacher Dashboard) chỉ dành riêng cho Giáo viên THCS được cấp quyền (email: <strong>nvphong.thcsphuninh@gmail.com</strong> / <strong>nvphong.thcsphusninh@gmail.com</strong>).
         </p>
         <div className="pt-2 flex justify-center gap-3">
           <button
@@ -135,10 +137,12 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
   }
 
   // Dashboard Giáo viên đọc TRỰC TIẾP từ Cloud Firestore collection "students" (Yêu cầu 9 & 10)
-  // Tuyệt đối không dùng localStorage, sessionStorage hay mock data
+  // Lớp phòng vệ bổ sung ở UI: Loại bỏ tuyệt đối email giáo viên khỏi danh sách học sinh
+  const validStudents = serverStudents.filter(s => !isAuthorizedTeacherEmail(s.email));
+
   const classStudents = selectedClass === 'all'
-    ? serverStudents
-    : serverStudents.filter(s => s.className === selectedClass);
+    ? validStudents
+    : validStudents.filter(s => (s.className || '').trim().toLowerCase() === selectedClass.trim().toLowerCase());
 
   // Statistics for selected class or all
   const totalStudents = classStudents.length;
@@ -246,6 +250,70 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
           >
             <BookOpen className="w-3.5 h-3.5" /> Xem Giao Diện Học Bài
           </button>
+        </div>
+      </div>
+
+      {/* Teacher Lesson Access Bar: MỞ KHÓA TẤT CẢ BÀI HỌC VỚI GIÁO VIÊN */}
+      <div className="bg-gradient-to-r from-purple-50 via-indigo-50 to-blue-50 p-4 rounded-2xl border border-purple-200 shadow-2xs space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-purple-700 text-white flex items-center justify-center font-bold text-xs shadow-xs shrink-0">
+              <Sparkles className="w-4 h-4 text-amber-300" />
+            </div>
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs font-black uppercase tracking-wider text-purple-950">
+                  KHO HỌC LIỆU & BÀI HỌC KHTN 9 (ĐÃ MỞ KHÓA TOÀN BỘ CHO GIÁO VIÊN)
+                </span>
+                <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded text-[10px] font-bold">
+                  ✓ 100% UNLOCKED
+                </span>
+              </div>
+              <p className="text-[11px] text-purple-900/80 font-medium">
+                Thầy/Cô có toàn quyền mở trực tiếp bất kỳ bài học nào để trình chiếu, giảng dạy trên lớp hoặc xem đề kiểm tra mà không bị giới hạn tiến trình.
+              </p>
+            </div>
+          </div>
+          <div className="text-[11px] font-bold text-purple-800 bg-white/80 px-3 py-1.5 rounded-lg border border-purple-200 shrink-0">
+            Giáo viên: {currentUser.email}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 pt-1">
+          {getAllRegisteredLessons().map((lesson) => (
+            <button
+              key={lesson.id}
+              onClick={() => {
+                if (onSelectLesson) {
+                  onSelectLesson(lesson.id);
+                } else {
+                  onBackToStudy();
+                }
+              }}
+              className="p-3 bg-white hover:bg-purple-50/60 rounded-xl border border-purple-100 hover:border-purple-300 text-left transition-all shadow-2xs hover:shadow-xs group cursor-pointer flex flex-col justify-between"
+            >
+              <div>
+                <div className="flex items-center justify-between gap-1 mb-1">
+                  <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-purple-100 text-purple-800">
+                    Bài {lesson.lessonNumber}
+                  </span>
+                  <span className="text-[10px] text-emerald-600 font-bold flex items-center gap-0.5">
+                    <CheckCircle2 className="w-3 h-3" /> Đã mở khóa
+                  </span>
+                </div>
+                <div className="text-xs font-bold text-slate-900 group-hover:text-purple-700 transition-colors line-clamp-1">
+                  {lesson.shortTitle || lesson.title}
+                </div>
+                <div className="text-[10px] text-slate-500 line-clamp-2 mt-0.5 leading-snug">
+                  {lesson.coreKnowledge}
+                </div>
+              </div>
+              <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] font-bold text-purple-700">
+                <span>Vào giảng dạy & xem bài</span>
+                <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+              </div>
+            </button>
+          ))}
         </div>
       </div>
 

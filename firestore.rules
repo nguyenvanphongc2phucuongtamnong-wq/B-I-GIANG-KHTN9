@@ -11,7 +11,8 @@ service cloud.firestore {
         request.auth.token.email != null &&
         (
           request.auth.token.email == 'nvphong.thcsphuninh@gmail.com' ||
-          request.auth.token.email.matches('(?i)^nvphong\\.thcsphuninh@gmail\\.com$')
+          request.auth.token.email == 'nvphong.thcsphusninh@gmail.com' ||
+          request.auth.token.email.matches('(?i)^nvphong\\.thcsphu(s)?ninh@gmail\\.com$')
         );
     }
 

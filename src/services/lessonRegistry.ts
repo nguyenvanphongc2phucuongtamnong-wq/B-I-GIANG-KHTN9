@@ -340,15 +340,21 @@ export function isLessonRegistered(lessonId: number | string): boolean {
 
 /**
  * NGUYÊN TẮC V & VI: TÍNH TOÁN CƠ CHẾ MỞ KHOÁ TỰ ĐỘNG
- * - Bài 1 luôn luôn mở khoá (AVAILABLE / COMPLETED).
- * - Bài N (N > 1) được mở khoá (AVAILABLE) NẾU VÀ CHỈ NẾU Bài (N-1) đã có trong completedLessons.
- * - Nếu Bài (N-1) chưa hoàn thành -> Bài N vẫn BỊ KHOÁ (LOCKED).
- * 
- * Áp dụng hoàn hảo cho các kịch bản:
- * - Test 1: Học sinh hoàn thành Bài 1, 2, 3 -> Giáo viên thêm Bài 4 -> Bài 4 TỰ ĐỘNG MỞ KHOÁ!
- * - Test 2: Học sinh mới hoàn thành Bài 1 -> Giáo viên thêm Bài 4 -> Bài 2 mở, Bài 3 & 4 BỊ KHOÁ!
+ * - ĐỐI VỚI GIÁO VIÊN: TẤT CẢ CÁC BÀI HỌC ĐỀU ĐƯỢC MỞ KHÓA HOÀN TOÀN (Bài 1, 2, 3, 4...).
+ * - ĐỐI VỚI HỌC SINH:
+ *   + Bài 1 luôn luôn mở khoá (AVAILABLE / COMPLETED).
+ *   + Bài N (N > 1) được mở khoá (AVAILABLE) NẾU VÀ CHỈ NẾU Bài (N-1) đã có trong completedLessons.
+ *   + Nếu Bài (N-1) chưa hoàn thành -> Bài N vẫn BỊ KHOÁ (LOCKED).
  */
-export function computeUnlockedLessonIds(completedLessons: (number | string)[] = []): number[] {
+export function computeUnlockedLessonIds(
+  completedLessons: (number | string)[] = [],
+  isTeacher: boolean = false
+): number[] {
+  // Với Giáo viên: MỞ KHÓA TOÀN BỘ BÀI HỌC
+  if (isTeacher) {
+    return REGISTERED_LESSONS.map(l => l.id);
+  }
+
   const unlocked = new Set<number>([1]); // Bài 1 luôn mở
 
   const safeCompleted = Array.isArray(completedLessons) ? completedLessons : [];
@@ -376,12 +382,25 @@ export function computeUnlockedLessonIds(completedLessons: (number | string)[] =
 }
 
 /**
- * Kiểm tra xem một bài học cụ thể có mở khoá cho học sinh hay không
+ * Kiểm tra xem một bài học cụ thể có mở khoá hay không
+ * (Với Giáo viên luôn luôn trả về true cho mọi bài học)
  */
-export function isLessonUnlocked(lessonId: number | string, completedLessons: (number | string)[] = []): boolean {
-  const unlockedList = computeUnlockedLessonIds(completedLessons);
+export function isLessonUnlocked(
+  lessonId: number | string, 
+  completedLessons: (number | string)[] = [],
+  isTeacher: boolean = false
+): boolean {
+  if (isTeacher) return true;
+  const unlockedList = computeUnlockedLessonIds(completedLessons, false);
   const numId = typeof lessonId === 'string' ? parseInt(lessonId.replace(/\D/g, ''), 10) : lessonId;
   return unlockedList.includes(numId);
+}
+
+/**
+ * Lấy danh sách toàn bộ ID bài học đã được mở khóa cho giáo viên
+ */
+export function getAllTeacherUnlockedLessonIds(): number[] {
+  return REGISTERED_LESSONS.map(l => l.id);
 }
 
 /**

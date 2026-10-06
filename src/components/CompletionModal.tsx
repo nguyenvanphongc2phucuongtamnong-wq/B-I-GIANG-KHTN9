@@ -9,6 +9,7 @@ import {
   Zap,
   Award
 } from 'lucide-react';
+import { MathText } from './MathRenderer';
 
 interface CompletionModalProps {
   score: number;
@@ -98,7 +99,7 @@ export const CompletionModal: React.FC<CompletionModalProps> = ({
               </>
             ) : (
               <>
-                <li>Nắm vững bản chất động năng ($W_đ = \frac{1}{2}mv^2$) và thế năng trọng trường ($W_t = P \cdot h$).</li>
+                <li><MathText text="Nắm vững bản chất động năng (\(W_đ = \frac{1}{2} m v^2\)) và thế năng trọng trường (\(W_t = P \cdot h\))." /></li>
                 <li>Giải thích được hiện tượng chuyển hoá cơ năng trong đời sống (thuỷ điện, búa máy, chuyển động con lắc).</li>
                 <li>Tính toán thành thạo các đại lượng công, vận tốc và lực cản trong các bài toán cơ học thực tế.</li>
               </>

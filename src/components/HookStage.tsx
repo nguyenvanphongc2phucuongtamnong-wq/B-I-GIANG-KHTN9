@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { getLessonModule } from '../services/lessonRegistry';
 import { Sparkles, CheckCircle2, XCircle, ArrowRight, HelpCircle } from 'lucide-react';
 import { shuffleScenarioQuestion } from '../services/quizShuffleService';
+import { MathText } from './MathRenderer';
 
 interface HookStageProps {
   onComplete?: () => void;
@@ -66,15 +67,15 @@ export const HookStage: React.FC<HookStageProps> = ({
           </div>
 
           <h3 className="text-xl md:text-2xl font-bold tracking-tight text-white">
-            {scenario.title}
+            <MathText text={scenario.title} />
           </h3>
 
-          <p className="text-sm md:text-base text-slate-300 leading-relaxed">
-            {scenario.description}
-          </p>
+          <div className="text-sm md:text-base text-slate-300 leading-relaxed">
+            <MathText text={scenario.description} />
+          </div>
 
           <div className="p-4 bg-slate-800/80 rounded-xl border border-slate-700 text-sm text-amber-200/90 leading-relaxed">
-            {scenario.challengePrompt}
+            <MathText text={scenario.challengePrompt} />
           </div>
         </div>
       </div>
@@ -86,9 +87,9 @@ export const HookStage: React.FC<HookStageProps> = ({
             <HelpCircle className="w-5 h-5" />
           </span>
           <div>
-            <h4 className="font-bold text-slate-900 text-base md:text-lg">
-              {scenario.question}
-            </h4>
+            <div className="font-bold text-slate-900 text-base md:text-lg">
+              <MathText text={scenario.question} />
+            </div>
             <p className="text-xs text-slate-500 mt-1">
               Hãy suy luận và chọn câu trả lời em cho là chính xác nhất (Vị trí đáp án đúng đã được xáo trộn):
             </p>
@@ -136,13 +137,13 @@ export const HookStage: React.FC<HookStageProps> = ({
                   )}
                 </div>
                 <div className="space-y-1 flex-1">
-                  <div className="leading-snug">{opt.text}</div>
+                  <div className="leading-snug"><MathText text={opt.text} /></div>
                   {hasAnswered && isSelected && (
-                    <p className={`text-xs mt-2 pt-2 border-t font-normal ${
+                    <div className={`text-xs mt-2 pt-2 border-t font-normal ${
                       opt.correct ? 'border-emerald-200 text-emerald-800' : 'border-red-200 text-red-800'
                     }`}>
-                      {opt.feedback}
-                    </p>
+                      <MathText text={opt.feedback} />
+                    </div>
                   )}
                 </div>
               </button>

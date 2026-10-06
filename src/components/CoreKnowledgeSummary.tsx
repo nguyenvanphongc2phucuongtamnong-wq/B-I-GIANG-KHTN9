@@ -8,11 +8,13 @@ import {
   ShieldCheck, 
   Flame, 
   Layers,
-  ArrowRight,
-  ArrowLeft,
-  Zap,
-  Info
+  ArrowRight, 
+  ArrowLeft, 
+  Zap, 
+  Info,
+  Gauge
 } from 'lucide-react';
+import { MathFormula, MathText } from './MathRenderer';
 
 interface CoreKnowledgeSummaryProps {
   activeLessonId: number;
@@ -32,6 +34,9 @@ export const CoreKnowledgeSummary: React.FC<CoreKnowledgeSummaryProps> = ({
     else if (onNextStage) onNextStage();
   };
 
+  // ==========================================
+  // BÀI 2: ĐỘNG NĂNG & THẾ NĂNG
+  // ==========================================
   if (activeLessonId === 2) {
     return (
       <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in duration-200">
@@ -57,7 +62,7 @@ export const CoreKnowledgeSummary: React.FC<CoreKnowledgeSummaryProps> = ({
           <div className="bg-white p-5 rounded-xl border border-blue-200 shadow-xs space-y-4">
             <div className="flex items-center gap-2 pb-2 border-b border-blue-100">
               <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
-                Wđ
+                <MathText text="\(W_đ\)" />
               </div>
               <h3 className="font-bold text-slate-900 text-base">1. Động Năng (Kinetic Energy)</h3>
             </div>
@@ -69,24 +74,31 @@ export const CoreKnowledgeSummary: React.FC<CoreKnowledgeSummaryProps> = ({
               </li>
               <li className="flex items-start gap-2">
                 <CheckCircle2 className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
-                <span><strong>Công thức:</strong> <code className="px-2 py-0.5 bg-blue-50 text-blue-800 rounded font-bold">Wđ = 1/2 · m · v²</code></span>
+                <span className="flex items-center gap-2">
+                  <strong>Công thức:</strong> 
+                  <MathFormula formula="W_đ = \frac{1}{2} m v^2" className="!my-0 !py-1 px-3 bg-blue-50 text-blue-900 rounded-lg border border-blue-200" />
+                </span>
               </li>
               <li className="flex items-start gap-2">
                 <CheckCircle2 className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
-                <span><strong>Đơn vị:</strong> m (kg), v (m/s) → Wđ tính bằng Jun (J). (1 kJ = 1000 J).</span>
+                <span><MathText text="**Đơn vị:** \(m\) (kg), \(v\) (m/s) \(\rightarrow W_đ\) tính bằng Jun (J). (\(1\text{ kJ} = 1\,000\text{ J}\))." /></span>
               </li>
               <li className="flex items-start gap-2">
                 <CheckCircle2 className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
-                <span><strong>Quy luật đặc biệt:</strong> Wđ tỉ lệ thuận với khối lượng m và tỉ lệ thuận với <strong>bình phương vận tốc v²</strong>. (v tăng 2 lần → Wđ tăng 4 lần).</span>
+                <span><MathText text="**Quy luật đặc biệt:** \(W_đ\) tỉ lệ thuận với khối lượng \(m\) và tỉ lệ với **bình phương vận tốc \(v^2\)** (khi \(v\) tăng 2 lần \(\rightarrow W_đ\) tăng \(2^2 = 4\) lần)." /></span>
               </li>
             </ul>
+
+            <div className="p-3 bg-blue-50/70 rounded-xl border border-blue-200 text-center font-bold">
+              <MathFormula formula="W_đ = \frac{1}{2} m v^2 \quad (\text{J})" block={true} className="!my-0 !py-0 !bg-transparent !border-0 text-blue-900" />
+            </div>
           </div>
 
           {/* Box 2: Thế năng trọng trường */}
           <div className="bg-white p-5 rounded-xl border border-amber-200 shadow-xs space-y-4">
             <div className="flex items-center gap-2 pb-2 border-b border-amber-100">
               <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center font-bold">
-                Wt
+                <MathText text="\(W_t\)" />
               </div>
               <h3 className="font-bold text-slate-900 text-base">2. Thế Năng Trọng Trường (Potential Energy)</h3>
             </div>
@@ -94,21 +106,28 @@ export const CoreKnowledgeSummary: React.FC<CoreKnowledgeSummaryProps> = ({
             <ul className="space-y-2.5 text-xs text-slate-700">
               <li className="flex items-start gap-2">
                 <CheckCircle2 className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                <span><strong>Định nghĩa:</strong> Năng lượng của vật khi ở một độ cao h nhất định so với mốc chọn.</span>
+                <span><strong>Định nghĩa:</strong> Năng lượng của vật khi ở một độ cao \(h\) nhất định so với mốc chọn.</span>
               </li>
               <li className="flex items-start gap-2">
                 <CheckCircle2 className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                <span><strong>Công thức:</strong> <code className="px-2 py-0.5 bg-amber-50 text-amber-800 rounded font-bold">Wt = P · h = m · g · h</code></span>
+                <span className="flex items-center gap-2">
+                  <strong>Công thức:</strong> 
+                  <MathFormula formula="W_t = P \cdot h = m \cdot g \cdot h" className="!my-0 !py-1 px-3 bg-amber-50 text-amber-900 rounded-lg border border-amber-200" />
+                </span>
               </li>
               <li className="flex items-start gap-2">
                 <CheckCircle2 className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                <span><strong>Đơn vị:</strong> P (N), h (m) hoặc m (kg), g (≈ 9.8 hoặc 10 m/s²) → Wt (J).</span>
+                <span><MathText text="**Đơn vị:** \(P\) (N), \(h\) (m) hoặc \(m\) (kg), \(g \approx 9,8\) hoặc \(10\text{ m/s}^2 \rightarrow W_t\) (J)." /></span>
               </li>
               <li className="flex items-start gap-2">
                 <CheckCircle2 className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                <span><strong>Mốc thế năng:</strong> Thế năng phụ thuộc vào việc <em>chọn mốc</em> tính độ cao (thường chọn mặt đất là mốc h = 0 → Wt = 0).</span>
+                <span><MathText text="**Mốc thế năng:** Thế năng phụ thuộc vào việc *chọn mốc* tính độ cao (thường chọn mặt đất là mốc \(h = 0 \rightarrow W_t = 0\))." /></span>
               </li>
             </ul>
+
+            <div className="p-3 bg-amber-50/70 rounded-xl border border-amber-200 text-center font-bold">
+              <MathFormula formula="W_t = P \cdot h = m \cdot g \cdot h \quad (\text{J})" block={true} className="!my-0 !py-0 !bg-transparent !border-0 text-amber-950" />
+            </div>
           </div>
         </div>
 
@@ -121,13 +140,13 @@ export const CoreKnowledgeSummary: React.FC<CoreKnowledgeSummaryProps> = ({
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs text-amber-950 font-medium">
             <div className="p-3 bg-white/80 rounded-xl border border-amber-200">
-              <strong>1. Động năng:</strong> Phụ thuộc vào khối lượng m và vận tốc v. Vật đứng yên thì động năng bằng không.
+              <MathText text="**1. Động năng:** Phụ thuộc vào khối lượng \(m\) và vận tốc \(v\). Vật đứng yên (\(v = 0\)) thì động năng bằng 0." />
             </div>
             <div className="p-3 bg-white/80 rounded-xl border border-amber-200">
-              <strong>2. Thế năng:</strong> Phụ thuộc vào trọng lượng P (hoặc khối lượng m) và độ cao h của vật so với vị trí chọn làm mốc thế năng.
+              <MathText text="**2. Thế năng:** Phụ thuộc vào trọng lượng \(P\) (hoặc khối lượng \(m\)) và độ cao \(h\) của vật so với vị trí chọn làm mốc thế năng." />
             </div>
             <div className="p-3 bg-white/80 rounded-xl border border-amber-200">
-              <strong>3. Năng lượng cơ học:</strong> Một vật có thể đồng thời vừa có động năng vừa có thế năng (máy bay đang bay, quả táo rơi).
+              <MathText text="**3. Năng lượng cơ học:** Một vật có thể đồng thời vừa có động năng vừa có thế năng (máy bay đang bay, quả táo rơi)." />
             </div>
           </div>
         </div>
@@ -156,7 +175,9 @@ export const CoreKnowledgeSummary: React.FC<CoreKnowledgeSummaryProps> = ({
     );
   }
 
-  // Bài 3: Cơ Năng (Hoặc các bài cơ học kế tiếp)
+  // ==========================================
+  // BÀI 3: CƠ NĂNG
+  // ==========================================
   if (activeLessonId === 3) {
     return (
       <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in duration-200">
@@ -182,7 +203,7 @@ export const CoreKnowledgeSummary: React.FC<CoreKnowledgeSummaryProps> = ({
           <div className="bg-white p-5 rounded-xl border border-emerald-200 shadow-xs space-y-4">
             <div className="flex items-center gap-2 pb-2 border-b border-emerald-100">
               <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
-                W
+                <MathText text="\(W_c\)" />
               </div>
               <h3 className="font-bold text-slate-900 text-base">1. Khái Niệm & Công Thức Cơ Năng</h3>
             </div>
@@ -190,20 +211,23 @@ export const CoreKnowledgeSummary: React.FC<CoreKnowledgeSummaryProps> = ({
             <ul className="space-y-2.5 text-xs text-slate-700">
               <li className="flex items-start gap-2">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                <span><strong>Định nghĩa:</strong> Tổng động năng và thế năng của vật gọi là cơ năng.</span>
+                <span><MathText text="**Định nghĩa:** Tổng động năng và thế năng của vật gọi là cơ năng: \(W_c = W_đ + W_t\)." /></span>
               </li>
               <li className="flex items-start gap-2">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                <span><strong>Công thức:</strong> W = Wđ + Wt = 1/2 · m · v² + m · g · h.</span>
+                <span className="flex items-center gap-2">
+                  <strong>Công thức:</strong> 
+                  <MathFormula formula="W_c = W_đ + W_t = \frac{1}{2} m v^2 + m g h" className="!my-0 !py-1 px-3 bg-emerald-50 text-emerald-900 rounded-lg border border-emerald-200" />
+                </span>
               </li>
               <li className="flex items-start gap-2">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                <span><strong>Đơn vị chuẩn:</strong> Jun (kí hiệu J). 1 kJ = 1 000 J.</span>
+                <span><MathText text="**Đơn vị chuẩn:** Jun (kí hiệu J). \(1\text{ kJ} = 1\,000\text{ J}\)." /></span>
               </li>
             </ul>
 
-            <div className="p-3 bg-emerald-50/70 rounded-xl border border-emerald-200 text-xs text-emerald-950 font-mono text-center font-bold">
-              W = 1/2 m v² + m g h (Jun - J)
+            <div className="p-3 bg-emerald-50/70 rounded-xl border border-emerald-200 text-center font-bold">
+              <MathFormula formula="W_c = \frac{1}{2} m v^2 + m g h \quad (\text{Jun - J})" block={true} className="!my-0 !py-0 !bg-transparent !border-0 text-emerald-950" />
             </div>
           </div>
 
@@ -219,20 +243,20 @@ export const CoreKnowledgeSummary: React.FC<CoreKnowledgeSummaryProps> = ({
             <ul className="space-y-2.5 text-xs text-slate-700">
               <li className="flex items-start gap-2">
                 <CheckCircle2 className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
-                <span><strong>Nội dung:</strong> Vật chuyển động chỉ chịu trọng lực thì cơ năng bảo toàn: W = Wđ + Wt = hằng số.</span>
+                <span><MathText text="**Nội dung:** Vật chuyển động chỉ chịu trọng lực thì cơ năng bảo toàn: \(W_c = W_đ + W_t = \text{const}\)." /></span>
               </li>
               <li className="flex items-start gap-2">
                 <CheckCircle2 className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
-                <span><strong>Chuyển hoá:</strong> Khi Wt giảm thì Wđ tăng và ngược lại: ΔWt = -ΔWđ.</span>
+                <span><MathText text="**Chuyển hoá:** Khi \(W_t\) giảm thì \(W_đ\) tăng và ngược lại: \(\Delta W_t = -\Delta W_đ\)." /></span>
               </li>
               <li className="flex items-start gap-2">
                 <CheckCircle2 className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
-                <span><strong>Hao phí thực tế:</strong> Ma sát biến cơ năng thành nhiệt năng và âm thanh: ΔW = A_ms.</span>
+                <span><MathText text="**Hao phí thực tế:** Ma sát biến cơ năng thành nhiệt năng và âm thanh: \(\Delta W = A_{\text{ms}}\)." /></span>
               </li>
             </ul>
 
-            <div className="p-3 bg-blue-50/70 rounded-xl border border-blue-200 text-xs text-blue-950 font-mono text-center font-bold">
-              Wđ₁ + Wt₁ = Wđ₂ + Wt₂ (Khi F_cản = 0)
+            <div className="p-3 bg-blue-50/70 rounded-xl border border-blue-200 text-center font-bold">
+              <MathFormula formula="W_{đ1} + W_{t1} = W_{đ2} + W_{t2} \quad (\text{Khi } F_{\text{cản}} = 0)" block={true} className="!my-0 !py-0 !bg-transparent !border-0 text-blue-950" />
             </div>
           </div>
         </div>
@@ -246,10 +270,10 @@ export const CoreKnowledgeSummary: React.FC<CoreKnowledgeSummaryProps> = ({
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs text-emerald-950 font-medium">
             <div className="p-3 bg-white/80 rounded-xl border border-emerald-200">
-              <strong>1. Đỉnh dốc cao nhất:</strong> Vận tốc v = 0 nên cơ năng hoàn toàn bằng thế năng: W = Wt_max = m·g·h.
+              <MathText text="**1. Đỉnh dốc cao nhất:** Vận tốc \(v = 0\) nên cơ năng hoàn toàn bằng thế năng: \(W_c = W_{t\max} = m \cdot g \cdot h\)." />
             </div>
             <div className="p-3 bg-white/80 rounded-xl border border-emerald-200">
-              <strong>2. Sát mặt đất (h = 0):</strong> Thế năng bằng 0, động năng cực đại bằng toàn bộ cơ năng: W = Wđ_max = 1/2 m v².
+              <MathText text="**2. Sát mặt đất (\(h = 0\)):** Thế năng bằng 0, động năng cực đại bằng toàn bộ cơ năng: \(W_c = W_{đ\max} = \frac{1}{2} m v^2\)." />
             </div>
             <div className="p-3 bg-white/80 rounded-xl border border-emerald-200">
               <strong>3. Ứng dụng công nghệ:</strong> Đập thuỷ điện tích trữ thế năng nước để phát điện; búa máy chuyển thế năng thành công đóng cọc.
@@ -281,7 +305,150 @@ export const CoreKnowledgeSummary: React.FC<CoreKnowledgeSummaryProps> = ({
     );
   }
 
-  // Bài 1 Summary
+  // ==========================================
+  // BÀI 4: CÔNG VÀ CÔNG SUẤT
+  // ==========================================
+  if (activeLessonId === 4) {
+    return (
+      <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in duration-200">
+        {/* Header */}
+        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-800 border border-purple-200">
+              Bài 4: Công và Công Suất
+            </span>
+            <span className="text-xs text-slate-500">Chương I: Năng Lượng Cơ Học • Trang 21 SGK</span>
+          </div>
+          <h2 className="text-2xl font-bold text-slate-900 tracking-tight">
+            Kiến Thức Trọng Tâm: Công Cơ Học & Công Suất Máy Móc
+          </h2>
+          <p className="text-sm text-slate-600 mt-1">
+            Tổng hợp biểu thức tính công, điều kiện sinh công, công suất định mức và mối liên hệ giữa lực kéo và vận tốc.
+          </p>
+        </div>
+
+        {/* 2 Core Columns: Công vs Công Suất */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          {/* Box 1: Công cơ học */}
+          <div className="bg-white p-5 rounded-xl border border-purple-200 shadow-xs space-y-4">
+            <div className="flex items-center gap-2 pb-2 border-b border-purple-100">
+              <div className="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center font-bold">
+                A
+              </div>
+              <h3 className="font-bold text-slate-900 text-base">1. Công Cơ Học (Mechanical Work)</h3>
+            </div>
+
+            <ul className="space-y-2.5 text-xs text-slate-700">
+              <li className="flex items-start gap-2">
+                <CheckCircle2 className="w-4 h-4 text-purple-600 shrink-0 mt-0.5" />
+                <span><strong>Điều kiện sinh công:</strong> Có lực tác dụng vào vật và vật dịch chuyển theo phương không vuông góc với lực.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <CheckCircle2 className="w-4 h-4 text-purple-600 shrink-0 mt-0.5" />
+                <span className="flex items-center gap-2">
+                  <strong>Công thức:</strong> 
+                  <MathFormula formula="A = F \cdot s" className="!my-0 !py-1 px-3 bg-purple-50 text-purple-900 rounded-lg border border-purple-200" />
+                </span>
+              </li>
+              <li className="flex items-start gap-2">
+                <CheckCircle2 className="w-4 h-4 text-purple-600 shrink-0 mt-0.5" />
+                <span><MathText text="**Đơn vị:** \(F\) (N), \(s\) (m) \(\rightarrow A\) (Jun - J). \(1\text{ J} = 1\text{ N} \cdot 1\text{ m}\). \(1\text{ kJ} = 1\,000\text{ J}\)." /></span>
+              </li>
+              <li className="flex items-start gap-2">
+                <CheckCircle2 className="w-4 h-4 text-purple-600 shrink-0 mt-0.5" />
+                <span><MathText text="**Trường hợp \(A = 0\):** Khi vật không dịch chuyển (\(s = 0\)) hoặc lực vuông góc hướng chuyển dời (\(\alpha = 90^\circ\))." /></span>
+              </li>
+            </ul>
+
+            <div className="p-3 bg-purple-50/70 rounded-xl border border-purple-200 text-center font-bold">
+              <MathFormula formula="A = F \cdot s \quad (\text{Jun - J})" block={true} className="!my-0 !py-0 !bg-transparent !border-0 text-purple-950" />
+            </div>
+          </div>
+
+          {/* Box 2: Công suất */}
+          <div className="bg-white p-5 rounded-xl border border-blue-200 shadow-xs space-y-4">
+            <div className="flex items-center gap-2 pb-2 border-b border-blue-100">
+              <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
+                P
+              </div>
+              <h3 className="font-bold text-slate-900 text-base">2. Công Suất (Power)</h3>
+            </div>
+
+            <ul className="space-y-2.5 text-xs text-slate-700">
+              <li className="flex items-start gap-2">
+                <CheckCircle2 className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+                <span><strong>Định nghĩa:</strong> Đại lượng đặc trưng cho tốc độ thực hiện công trong một đơn vị thời gian.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <CheckCircle2 className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+                <span className="flex items-center gap-2">
+                  <strong>Công thức:</strong> 
+                  <MathFormula formula="P = \frac{A}{t} = F \cdot v" className="!my-0 !py-1 px-3 bg-blue-50 text-blue-900 rounded-lg border border-blue-200" />
+                </span>
+              </li>
+              <li className="flex items-start gap-2">
+                <CheckCircle2 className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+                <span><MathText text="**Đơn vị:** Oát (W). \(1\text{ W} = 1\text{ J/s}\). Bội số: \(1\text{ kW} = 1\,000\text{ W}\); \(1\text{ MW} = 1\,000\,000\text{ W}\)." /></span>
+              </li>
+              <li className="flex items-start gap-2">
+                <CheckCircle2 className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+                <span><MathText text="**Mối liên hệ \(P = F \cdot v\):** Khi leo dốc, công suất \(P\) cực đại giữ nguyên, muốn tăng lực kéo \(F\) cần giảm vận tốc \(v\) (về số thấp)." /></span>
+              </li>
+            </ul>
+
+            <div className="p-3 bg-blue-50/70 rounded-xl border border-blue-200 text-center font-bold">
+              <MathFormula formula="P = \frac{A}{t} = F \cdot v \quad (\text{Oát - W})" block={true} className="!my-0 !py-0 !bg-transparent !border-0 text-blue-950" />
+            </div>
+          </div>
+        </div>
+
+        {/* 📌 EM CẦN NHỚ Box */}
+        <div className="bg-gradient-to-r from-purple-50 to-indigo-50 border-2 border-purple-300 rounded-2xl p-5 space-y-3 shadow-xs">
+          <div className="flex items-center gap-2 text-purple-900 font-bold text-sm">
+            <Bookmark className="w-5 h-5 text-purple-600" />
+            <span>📌 EM CẦN NHỚ: BÀI 4 - CÔNG & CÔNG SUẤT (SGK KHTN 9)</span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs text-purple-950 font-medium">
+            <div className="p-3 bg-white/80 rounded-xl border border-purple-200">
+              <MathText text="**1. Công cơ học:** Chỉ có khi lực làm vật dịch chuyển. Lực vuông góc phương dời không sinh công (\(A = 0\))." />
+            </div>
+            <div className="p-3 bg-white/80 rounded-xl border border-purple-200">
+              <MathText text="**2. Công suất:** Xác định bằng công sinh ra trong 1 giây (\(P = \frac{A}{t}\)). Máy có công suất càng lớn làm việc càng nhanh." />
+            </div>
+            <div className="p-3 bg-white/80 rounded-xl border border-purple-200">
+              <MathText text="**3. Vận hành xe cộ:** Từ \(F = \frac{P}{v}\), khi leo dốc cần giảm tốc độ \(v\) để đạt lực kéo \(F\) lớn nhất." />
+            </div>
+          </div>
+        </div>
+
+        {/* Action navigation buttons */}
+        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between gap-3">
+          <button
+            type="button"
+            onClick={onBackToExplore}
+            className="px-4 py-2.5 rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-bold transition-all flex items-center gap-1.5 min-h-[48px] cursor-pointer"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>Quay lại Chặng 2: Khám Phá</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleProceed}
+            className="px-6 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 active:scale-95 text-white text-xs md:text-sm font-bold shadow-xs transition-all flex items-center gap-2 min-h-[48px] cursor-pointer"
+          >
+            <span>Vào Chặng 4: Tương Tác & Trò Chơi</span>
+            <ArrowRight className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ==========================================
+  // BÀI 1: DỤNG CỤ, HOÁ CHẤT & THUYẾT TRÌNH
+  // ==========================================
   return (
     <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in duration-200">
       {/* Header */}

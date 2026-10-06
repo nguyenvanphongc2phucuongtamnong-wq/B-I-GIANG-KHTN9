@@ -427,7 +427,7 @@ export const ENRICHED_TOPICS_MAP: Record<string, EnrichedTopicData> = {
       romanHeader: 'I. ĐỘNG NĂNG',
       subHeader: '3. Công thức tính động năng',
       subItems: [
-        'a) Biểu thức toán học của động năng: Wđ = 1/2 · m · v²',
+        'a) Biểu thức toán học của động năng: \\(W_đ = \\frac{1}{2} m v^2\\)',
         'b) Đơn vị đo chuẩn SI và quy đổi km/h sang m/s',
         'c) Ứng dụng giải thích khoảng cách an toàn giao thông'
       ]
@@ -435,19 +435,19 @@ export const ENRICHED_TOPICS_MAP: Record<string, EnrichedTopicData> = {
     formula: {
       title: 'Công thức tính Động năng (SGK KHTN 9 trang 17)',
       formula: 'W_đ = \\frac{1}{2} m v^2',
-      explanation: 'Động năng tỉ lệ thuận với khối lượng m và tỉ lệ với BÌNH PHƯƠNG vận tốc v² của vật.',
+      explanation: 'Động năng tỉ lệ thuận với khối lượng \\(m\\) và tỉ lệ với BÌNH PHƯƠNG vận tốc \\(v^2\\) của vật.',
       variables: [
-        { symbol: 'W_đ', name: 'Động năng của vật', unit: 'Jun (J)' },
-        { symbol: 'm', name: 'Khối lượng của vật', unit: 'kilôgam (kg)' },
-        { symbol: 'v', name: 'Tốc độ chuyển động của vật', unit: 'mét trên giây (m/s)' }
+        { symbol: '\\(W_đ\\)', name: 'Động năng của vật', unit: 'Jun (J)' },
+        { symbol: '\\(m\\)', name: 'Khối lượng của vật', unit: 'kilôgam (kg)' },
+        { symbol: '\\(v\\)', name: 'Tốc độ chuyển động của vật', unit: 'mét trên giây (m/s)' }
       ]
     },
-    warningNote: '⚠ LƯU Ý ĐỔI ĐƠN VỊ KHI TÍNH TOÁN: Trong công thức Wđ = 1/2 m v², vận tốc BẮT BUỘC phải đổi ra đơn vị m/s. Nếu đề bài cho km/h, ta phải chia cho 3,6 (ví dụ: 72 km/h = 72 / 3,6 = 20 m/s; 54 km/h = 15 m/s; 36 km/h = 10 m/s). Khối lượng bắt buộc đổi ra kg (1 tấn = 1000 kg)!',
+    warningNote: '⚠ LƯU Ý ĐỔI ĐƠN VỊ KHI TÍNH TOÁN: Trong công thức \\(W_đ = \\frac{1}{2} m v^2\\), vận tốc BẮT BUỘC phải đổi ra đơn vị m/s. Nếu đề bài cho km/h, ta phải chia cho 3,6 (ví dụ: 72 km/h = 20 m/s; 54 km/h = 15 m/s; 36 km/h = 10 m/s). Khối lượng bắt buộc đổi ra kg (1 tấn = 1 000 kg)!',
     exampleDetail: {
       type: 'problem',
       title: 'Bài toán tính động năng xe ô tô trên cao tốc (SGK trang 17)',
-      givenOrPhenomenon: 'Một chiếc ô tô có khối lượng m = 1 500 kg đang chạy với tốc độ v = 72 km/h trên quốc lộ.',
-      stepsOrExplanation: '1. Đổi đơn vị vận tốc sang chuẩn SI: v = 72 km/h = 72 / 3,6 = 20 m/s.\n2. Áp dụng công thức tính động năng: Wđ = 1/2 · m · v² = 1/2 · 1 500 · 20² = 750 · 400 = 300 000 J = 300 kJ.',
+      givenOrPhenomenon: 'Một chiếc ô tô có khối lượng \\(m = 1\\,500\\text{ kg}\\) đang chạy với tốc độ \\(v = 72\\text{ km/h}\\) trên quốc lộ.',
+      stepsOrExplanation: '1. Đổi đơn vị vận tốc sang chuẩn SI: \\(v = 72\\text{ km/h} = \\frac{72}{3,6} = 20\\text{ m/s}\\).\n2. Áp dụng công thức tính động năng: \\(W_đ = \\frac{1}{2} m v^2 = \\frac{1}{2} \\cdot 1\\,500 \\cdot 20^2 = 750 \\cdot 400 = 300\\,000\\text{ J} = 300\\text{ kJ}\\).',
       resultOrTakeaway: 'Động năng của ô tô là 300 kJ (300 000 Jun).'
     },
     interactiveQuizzes: [
@@ -456,15 +456,15 @@ export const ENRICHED_TOPICS_MAP: Record<string, EnrichedTopicData> = {
         question: 'Khi tốc độ của một vật tăng lên gấp 3 lần thì động năng của vật đó thay đổi như thế nào?',
         options: [
           { id: 'opt_1', text: 'Động năng tăng lên gấp 3 lần', isCorrect: false },
-          { id: 'opt_2', text: 'Động năng tăng lên gấp 9 lần (3² = 9)', isCorrect: true },
+          { id: 'opt_2', text: 'Động năng tăng lên gấp 9 lần (\\(3^2 = 9\\))', isCorrect: true },
           { id: 'opt_3', text: 'Động năng tăng lên gấp 6 lần', isCorrect: false },
           { id: 'opt_4', text: 'Động năng không đổi vì khối lượng giữ nguyên', isCorrect: false }
         ],
-        explanation: 'Vì Wđ tỉ lệ với bình phương vận tốc v² nên khi v tăng 3 lần, Wđ tăng 3² = 9 lần.'
+        explanation: 'Vì \\(W_đ\\) tỉ lệ với bình phương vận tốc \\(v^2\\) nên khi \\(v\\) tăng 3 lần, \\(W_đ\\) tăng \\(3^2 = 9\\) lần.'
       },
       {
         id: 'iq_2_3_2',
-        question: 'Một vật có khối lượng m = 2 kg đang chuyển động với tốc độ v = 4 m/s. Động năng của vật là bao nhiêu?',
+        question: 'Một vật có khối lượng \\(m = 2\\text{ kg}\\) đang chuyển động với tốc độ \\(v = 4\\text{ m/s}\\). Động năng của vật là bao nhiêu?',
         options: [
           { id: 'opt_1', text: '8 Jun (J)', isCorrect: false },
           { id: 'opt_2', text: '16 Jun (J)', isCorrect: true },
@@ -530,41 +530,41 @@ export const ENRICHED_TOPICS_MAP: Record<string, EnrichedTopicData> = {
       romanHeader: 'II. THẾ NĂNG',
       subHeader: '2. Công thức tính thế năng trọng trường',
       subItems: [
-        'a) Biểu thức toán học: Wt = P · h = m · g · h',
-        'b) Mối liên hệ giữa trọng lượng P và khối lượng m (P = 10m)',
+        'a) Biểu thức toán học: \\(W_t = P \\cdot h = m \\cdot g \\cdot h\\)',
+        'b) Mối liên hệ giữa trọng lượng \\(P\\) và khối lượng \\(m\\) (\\(P = 10m\\))',
         'c) Bài tập định lượng tính thế năng'
       ]
     },
     formula: {
       title: 'Công thức tính Thế năng trọng trường (SGK KHTN 9 trang 18)',
       formula: 'W_t = P \\cdot h = m \\cdot g \\cdot h',
-      explanation: 'Thế năng trọng trường tỉ lệ thuận với trọng lượng P (hoặc khối lượng m) và độ cao h của vật so với mốc thế năng.',
+      explanation: 'Thế năng trọng trường tỉ lệ thuận với trọng lượng \\(P\\) (hoặc khối lượng \\(m\\)) và độ cao \\(h\\) của vật so với mốc thế năng.',
       variables: [
-        { symbol: 'W_t', name: 'Thế năng trọng trường', unit: 'Jun (J)' },
-        { symbol: 'P', name: 'Trọng lượng của vật (P = 10m)', unit: 'Niutơn (N)' },
-        { symbol: 'm', name: 'Khối lượng của vật', unit: 'kilôgam (kg)' },
-        { symbol: 'h', name: 'Độ cao so với mốc thế năng', unit: 'mét (m)' }
+        { symbol: '\\(W_t\\)', name: 'Thế năng trọng trường', unit: 'Jun (J)' },
+        { symbol: '\\(P\\)', name: 'Trọng lượng của vật (\\(P = 10m\\))', unit: 'Niutơn (N)' },
+        { symbol: '\\(m\\)', name: 'Khối lượng của vật', unit: 'kilôgam (kg)' },
+        { symbol: '\\(h\\)', name: 'Độ cao so với mốc thế năng', unit: 'mét (m)' }
       ]
     },
-    warningNote: '⚠ LƯU Ý KHI TÍNH TOÁN: Khi tính thế năng, nếu đề bài không nói gì thêm, ta mặc định lấy g = 10 m/s² (tương đương P = 10 · m). Độ cao h bắt buộc phải tính bằng đơn vị mét (m)!',
+    warningNote: '⚠ LƯU Ý KHI TÍNH TOÁN: Khi tính thế năng, nếu đề bài không nói gì thêm, ta mặc định lấy \\(g = 10\\text{ m/s}^2\\) (tương đương \\(P = 10m\\)). Độ cao \\(h\\) bắt buộc phải tính bằng đơn vị mét (m)!',
     exampleDetail: {
       type: 'problem',
       title: 'Bài toán tính thế năng kiện hàng nâng bằng cần cẩu',
-      givenOrPhenomenon: 'Một kiện hàng nặng m = 500 kg được cần cẩu nâng lên độ cao h = 12 m so với mặt đất (lấy g = 10 m/s²).',
-      stepsOrExplanation: '1. Tính trọng lượng của kiện hàng: P = 10 · m = 10 · 500 = 5 000 N.\n2. Áp dụng công thức tính thế năng trọng trường: Wt = P · h = 5 000 · 12 = 60 000 J = 60 kJ.',
+      givenOrPhenomenon: 'Một kiện hàng nặng \\(m = 500\\text{ kg}\\) được cần cẩu nâng lên độ cao \\(h = 12\\text{ m}\\) so với mặt đất (lấy \\(g = 10\\text{ m/s}^2\\)).',
+      stepsOrExplanation: '1. Tính trọng lượng của kiện hàng: \\(P = 10 \\cdot m = 10 \\cdot 500 = 5\\,000\\text{ N}\\).\n2. Áp dụng công thức tính thế năng trọng trường: \\(W_t = P \\cdot h = 5\\,000 \\cdot 12 = 60\\,000\\text{ J} = 60\\text{ kJ}\\).',
       resultOrTakeaway: 'Thế năng trọng trường của kiện hàng tại độ cao 12m là 60 kJ.'
     },
     interactiveQuizzes: [
       {
         id: 'iq_2_5_1',
-        question: 'Một chậu hoa có khối lượng m = 3 kg đặt trên lan can tầng 3 cao h = 10 m so với mặt đất (lấy g = 10 m/s²). Thế năng trọng trường của chậu hoa so với mặt đất là:',
+        question: 'Một chậu hoa có khối lượng \\(m = 3\\text{ kg}\\) đặt trên lan can tầng 3 cao \\(h = 10\\text{ m}\\) so với mặt đất (lấy \\(g = 10\\text{ m/s}^2\\)). Thế năng trọng trường của chậu hoa so với mặt đất là:',
         options: [
           { id: 'opt_1', text: '30 Jun (J)', isCorrect: false },
           { id: 'opt_2', text: '300 Jun (J)', isCorrect: true },
           { id: 'opt_3', text: '150 Jun (J)', isCorrect: false },
           { id: 'opt_4', text: '600 Jun (J)', isCorrect: false }
         ],
-        explanation: 'Áp dụng Wt = m · g · h = 3 · 10 · 10 = 300 J.'
+        explanation: 'Áp dụng \\(W_t = m \\cdot g \\cdot h = 3 \\cdot 10 \\cdot 10 = 300\\text{ J}\\).'
       }
     ]
   },
@@ -578,26 +578,26 @@ export const ENRICHED_TOPICS_MAP: Record<string, EnrichedTopicData> = {
       subHeader: '1. Khái niệm cơ năng của một vật',
       subItems: [
         'a) Định nghĩa cơ năng là tổng động năng và thế năng',
-        'b) Biểu thức: Wc = Wđ + Wt',
+        'b) Biểu thức: \\(W_c = W_đ + W_t\\)',
         'c) Đơn vị đo cơ năng trong hệ SI: Jun (kí hiệu: J)'
       ]
     },
     formula: {
       title: 'Biểu thức xác định Cơ năng (SGK KHTN 9 trang 18)',
       formula: 'W_c = W_đ + W_t = \\frac{1}{2} m v^2 + m g h',
-      explanation: 'Tổng động năng và thế năng của một vật thể được gọi là cơ năng của vật đó.',
+      explanation: 'Tổng động năng và thế năng của một vật thể được gọi là cơ năng của vật đó: \\(W_c = W_đ + W_t\\).',
       variables: [
-        { symbol: 'W_c', name: 'Cơ năng của vật', unit: 'Jun (J)' },
-        { symbol: 'W_đ', name: 'Động năng của vật', unit: 'Jun (J)' },
-        { symbol: 'W_t', name: 'Thế năng trọng trường của vật', unit: 'Jun (J)' }
+        { symbol: '\\(W_c\\)', name: 'Cơ năng của vật', unit: 'Jun (J)' },
+        { symbol: '\\(W_đ\\)', name: 'Động năng của vật', unit: 'Jun (J)' },
+        { symbol: '\\(W_t\\)', name: 'Thế năng trọng trường của vật', unit: 'Jun (J)' }
       ]
     },
-    warningNote: '⚠ LƯU Ý PHÂN BIỆT: Một vật có thể vừa có động năng, vừa có thế năng tại cùng một thời điểm (ví dụ: máy bay đang bay trên bầu trời, con chim đang sải cánh, giọt nước mưa đang rơi). Khi đó cơ năng là tổng số của cả hai dạng năng lượng!',
+    warningNote: '⚠ LƯU Ý PHÂN BIỆT: Một vật có thể vừa có động năng, vừa có thế năng tại cùng một thời điểm (ví dụ: máy bay đang bay trên bầu trời, con chim đang sải cánh, giọt nước mưa đang rơi). Khi đó cơ năng là tổng số của cả hai dạng năng lượng: \\(W_c = W_đ + W_t\\)!',
     exampleDetail: {
       type: 'problem',
       title: 'Tính cơ năng của một chú chim đang bay (SGK trang 18)',
-      givenOrPhenomenon: 'Một chú chim có khối lượng m = 0,5 kg đang bay ở độ cao h = 20 m với tốc độ v = 10 m/s (lấy g = 10 m/s²).',
-      stepsOrExplanation: '1. Tính động năng của chú chim: Wđ = 1/2 · m · v² = 1/2 · 0,5 · 10² = 25 J.\n2. Tính thế năng của chú chim: Wt = m · g · h = 0,5 · 10 · 20 = 100 J.\n3. Tính tổng cơ năng: Wc = Wđ + Wt = 25 + 100 = 125 J.',
+      givenOrPhenomenon: 'Một chú chim có khối lượng \\(m = 0,5\\text{ kg}\\) đang bay ở độ cao \\(h = 20\\text{ m}\\) với tốc độ \\(v = 10\\text{ m/s}\\) (lấy \\(g = 10\\text{ m/s}^2\\)).',
+      stepsOrExplanation: '1. Tính động năng của chú chim: \\(W_đ = \\frac{1}{2} m v^2 = \\frac{1}{2} \\cdot 0,5 \\cdot 10^2 = 25\\text{ J}\\).\n2. Tính thế năng của chú chim: \\(W_t = m \\cdot g \\cdot h = 0,5 \\cdot 10 \\cdot 20 = 100\\text{ J}\\).\n3. Tính tổng cơ năng: \\(W_c = W_đ + W_t = 25 + 100 = 125\\text{ J}\\).',
       resultOrTakeaway: 'Tổng cơ năng của chú chim là 125 Jun (J).'
     },
     simObservation: {
@@ -671,26 +671,26 @@ export const ENRICHED_TOPICS_MAP: Record<string, EnrichedTopicData> = {
       subHeader: '3. Định luật bảo toàn cơ năng',
       subItems: [
         'a) Nội dung định luật bảo toàn cơ năng khi bỏ qua ma sát',
-        'b) Hệ thức: Wc = Wđ + Wt = hằng số (W1 = W2)',
+        'b) Hệ thức: \\(W_c = W_đ + W_t = \\text{const}\\) (\\(W_1 = W_2\\))',
         'c) Ảnh hưởng của lực cản và ma sát trong thực tế'
       ]
     },
     formula: {
       title: 'Hệ thức Định luật Bảo toàn Cơ năng (SGK KHTN 9 trang 19)',
       formula: 'W_c = W_đ + W_t = \\text{const} \\iff \\frac{1}{2} m v_1^2 + m g h_1 = \\frac{1}{2} m v_2^2 + m g h_2',
-      explanation: 'Khi một vật chuyển động trong trọng trường chỉ chịu tác dụng của trọng lực (bỏ qua ma sát), cơ năng của vật là một đại lượng bảo toàn.',
+      explanation: 'Khi một vật chuyển động trong trọng trường chỉ chịu tác dụng của trọng lực (bỏ qua ma sát), cơ năng của vật là một đại lượng bảo toàn: \\(W_c = W_đ + W_t = \\text{const}\\).',
       variables: [
-        { symbol: 'W_1', name: 'Cơ năng tại vị trí ban đầu 1', unit: 'Jun (J)' },
-        { symbol: 'W_2', name: 'Cơ năng tại vị trí sau 2', unit: 'Jun (J)' }
+        { symbol: '\\(W_1\\)', name: 'Cơ năng tại vị trí ban đầu 1', unit: 'Jun (J)' },
+        { symbol: '\\(W_2\\)', name: 'Cơ năng tại vị trí sau 2', unit: 'Jun (J)' }
       ]
     },
     warningNote: '⚠ LƯU Ý ĐIỀU KIỆN ÁP DỤNG: Định luật bảo toàn cơ năng CHỈ ĐÚNG khi bỏ qua ma sát và lực cản của môi trường. Trong thực tế luôn có lực ma sát, một phần cơ năng sẽ chuyển hoá thành nhiệt năng làm vật nóng lên và cơ năng giảm dần (dao động tắt dần)!',
     exampleDetail: {
       type: 'problem',
       title: 'Tính vận tốc của vật khi chạm đất bằng bảo toàn cơ năng',
-      givenOrPhenomenon: 'Thả một vật rơi tự do từ độ cao h = 20 m xuống đất (lấy g = 10 m/s², bỏ qua sức cản không khí).',
-      stepsOrExplanation: '1. Cơ năng tại vị trí thả (A): Vật thả nhẹ nên v_A = 0 ➔ W_A = Wt_A = m · g · h = m · 10 · 20 = 200 · m.\n2. Cơ năng tại mặt đất (B): h_B = 0 ➔ W_B = Wđ_B = 1/2 · m · v_B².\n3. Áp dụng bảo toàn cơ năng (W_A = W_B): 200 · m = 1/2 · m · v_B² ➔ v_B² = 400 ➔ v_B = 20 m/s.',
-      resultOrTakeaway: 'Vận tốc chạm đất của vật là v = 20 m/s (không phụ thuộc vào khối lượng của vật).'
+      givenOrPhenomenon: 'Thả một vật rơi tự do từ độ cao \\(h = 20\\text{ m}\\) xuống đất (lấy \\(g = 10\\text{ m/s}^2\\), bỏ qua sức cản không khí).',
+      stepsOrExplanation: '1. Cơ năng tại vị trí thả (A): Vật thả nhẹ nên \\(v_A = 0 \\Rightarrow W_A = W_{tA} = m \\cdot g \\cdot h = m \\cdot 10 \\cdot 20 = 200m\\).\n2. Cơ năng tại mặt đất (B): \\(h_B = 0 \\Rightarrow W_B = W_{đB} = \\frac{1}{2} m v_B^2\\).\n3. Áp dụng bảo toàn cơ năng (\\(W_A = W_B\\)): \\(200m = \\frac{1}{2} m v_B^2 \\Rightarrow v_B^2 = 400 \\Rightarrow v_B = 20\\text{ m/s}\\).',
+      resultOrTakeaway: 'Vận tốc chạm đất của vật là \\(v = 20\\text{ m/s}\\) (không phụ thuộc vào khối lượng của vật).'
     },
     interactiveQuizzes: [
       {
@@ -806,7 +806,7 @@ export const ENRICHED_TOPICS_MAP: Record<string, EnrichedTopicData> = {
       romanHeader: 'I. CÔNG CƠ HỌC',
       subHeader: '2. Công thức tính công cơ học',
       subItems: [
-        'a) Biểu thức: A = F · s khi lực cùng hướng chuyển dời',
+        'a) Biểu thức: \\(A = F \\cdot s\\) khi lực cùng hướng chuyển dời',
         'b) Đơn vị Jun (J) và các bội số kJ, MJ',
         'c) Bài tập định lượng tính công kéo vật'
       ]
@@ -814,32 +814,32 @@ export const ENRICHED_TOPICS_MAP: Record<string, EnrichedTopicData> = {
     formula: {
       title: 'Công thức tính Công cơ học (SGK KHTN 9 trang 22)',
       formula: 'A = F \\cdot s',
-      explanation: 'Khi một lực F tác dụng vào vật và vật chuyển dời một quãng đường s theo hướng của lực.',
+      explanation: 'Khi một lực \\(F\\) tác dụng vào vật và vật chuyển dời một quãng đường \\(s\\) theo hướng của lực: \\(A = F \\cdot s\\).',
       variables: [
-        { symbol: 'A', name: 'Công cơ học của lực F', unit: 'Jun (J) hoặc N·m' },
-        { symbol: 'F', name: 'Độ lớn của lực tác dụng', unit: 'Niutơn (N)' },
-        { symbol: 's', name: 'Quãng đường vật chuyển dời theo hướng lực', unit: 'mét (m)' }
+        { symbol: '\\(A\\)', name: 'Công cơ học của lực F', unit: 'Jun (J) hoặc N·m' },
+        { symbol: '\\(F\\)', name: 'Độ lớn của lực tác dụng', unit: 'Niutơn (N)' },
+        { symbol: '\\(s\\)', name: 'Quãng đường vật chuyển dời theo hướng lực', unit: 'mét (m)' }
       ]
     },
-    warningNote: '⚠ LƯU Ý ĐƠN VỊ CÔNG: 1 Jun (J) = 1 N · 1 m. Trong thực tế đời sống và kĩ thuật, các máy móc thường sinh công lớn nên hay dùng kilôjun (1 kJ = 1 000 J) hoặc mêgajun (1 MJ = 1 000 000 J)!',
+    warningNote: '⚠ LƯU Ý ĐƠN VỊ CÔNG: \\(1\\text{ J} = 1\\text{ N} \\cdot 1\\text{ m}\\). Trong thực tế đời sống và kĩ thuật, các máy móc thường sinh công lớn nên hay dùng kilôjun (\\(1\\text{ kJ} = 1\\,000\\text{ J}\\)) hoặc mêgajun (\\(1\\text{ MJ} = 1\\,000\\,000\\text{ J}\\))!',
     exampleDetail: {
       type: 'problem',
       title: 'Bài toán tính công nâng khối đá xây dựng (SGK trang 22)',
-      givenOrPhenomenon: 'Một lực kéo dây cáp F = 2 500 N kéo đều một khối đá lên cao h = 8 m.',
-      stepsOrExplanation: '1. Nhận xét: Lực kéo có hướng thẳng đứng cùng chiều với chiều chuyển dời của khối đá.\n2. Áp dụng công thức tính công cơ học: A = F · s = 2 500 · 8 = 20 000 J = 20 kJ.',
+      givenOrPhenomenon: 'Một lực kéo dây cáp \\(F = 2\\,500\\text{ N}\\) kéo đều một khối đá lên cao \\(h = 8\\text{ m}\\).',
+      stepsOrExplanation: '1. Nhận xét: Lực kéo có hướng thẳng đứng cùng chiều với chiều chuyển dời của khối đá.\n2. Áp dụng công thức tính công cơ học: \\(A = F \\cdot s = 2\\,500 \\cdot 8 = 20\\,000\\text{ J} = 20\\text{ kJ}\\).',
       resultOrTakeaway: 'Công cơ học của lực kéo là 20 kJ (20 000 Jun).'
     },
     interactiveQuizzes: [
       {
         id: 'iq_4_2_1',
-        question: 'Một người công nhân tác dụng lực đẩy F = 150 N đẩy chiếc xe cút kít đi được quãng đường s = 20 m trên mặt đường phẳng. Công mà người đó thực hiện là:',
+        question: 'Một người công nhân tác dụng lực đẩy \\(F = 150\\text{ N}\\) đẩy chiếc xe cút kít đi được quãng đường \\(s = 20\\text{ m}\\) trên mặt đường phẳng. Công mà người đó thực hiện là:',
         options: [
           { id: 'opt_1', text: '170 Jun (J)', isCorrect: false },
-          { id: 'opt_2', text: '3 000 Jun (3 kJ)', isCorrect: true },
-          { id: 'opt_3', text: '1 500 Jun (1,5 kJ)', isCorrect: false },
+          { id: 'opt_2', text: '3 000 Jun (\\(3\\text{ kJ}\\))', isCorrect: true },
+          { id: 'opt_3', text: '1 500 Jun (\\(1,5\\text{ kJ}\\))', isCorrect: false },
           { id: 'opt_4', text: '7,5 Jun (J)', isCorrect: false }
         ],
-        explanation: 'Áp dụng A = F · s = 150 · 20 = 3 000 J = 3 kJ.'
+        explanation: 'Áp dụng \\(A = F \\cdot s = 150 \\cdot 20 = 3\\,000\\text{ J} = 3\\text{ kJ}\\).'
       }
     ]
   },
@@ -898,53 +898,53 @@ export const ENRICHED_TOPICS_MAP: Record<string, EnrichedTopicData> = {
       romanHeader: 'II. CÔNG SUẤT',
       subHeader: '2. Công thức tính công suất và mối liên hệ P = F · v',
       subItems: [
-        'a) Biểu thức: P = A / t',
-        'b) Mối liên hệ tốc độ: P = F · v',
+        'a) Biểu thức: \\(P = \\frac{A}{t}\\)',
+        'b) Mối liên hệ tốc độ: \\(P = F \\cdot v\\)',
         'c) Vận dụng giải thích hiện tượng xe ô tô leo dốc phải về số thấp'
       ]
     },
     formula: {
       title: 'Công thức tính Công suất và Mối liên hệ P = F · v (SGK KHTN 9 trang 23)',
       formula: 'P = \\frac{A}{t} = \\frac{F \\cdot s}{t} = F \\cdot v',
-      explanation: 'Công suất P được xác định bằng công thực hiện được trong một đơn vị thời gian. Khi vật chuyển động đều với vận tốc v dưới tác dụng của lực F cùng hướng thì P = F · v.',
+      explanation: 'Công suất \\(P\\) được xác định bằng công thực hiện được trong một đơn vị thời gian. Khi vật chuyển động đều với vận tốc \\(v\\) dưới tác dụng của lực \\(F\\) cùng hướng thì \\(P = F \\cdot v\\).',
       variables: [
-        { symbol: 'P', name: 'Công suất của động cơ', unit: 'Oát (W)' },
-        { symbol: 'A', name: 'Công cơ học thực hiện', unit: 'Jun (J)' },
-        { symbol: 't', name: 'Thời gian thực hiện công', unit: 'giây (s)' },
-        { symbol: 'F', name: 'Lực phát động của động cơ', unit: 'Niutơn (N)' },
-        { symbol: 'v', name: 'Vận tốc chuyển động đều của vật', unit: 'm/s' }
+        { symbol: '\\(P\\)', name: 'Công suất của động cơ', unit: 'Oát (W)' },
+        { symbol: '\\(A\\)', name: 'Công cơ học thực hiện', unit: 'Jun (J)' },
+        { symbol: '\\(t\\)', name: 'Thời gian thực hiện công', unit: 'giây (s)' },
+        { symbol: '\\(F\\)', name: 'Lực phát động của động cơ', unit: 'Niutơn (N)' },
+        { symbol: '\\(v\\)', name: 'Vận tốc chuyển động đều của vật', unit: 'm/s' }
       ]
     },
-    warningNote: '⚠ LƯU Ý KHI LEO DỐC: Từ công thức P = F · v suy ra lực kéo F = P / v. Khi công suất cực đại P của động cơ không đổi, muốn tăng lực kéo F lên mức tối đa để leo qua dốc đứng, người lái xe bắt buộc phải giảm vận tốc v bằng cách chuyển về số thấp (số 1 hoặc số 2)!',
+    warningNote: '⚠ LƯU Ý KHI LEO DỐC: Từ công thức \\(P = F \\cdot v\\) suy ra lực kéo \\(F = \\frac{P}{v}\\). Khi công suất cực đại \\(P\\) của động cơ không đổi, muốn tăng lực kéo \\(F\\) lên mức tối đa để leo qua dốc đứng, người lái xe bắt buộc phải giảm vận tốc \\(v\\) bằng cách chuyển về số thấp (số 1 hoặc số 2)!',
     exampleDetail: {
       type: 'problem',
       title: 'Bài toán tính công và công suất của cần cẩu điện (SGK trang 23)',
-      givenOrPhenomenon: 'Một cần cẩu điện nâng một khối hàng nặng m = 1 000 kg lên cao h = 15 m trong thời gian t = 20 giây (lấy g = 10 m/s²).',
-      stepsOrExplanation: '1. Trọng lượng khối hàng: P_vật = 10 · m = 10 · 1 000 = 10 000 N.\n2. Công cần cẩu thực hiện: A = P_vật · h = 10 000 · 15 = 150 000 J = 150 kJ.\n3. Công suất có ích của cần cẩu: P = A / t = 150 000 / 20 = 7 500 W = 7,5 kW.',
+      givenOrPhenomenon: 'Một cần cẩu điện nâng một khối hàng nặng \\(m = 1\\,000\\text{ kg}\\) lên cao \\(h = 15\\text{ m}\\) trong thời gian \\(t = 20\\text{ giây}\\) (lấy \\(g = 10\\text{ m/s}^2\\)).',
+      stepsOrExplanation: '1. Trọng lượng khối hàng: \\(P_{\\text{vật}} = 10 \\cdot m = 10 \\cdot 1\\,000 = 10\\,000\\text{ N}\\).\n2. Công cần cẩu thực hiện: \\(A = P_{\\text{vật}} \\cdot h = 10\\,000 \\cdot 15 = 150\\,000\\text{ J} = 150\\text{ kJ}\\).\n3. Công suất có ích của cần cẩu: \\(P = \\frac{A}{t} = \\frac{150\\,000}{20} = 7\\,500\\text{ W} = 7,5\\text{ kW}\\).',
       resultOrTakeaway: 'Công suất động cơ cần cẩu là 7,5 kW.'
     },
     interactiveQuizzes: [
       {
         id: 'iq_4_4_1',
-        question: 'Dựa vào công thức P = F · v, vì sao khi xe máy hoặc ô tô bắt đầu leo lên một đoạn dốc đứng, người lái xe phải chuyển về số thấp (số 1 hoặc số 2)?',
+        question: 'Dựa vào công thức \\(P = F \\cdot v\\), vì sao khi xe máy hoặc ô tô bắt đầu leo lên một đoạn dốc đứng, người lái xe phải chuyển về số thấp (số 1 hoặc số 2)?',
         options: [
           { id: 'opt_1', text: 'Để xe chạy nhanh hơn và lướt qua đỉnh dốc', isCorrect: false },
-          { id: 'opt_2', text: 'Để giảm vận tốc v, qua đó khuếch đại lực kéo F lên cực đại khi công suất P không đổi', isCorrect: true },
+          { id: 'opt_2', text: 'Để giảm vận tốc \\(v\\), qua đó khuếch đại lực kéo \\(F\\) lên cực đại khi công suất \\(P\\) không đổi', isCorrect: true },
           { id: 'opt_3', text: 'Để làm tăng lượng xăng bơm vào buồng đốt gấp 10 lần', isCorrect: false },
           { id: 'opt_4', text: 'Để ngắt hoàn toàn hệ thống phanh của bánh xe', isCorrect: false }
         ],
-        explanation: 'Vì F = P / v, khi công suất P không đổi, giảm tốc độ v giúp lực kéo F tăng vọt, giúp xe thắng được trọng lực kéo lùi để leo dốc an toàn.'
+        explanation: 'Vì \\(F = \\frac{P}{v}\\), khi công suất \\(P\\) không đổi, giảm tốc độ \\(v\\) giúp lực kéo \\(F\\) tăng vọt, giúp xe thắng được trọng lực kéo lùi để leo dốc an toàn.'
       },
       {
         id: 'iq_4_4_2',
-        question: 'Một cỗ máy thực hiện một công A = 12 000 J trong thời gian t = 30 giây. Công suất của cỗ máy đó là:',
+        question: 'Một cỗ máy thực hiện một công \\(A = 12\\,000\\text{ J}\\) trong thời gian \\(t = 30\\text{ giây}\\). Công suất của cỗ máy đó là:',
         options: [
           { id: 'opt_1', text: '400 W', isCorrect: true },
           { id: 'opt_2', text: '360 000 W', isCorrect: false },
           { id: 'opt_3', text: '40 W', isCorrect: false },
           { id: 'opt_4', text: '120 W', isCorrect: false }
         ],
-        explanation: 'Áp dụng P = A / t = 12 000 / 30 = 400 W.'
+        explanation: 'Áp dụng \\(P = \\frac{A}{t} = \\frac{12\\,000}{30} = 400\\text{ W}\\).'
       }
     ]
   }

@@ -27,6 +27,7 @@ import {
   Layers 
 } from 'lucide-react';
 import { shuffleSingleQuestion, ShuffledQuestion } from '../services/quizShuffleService';
+import { MathText } from './MathRenderer';
 
 interface KnowledgeExploreProps {
   onCardComplete?: (cardId: string) => void;
@@ -223,13 +224,13 @@ export const KnowledgeExplore: React.FC<KnowledgeExploreProps> = ({
 
         <div>
           <h3 className="text-lg md:text-xl font-bold text-slate-900">
-            {currentCard.title}
+            <MathText text={currentCard.title} />
           </h3>
           <div className="mt-3 p-4 bg-blue-50/60 rounded-xl border border-blue-100 text-sm text-blue-900 font-medium flex items-start gap-2.5">
             <Lightbulb className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
             <div>
               <strong className="text-blue-950">Vấn đề khám phá: </strong>
-              {currentCard.explorationQuestion}
+              <MathText text={currentCard.explorationQuestion} />
             </div>
           </div>
         </div>
@@ -239,9 +240,9 @@ export const KnowledgeExplore: React.FC<KnowledgeExploreProps> = ({
           <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">
             1. Quan sát thực tế & SGK:
           </div>
-          <p className="text-sm text-slate-700 leading-relaxed bg-slate-50 p-4 rounded-xl border border-slate-200">
-            {currentCard.observation}
-          </p>
+          <div className="text-sm text-slate-700 leading-relaxed bg-slate-50 p-4 rounded-xl border border-slate-200">
+            <MathText text={currentCard.observation} />
+          </div>
         </div>
 
         {/* 2. Scientific Explanation */}
@@ -249,9 +250,9 @@ export const KnowledgeExplore: React.FC<KnowledgeExploreProps> = ({
           <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">
             2. Bản chất khoa học:
           </div>
-          <p className="text-sm text-slate-800 leading-relaxed">
-            {currentCard.scientificExplanation}
-          </p>
+          <div className="text-sm text-slate-800 leading-relaxed">
+            <MathText text={currentCard.scientificExplanation} />
+          </div>
         </div>
 
         {/* 3. Key Formulas / Rules */}
@@ -266,7 +267,7 @@ export const KnowledgeExplore: React.FC<KnowledgeExploreProps> = ({
                   <span className="w-4 h-4 rounded-full bg-indigo-200 text-indigo-800 flex items-center justify-center text-[10px] shrink-0 mt-0.5">
                     {idx + 1}
                   </span>
-                  <span>{rule}</span>
+                  <span><MathText text={rule} /></span>
                 </div>
               ))}
             </div>
@@ -292,7 +293,7 @@ export const KnowledgeExplore: React.FC<KnowledgeExploreProps> = ({
                   <span className="text-blue-600 font-bold">
                     ✓
                   </span>
-                  <span>{ex}</span>
+                  <span><MathText text={ex} /></span>
                 </div>
               ))}
             </div>
@@ -311,9 +312,9 @@ export const KnowledgeExplore: React.FC<KnowledgeExploreProps> = ({
             </span>
           </div>
 
-          <p className="text-sm font-semibold text-slate-900">
-            {currentCard.quickCheck.question}
-          </p>
+          <div className="text-sm font-semibold text-slate-900">
+            <MathText text={currentCard.quickCheck.question} />
+          </div>
 
           <div className="space-y-2">
             {(() => {
@@ -361,7 +362,7 @@ export const KnowledgeExplore: React.FC<KnowledgeExploreProps> = ({
                         </span>
                       )}
                     </div>
-                    <span>{opt.text}</span>
+                    <span><MathText text={opt.text} /></span>
                   </button>
                 );
               });
@@ -371,7 +372,7 @@ export const KnowledgeExplore: React.FC<KnowledgeExploreProps> = ({
           {quickAnswersSubmitted[currentCard.id] && (
             <div className="p-3 bg-white rounded-lg text-xs border border-slate-200 text-slate-700 space-y-1">
               <span className="font-bold text-slate-900">Giải thích chi tiết: </span>
-              <span>{currentCard.quickCheck.explanation}</span>
+              <span><MathText text={currentCard.quickCheck.explanation} /></span>
             </div>
           )}
         </div>

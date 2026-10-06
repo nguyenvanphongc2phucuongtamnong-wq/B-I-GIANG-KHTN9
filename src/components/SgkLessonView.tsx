@@ -54,6 +54,7 @@ import {
   SgkTopicItem
 } from '../data/sgkCurriculumData';
 import { getEnrichedTopicData, EnrichedTopicData } from '../data/sgkTopicHelpers';
+import { MathFormula, MathText } from './MathRenderer';
 
 interface SgkLessonViewProps {
   lessonId: number;
@@ -651,7 +652,7 @@ export const SgkLessonView: React.FC<SgkLessonViewProps> = ({
           <div className="p-5 rounded-2xl border border-slate-200 bg-slate-50/60 space-y-4">
             <div className="font-extrabold text-slate-900 text-sm flex items-start gap-2.5">
               <HelpCircle className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
-              <span>{lessonData.warmup.question}</span>
+              <MathText text={lessonData.warmup.question} />
             </div>
 
             <div className="grid grid-cols-1 gap-2.5">
@@ -677,7 +678,7 @@ export const SgkLessonView: React.FC<SgkLessonViewProps> = ({
                   >
                     <div className="flex items-center gap-2">
                       <span className="font-black text-slate-500 w-5">{label}.</span>
-                      <span>{opt.text}</span>
+                      <MathText text={opt.text} />
                     </div>
                     {warmupChecked && opt.isCorrect && <Check className="w-4 h-4 text-emerald-600 shrink-0" />}
                   </button>
@@ -699,9 +700,9 @@ export const SgkLessonView: React.FC<SgkLessonViewProps> = ({
                   <CheckCircle2 className="w-4 h-4 text-emerald-600" />
                   Căn cứ giải thích khoa học theo SGK KHTN 9:
                 </div>
-                <p className="leading-relaxed">
-                  {lessonData.warmup.explanation}
-                </p>
+                <div className="leading-relaxed">
+                  <MathText text={lessonData.warmup.explanation} />
+                </div>
               </div>
             )}
           </div>
@@ -794,13 +795,13 @@ export const SgkLessonView: React.FC<SgkLessonViewProps> = ({
                 </span>
               </div>
               <h3 className="text-lg font-black text-slate-900">
-                {currentTopic.order}. {currentTopic.title}
+                <MathText text={`${currentTopic.order}. ${currentTopic.title}`} />
               </h3>
               {enrichedTopic?.hierarchy?.subItems && enrichedTopic.hierarchy.subItems.length > 0 && (
                 <div className="flex flex-wrap gap-2 pt-1 text-[11px] font-bold text-slate-600">
                   {(enrichedTopic.hierarchy.subItems || []).map((sub, sIdx) => (
                     <span key={sIdx} className="bg-white px-2.5 py-1 rounded-lg border border-slate-200/80">
-                      {sub}
+                      <MathText text={sub} />
                     </span>
                   ))}
                 </div>
@@ -819,7 +820,7 @@ export const SgkLessonView: React.FC<SgkLessonViewProps> = ({
                     <span className="w-5 h-5 rounded-full bg-blue-600 text-white text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">
                       {pIdx + 1}
                     </span>
-                    <span className="font-medium">{point}</span>
+                    <span className="font-medium"><MathText text={point} /></span>
                   </div>
                 ))}
               </div>
@@ -831,7 +832,7 @@ export const SgkLessonView: React.FC<SgkLessonViewProps> = ({
                 <div className="flex items-center justify-between border-b border-blue-800/80 pb-2">
                   <span className="text-xs font-extrabold uppercase tracking-wider text-blue-200 flex items-center gap-1.5">
                     <Zap className="w-4 h-4 text-amber-400" />
-                    {enrichedTopic.formula.title}
+                    <MathText text={enrichedTopic.formula.title} />
                   </span>
                   <span className="text-[10px] px-2 py-0.5 rounded bg-blue-800 text-blue-100 font-bold">
                     Công thức chuẩn SI
@@ -839,11 +840,11 @@ export const SgkLessonView: React.FC<SgkLessonViewProps> = ({
                 </div>
                 
                 <div className="text-center py-2">
-                  <div className="text-2xl sm:text-3xl font-black font-mono tracking-widest text-amber-300">
-                    {enrichedTopic.formula.formula}
+                  <div className="text-2xl sm:text-3xl font-bold tracking-wide text-amber-300 flex items-center justify-center">
+                    <MathFormula formula={enrichedTopic.formula.formula} block={true} className="!bg-transparent !border-0 !text-amber-300 text-2xl sm:text-3xl !my-0 !py-1" />
                   </div>
-                  <p className="text-xs text-blue-200 mt-1 font-medium">
-                    {enrichedTopic.formula.explanation}
+                  <p className="text-xs text-blue-200 mt-2 font-medium">
+                    <MathText text={enrichedTopic.formula.explanation} />
                   </p>
                 </div>
 
@@ -851,9 +852,9 @@ export const SgkLessonView: React.FC<SgkLessonViewProps> = ({
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-2 border-t border-blue-800/80 text-xs">
                     {(enrichedTopic.formula.variables || []).map((v, vIdx) => (
                       <div key={vIdx} className="bg-blue-800/40 p-2 rounded-lg flex items-center justify-between">
-                        <span className="font-mono font-bold text-amber-300">{v.symbol}:</span>
-                        <span className="text-blue-100 text-[11px] truncate mx-1.5">{v.name}</span>
-                        <span className="text-blue-300 text-[10px] font-mono">({v.unit})</span>
+                        <span className="font-bold text-amber-300"><MathText text={v.symbol} />:</span>
+                        <span className="text-blue-100 text-[11px] truncate mx-1.5"><MathText text={v.name} /></span>
+                        <span className="text-blue-300 text-[10px] font-mono">(<MathText text={v.unit} />)</span>
                       </div>
                     ))}
                   </div>
@@ -866,7 +867,7 @@ export const SgkLessonView: React.FC<SgkLessonViewProps> = ({
               <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2.5">
                 <h4 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
                   <Layers className="w-4 h-4 text-indigo-600" />
-                  {enrichedTopic.tableOrDiagram.title}
+                  <MathText text={enrichedTopic.tableOrDiagram.title} />
                 </h4>
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs border-collapse">
@@ -874,7 +875,7 @@ export const SgkLessonView: React.FC<SgkLessonViewProps> = ({
                       <tr className="bg-slate-100/90 border-b border-slate-200 text-slate-700">
                         {(enrichedTopic.tableOrDiagram.headers || []).map((h, hIdx) => (
                           <th key={hIdx} className="p-2.5 font-black uppercase text-[10px]">
-                            {h}
+                            <MathText text={h} />
                           </th>
                         ))}
                       </tr>
@@ -884,7 +885,7 @@ export const SgkLessonView: React.FC<SgkLessonViewProps> = ({
                         <tr key={rIdx} className="hover:bg-white transition-colors">
                           {(row || []).map((cell, cIdx) => (
                             <td key={cIdx} className={`p-2.5 leading-relaxed text-slate-700 ${cIdx === 0 ? 'font-bold text-slate-900' : ''}`}>
-                              {cell}
+                              <MathText text={cell} />
                             </td>
                           ))}
                         </tr>
@@ -901,9 +902,9 @@ export const SgkLessonView: React.FC<SgkLessonViewProps> = ({
                 <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
                 <span>⚠ LƯU Ý QUAN TRỌNG THEO SGK</span>
               </div>
-              <p className="text-xs text-amber-950 font-medium leading-relaxed pl-6">
-                {enrichedTopic.warningNote}
-              </p>
+              <div className="text-xs text-amber-950 font-medium leading-relaxed pl-6">
+                <MathText text={enrichedTopic.warningNote} />
+              </div>
             </div>
 
             {/* 5. 💡 VÍ DỤ MINH HOẠ (ĐẶT NGAY SAU KIẾN THỨC, DỮ KIỆN - CÁCH LÀM - KẾT QUẢ) */}
@@ -911,7 +912,7 @@ export const SgkLessonView: React.FC<SgkLessonViewProps> = ({
               <div className="flex items-center justify-between border-b border-indigo-200 pb-2">
                 <h4 className="text-xs font-black text-indigo-900 uppercase tracking-wider flex items-center gap-1.5">
                   <Lightbulb className="w-4 h-4 text-indigo-600" />
-                  💡 VÍ DỤ MINH HOẠ: {enrichedTopic.exampleDetail.title}
+                  💡 VÍ DỤ MINH HOẠ: <MathText text={enrichedTopic.exampleDetail.title} />
                 </h4>
                 <span className="text-[10px] font-bold text-indigo-700 bg-white px-2 py-0.5 rounded-full border border-indigo-200">
                   {enrichedTopic.exampleDetail.type === 'problem' ? 'Bài toán định lượng' : 'Hiện tượng thực tế'}
@@ -924,7 +925,7 @@ export const SgkLessonView: React.FC<SgkLessonViewProps> = ({
                     {enrichedTopic.exampleDetail.type === 'problem' ? 'Dữ kiện đề bài:' : 'Hiện tượng quan sát:'}
                   </span>{' '}
                   <span className="text-slate-800 leading-relaxed font-medium">
-                    {enrichedTopic.exampleDetail.givenOrPhenomenon}
+                    <MathText text={enrichedTopic.exampleDetail.givenOrPhenomenon} />
                   </span>
                 </div>
 
@@ -932,9 +933,9 @@ export const SgkLessonView: React.FC<SgkLessonViewProps> = ({
                   <span className="font-extrabold text-indigo-900">
                     {enrichedTopic.exampleDetail.type === 'problem' ? 'Cách làm / Lời giải chi tiết:' : 'Giải thích khoa học:'}
                   </span>{' '}
-                  <p className="text-slate-800 leading-relaxed font-medium whitespace-pre-line mt-1">
-                    {enrichedTopic.exampleDetail.stepsOrExplanation}
-                  </p>
+                  <div className="text-slate-800 leading-relaxed font-medium whitespace-pre-line mt-1">
+                    <MathText text={enrichedTopic.exampleDetail.stepsOrExplanation} />
+                  </div>
                 </div>
 
                 <div className="bg-emerald-50/80 p-3 rounded-xl border border-emerald-200 flex items-center gap-2">
@@ -944,7 +945,7 @@ export const SgkLessonView: React.FC<SgkLessonViewProps> = ({
                       {enrichedTopic.exampleDetail.type === 'problem' ? 'Kết quả:' : 'Rút ra kết luận:'}
                     </span>{' '}
                     <span className="text-emerald-950 font-bold">
-                      {enrichedTopic.exampleDetail.resultOrTakeaway}
+                      <MathText text={enrichedTopic.exampleDetail.resultOrTakeaway} />
                     </span>
                   </div>
                 </div>
@@ -1000,12 +1001,12 @@ export const SgkLessonView: React.FC<SgkLessonViewProps> = ({
                 const checked = interactiveQuizChecked[quiz.id];
                 return (
                   <div key={quiz.id} className="p-4 bg-white rounded-xl border border-slate-200 space-y-3">
-                    <p className="text-xs font-bold text-slate-900 flex items-start gap-2">
-                      <span className="w-5 h-5 rounded-full bg-slate-100 text-slate-700 text-[10px] font-black flex items-center justify-center shrink-0">
+                    <div className="text-xs font-bold text-slate-900 flex items-start gap-2">
+                      <span className="w-5 h-5 rounded-full bg-slate-100 text-slate-700 text-[10px] font-black flex items-center justify-center shrink-0 mt-0.5">
                         {qIdx + 1}
                       </span>
-                      <span>{quiz.question}</span>
-                    </p>
+                      <MathText text={quiz.question} />
+                    </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       {(quiz.options || []).map((opt, oIdx) => {
@@ -1030,7 +1031,7 @@ export const SgkLessonView: React.FC<SgkLessonViewProps> = ({
                           >
                             <div className="flex items-center gap-2">
                               <span className="font-bold text-slate-400">{label}.</span>
-                              <span>{opt.text}</span>
+                              <MathText text={opt.text} />
                             </div>
                             {checked && opt.isCorrect && <Check className="w-4 h-4 text-emerald-600 shrink-0" />}
                           </button>
@@ -1048,7 +1049,7 @@ export const SgkLessonView: React.FC<SgkLessonViewProps> = ({
                       </button>
                     ) : (
                       <div className="p-3 bg-slate-50 rounded-xl text-xs text-slate-700 leading-relaxed border border-slate-200">
-                        <strong>Giải thích chuẩn SGK:</strong> {quiz.explanation}
+                        <strong>Giải thích chuẩn SGK:</strong> <MathText text={quiz.explanation} />
                       </div>
                     )}
                   </div>
@@ -1059,7 +1060,7 @@ export const SgkLessonView: React.FC<SgkLessonViewProps> = ({
             {/* 8. KẾT LUẬN / GHI NHỚ */}
             <div className="p-3.5 rounded-xl bg-slate-900 text-white text-xs flex items-center gap-2.5 shadow-xs">
               <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-              <span className="font-medium">{currentTopic.keyTakeaway}</span>
+              <div className="font-medium"><MathText text={currentTopic.keyTakeaway} /></div>
             </div>
           </div>
 
@@ -1143,10 +1144,14 @@ export const SgkLessonView: React.FC<SgkLessonViewProps> = ({
                     </span>
                   </div>
 
-                  <p className="font-extrabold text-slate-900 text-sm">
-                    {q.question}
-                  </p>
-                  <p className="text-[11px] text-slate-500 italic">{q.subText}</p>
+                  <div className="font-extrabold text-slate-900 text-sm">
+                    <MathText text={q.question} />
+                  </div>
+                  {q.subText && (
+                    <div className="text-[11px] text-slate-500 italic">
+                      <MathText text={q.subText} />
+                    </div>
+                  )}
 
                   <div className="space-y-2">
                     {(q.shuffledOptions || []).map((opt, oIdx) => {
@@ -1171,7 +1176,7 @@ export const SgkLessonView: React.FC<SgkLessonViewProps> = ({
                         >
                           <div className="flex items-center gap-2">
                             <span className="font-black text-slate-500 w-5">{label}.</span>
-                            <span>{opt.text}</span>
+                            <span><MathText text={opt.text} /></span>
                           </div>
                           {practiceSubmitted && opt.isCorrect && <Check className="w-4 h-4 text-emerald-600 shrink-0" />}
                         </button>
@@ -1181,7 +1186,7 @@ export const SgkLessonView: React.FC<SgkLessonViewProps> = ({
 
                   {practiceSubmitted && (
                     <div className="p-3 bg-purple-50/80 rounded-xl text-xs text-purple-950 leading-relaxed border border-purple-200">
-                      <strong>Lời giải chi tiết:</strong> {q.explanation}
+                      <strong>Lời giải chi tiết:</strong> <MathText text={q.explanation} />
                     </div>
                   )}
                 </div>
@@ -1320,25 +1325,29 @@ export const SgkLessonView: React.FC<SgkLessonViewProps> = ({
                     <div className="space-y-2 text-xs text-slate-700">
                       <div className="flex justify-between font-medium pb-1 border-b border-slate-200/60">
                         <span>
-                          {lessonId === 4
-                            ? 'Khái niệm công & công suất máy móc:'
-                            : lessonId === 3 
-                              ? 'Khái niệm cơ năng Wc = Wđ + Wt:' 
-                              : lessonId === 2 
-                                ? 'Biểu thức động năng Wđ = 1/2 m v²:' 
-                                : 'Nhận biết dụng cụ & hoá chất thí nghiệm:'}
+                          <MathText text={
+                            lessonId === 4
+                              ? 'Khái niệm công & công suất máy móc:'
+                              : lessonId === 3 
+                                ? 'Khái niệm cơ năng \\(W_c = W_đ + W_t\\):' 
+                                : lessonId === 2 
+                                  ? 'Biểu thức động năng \\(W_đ = \\frac{1}{2} m v^2\\):' 
+                                  : 'Nhận biết dụng cụ & hoá chất thí nghiệm:'
+                          } />
                         </span>
                         <span className="font-bold text-emerald-600">Thành thạo (100%)</span>
                       </div>
                       <div className="flex justify-between font-medium pb-1 border-b border-slate-200/60">
                         <span>
-                          {lessonId === 4
-                            ? 'Vận dụng biểu thức A = F · s & P = F · v:'
-                            : lessonId === 3 
-                              ? 'Định luật bảo toàn cơ năng & con lắc đơn:' 
-                              : lessonId === 2 
-                                ? 'Biểu thức thế năng trọng trường Wt = Ph:' 
-                                : 'Phương pháp viết & thuyết trình báo cáo khoa học:'}
+                          <MathText text={
+                            lessonId === 4
+                              ? 'Vận dụng biểu thức \\(A = F \\cdot s\\) & \\(P = F \\cdot v\\):'
+                              : lessonId === 3 
+                                ? 'Định luật bảo toàn cơ năng & con lắc đơn:' 
+                                : lessonId === 2 
+                                  ? 'Biểu thức thế năng trọng trường \\(W_t = P \\cdot h\\):' 
+                                  : 'Phương pháp viết & thuyết trình báo cáo khoa học:'
+                          } />
                         </span>
                         <span className="font-bold text-blue-600">Đạt yêu cầu (95%)</span>
                       </div>
@@ -1411,9 +1420,9 @@ export const SgkLessonView: React.FC<SgkLessonViewProps> = ({
                       const userChoice = examMcAnswers[q.id];
                       return (
                         <div key={q.id} className="p-4 rounded-xl border border-slate-200 bg-slate-50 space-y-2 text-xs">
-                          <p className="font-bold text-slate-900">
-                            Câu {idx + 1}: {q.question}
-                          </p>
+                          <div className="font-bold text-slate-900">
+                            Câu {idx + 1}: <MathText text={q.question} />
+                          </div>
                           <div className="space-y-1.5">
                             {(q.shuffledOptions || []).map((opt, oIdx) => {
                               const label = ['A', 'B', 'C', 'D'][oIdx];
@@ -1431,7 +1440,7 @@ export const SgkLessonView: React.FC<SgkLessonViewProps> = ({
                                 >
                                   <div className="flex items-center gap-2">
                                     <span className="font-bold">{label}.</span>
-                                    <span>{opt.text}</span>
+                                    <span><MathText text={opt.text} /></span>
                                   </div>
                                   {opt.isCorrect && <span className="text-[10px] text-emerald-700 font-bold">Đáp án đúng</span>}
                                   {isUser && !opt.isCorrect && <span className="text-[10px] text-rose-700 font-bold">Em đã chọn</span>}
@@ -1440,7 +1449,7 @@ export const SgkLessonView: React.FC<SgkLessonViewProps> = ({
                             })}
                           </div>
                           <div className="p-2.5 bg-blue-50/70 rounded-lg text-blue-950 text-[11px] border border-blue-100">
-                            <strong>Giải thích SGK:</strong> {q.explanation}
+                            <strong>Giải thích SGK:</strong> <MathText text={q.explanation} />
                           </div>
                         </div>
                       );
@@ -1456,9 +1465,11 @@ export const SgkLessonView: React.FC<SgkLessonViewProps> = ({
                     {(lessonData?.examEssayQuestions || []).map((eq, eIdx) => (
                       <div key={eq.id} className="p-4 rounded-xl border border-slate-200 bg-slate-50 space-y-2 text-xs">
                         <div className="font-bold text-purple-900">
-                          {eq.title}
+                          <MathText text={eq.title} />
                         </div>
-                        <p className="text-slate-800 font-medium">{eq.prompt}</p>
+                        <div className="text-slate-800 font-medium">
+                          <MathText text={eq.prompt} />
+                        </div>
                         
                         <div className="p-3 bg-white rounded-lg border border-slate-200">
                           <span className="font-bold text-slate-500">Bài làm của em:</span>
@@ -1469,7 +1480,9 @@ export const SgkLessonView: React.FC<SgkLessonViewProps> = ({
 
                         <div className="p-3 bg-purple-50 rounded-lg border border-purple-200 text-purple-950 space-y-1">
                           <span className="font-bold text-purple-900">Đáp án tham khảo chuẩn SGK:</span>
-                          <p className="whitespace-pre-line leading-relaxed">{eq.sampleSolution}</p>
+                          <div className="whitespace-pre-line leading-relaxed">
+                            <MathText text={eq.sampleSolution} />
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -1529,9 +1542,9 @@ export const SgkLessonView: React.FC<SgkLessonViewProps> = ({
                         <span className="text-[10px] font-bold text-slate-400">Trắc nghiệm</span>
                       </div>
 
-                      <p className="font-bold text-slate-900 text-xs">
-                        {q.question}
-                      </p>
+                      <div className="font-bold text-slate-900 text-xs">
+                        <MathText text={q.question} />
+                      </div>
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         {(q.shuffledOptions || []).map((opt, oIdx) => {
@@ -1548,7 +1561,7 @@ export const SgkLessonView: React.FC<SgkLessonViewProps> = ({
                             >
                               <div className="flex items-center gap-2">
                                 <span className="font-bold text-slate-400">{label}.</span>
-                                <span>{opt.text}</span>
+                                <span><MathText text={opt.text} /></span>
                               </div>
                             </button>
                           );
@@ -1575,14 +1588,14 @@ export const SgkLessonView: React.FC<SgkLessonViewProps> = ({
                   <div key={eq.id} className="p-5 rounded-2xl border border-slate-200 bg-slate-50/60 space-y-3">
                     <div className="flex items-center justify-between">
                       <span className="font-black text-xs text-purple-800 uppercase">
-                        {eq.title} (1,5 điểm)
+                        <MathText text={eq.title} /> (1,5 điểm)
                       </span>
                       <span className="text-[10px] font-bold text-slate-500">Tự luận</span>
                     </div>
 
-                    <p className="font-bold text-slate-900 text-xs leading-relaxed">
-                      {eq.prompt}
-                    </p>
+                    <div className="font-bold text-slate-900 text-xs leading-relaxed">
+                      <MathText text={eq.prompt} />
+                    </div>
 
                     <textarea
                       rows={4}

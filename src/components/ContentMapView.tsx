@@ -15,12 +15,14 @@ interface ContentMapViewProps {
   onSelectLesson: (lessonId: number) => void;
   activeLessonId: number;
   unlockedLessonIds?: number[];
+  isTeacher?: boolean;
 }
 
 export const ContentMapView: React.FC<ContentMapViewProps> = ({ 
   onSelectLesson, 
   activeLessonId,
-  unlockedLessonIds = [1]
+  unlockedLessonIds = [1],
+  isTeacher = false
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedChapter, setSelectedChapter] = useState<number | 'all'>('all');
@@ -182,6 +184,11 @@ export const ContentMapView: React.FC<ContentMapViewProps> = ({
                           <CheckCircle2 className="w-3.5 h-3.5 text-blue-600" />
                           Đang học
                         </span>
+                      ) : isTeacher ? (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-purple-50 text-purple-700 border border-purple-200">
+                          <Sparkles className="w-3.5 h-3.5 text-purple-600" />
+                          Mở khóa (GV)
+                        </span>
                       ) : unlockedLessonIds.includes(item.id) ? (
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                           <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
@@ -195,16 +202,18 @@ export const ContentMapView: React.FC<ContentMapViewProps> = ({
                       )}
                     </td>
                     <td className="py-3.5 px-4 text-center">
-                      {unlockedLessonIds.includes(item.id) ? (
+                      {isTeacher || unlockedLessonIds.includes(item.id) ? (
                         <button
                           onClick={() => onSelectLesson(item.id)}
-                          className={`text-xs font-bold px-3 py-1.5 rounded-lg shadow-xs transition-colors flex items-center justify-center gap-1 w-full ${
+                          className={`text-xs font-bold px-3 py-1.5 rounded-lg shadow-xs transition-colors flex items-center justify-center gap-1 w-full cursor-pointer ${
                             isActive 
                               ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+                              : isTeacher
+                              ? 'bg-purple-600 hover:bg-purple-700 text-white'
                               : 'bg-emerald-600 hover:bg-emerald-700 text-white'
                           }`}
                         >
-                          <BookOpen className="w-3.5 h-3.5" /> {isActive ? 'Vào học' : 'Mở bài'}
+                          <BookOpen className="w-3.5 h-3.5" /> {isActive ? 'Vào học' : isTeacher ? 'Giảng dạy' : 'Mở bài'}
                         </button>
                       ) : (
                         <button

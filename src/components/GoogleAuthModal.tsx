@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { UserAccount, VALID_CLASSES, ClassId } from '../types';
 import { isAuthorizedTeacherEmail } from '../config/authConfig';
+import { getAllRegisteredLessons } from '../services/lessonRegistry';
 import { signInWithGoogle, syncUserProfile } from '../services/firebaseService';
 import { 
   X, 
@@ -52,6 +53,7 @@ export const GoogleAuthModal: React.FC<GoogleAuthModalProps> = ({
       });
 
       if (isTeacher) {
+        const allLessonIds = getAllRegisteredLessons().map(l => l.id);
         const teacherAccount: UserAccount = {
           id: firebaseUser.uid,
           email,
@@ -63,9 +65,9 @@ export const GoogleAuthModal: React.FC<GoogleAuthModalProps> = ({
           joinDate: userProfile.createdAt ? new Date(userProfile.createdAt).toLocaleDateString('vi-VN') : '01/09/2026',
           xp: 500,
           streakDays: 7,
-          unlockedLessonIds: [1, 2, 3, 4],
+          unlockedLessonIds: allLessonIds,
           currentLessonId: 1,
-          completedLessonIds: [1],
+          completedLessonIds: allLessonIds,
           quizRecords: {},
           badges: ['teacher_mentor', 'lab_master']
         };

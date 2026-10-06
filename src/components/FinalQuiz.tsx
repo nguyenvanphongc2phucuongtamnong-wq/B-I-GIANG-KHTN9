@@ -20,6 +20,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { shuffleQuestionsWithBalancedAnswers, ShuffledQuestion } from '../services/quizShuffleService';
+import { MathText } from './MathRenderer';
 
 interface FinalQuizProps {
   onFinishQuiz: (score: number, total: number, breakdown: { nhanBiet: number; thongHieu: number; vanDung: number }) => void;
@@ -238,12 +239,12 @@ export const FinalQuiz: React.FC<FinalQuizProps> = ({
           <div className="p-6 md:p-8 space-y-6">
             {/* Question Text */}
             <div className="space-y-2">
-              <h3 className="text-base md:text-lg font-bold text-slate-900 leading-relaxed">
+              <div className="text-base md:text-lg font-bold text-slate-900 leading-relaxed">
                 <span className="text-blue-600 font-bold mr-2">Câu {currentQuestionIdx + 1}:</span>
-                {currentQ.question}
-              </h3>
+                <MathText text={currentQ.question} />
+              </div>
               {(currentQ as any).subText && (
-                <p className="text-xs text-slate-500 italic">{(currentQ as any).subText}</p>
+                <div className="text-xs text-slate-500 italic"><MathText text={(currentQ as any).subText} /></div>
               )}
             </div>
 
@@ -269,7 +270,7 @@ export const FinalQuiz: React.FC<FinalQuizProps> = ({
                     }`}>
                       {optLetter}
                     </span>
-                    <span className="leading-relaxed">{opt.text}</span>
+                    <span className="leading-relaxed"><MathText text={opt.text} /></span>
                   </button>
                 );
               })}
@@ -337,13 +338,13 @@ export const FinalQuiz: React.FC<FinalQuizProps> = ({
 
           <div className="p-6 md:p-8 space-y-6">
             <div className="p-4 bg-purple-50/50 rounded-xl border border-purple-100 space-y-2">
-              <h3 className="text-base font-bold text-purple-950">
-                {essayQuestion.title}
-              </h3>
+              <div className="text-base font-bold text-purple-950">
+                <MathText text={essayQuestion.title} />
+              </div>
               {essayQuestion.context && (
-                <p className="text-xs text-purple-900/80 leading-relaxed">
-                  <strong>Tình huống:</strong> {essayQuestion.context}
-                </p>
+                <div className="text-xs text-purple-900/80 leading-relaxed">
+                  <strong>Tình huống:</strong> <MathText text={essayQuestion.context} />
+                </div>
               )}
             </div>
 
@@ -352,7 +353,7 @@ export const FinalQuiz: React.FC<FinalQuizProps> = ({
                 Nội dung yêu cầu giải quyết (3,0 điểm):
               </label>
               <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 text-sm text-slate-800 whitespace-pre-line leading-relaxed font-medium">
-                {essayQuestion.question}
+                <MathText text={essayQuestion.question} />
               </div>
             </div>
 
@@ -540,9 +541,9 @@ export const FinalQuiz: React.FC<FinalQuizProps> = ({
                     }`}
                   >
                     <div className="flex items-center justify-between font-bold">
-                      <span className={isCorrect ? 'text-emerald-800' : 'text-red-800'}>
-                        Câu {idx + 1}: {q.question}
-                      </span>
+                      <div className={isCorrect ? 'text-emerald-800' : 'text-red-800'}>
+                        Câu {idx + 1}: <MathText text={q.question} />
+                      </div>
                       {isCorrect ? (
                         <span className="text-emerald-600 flex items-center gap-1 shrink-0 ml-2">
                           <CheckCircle2 className="w-4 h-4" /> +0.5đ
@@ -558,18 +559,18 @@ export const FinalQuiz: React.FC<FinalQuizProps> = ({
                       <div>
                         <strong>Đáp án em chọn: </strong>
                         <span className={isCorrect ? 'text-emerald-700 font-semibold' : 'text-red-700 font-semibold'}>
-                          {selectedOpt ? selectedOpt.text : '(Chưa chọn)'}
+                          {selectedOpt ? <MathText text={selectedOpt.text} /> : '(Chưa chọn)'}
                         </span>
                       </div>
                       {!isCorrect && correctOpt && (
                         <div>
                           <strong>Đáp án đúng: </strong>
-                          <span className="text-emerald-800 font-semibold">{correctOpt.text}</span>
+                          <span className="text-emerald-800 font-semibold"><MathText text={correctOpt.text} /></span>
                         </div>
                       )}
                       <div className="pt-1 text-slate-600">
                         <strong>Giải thích: </strong>
-                        {q.explanation}
+                        <MathText text={q.explanation} />
                       </div>
                     </div>
                   </div>
