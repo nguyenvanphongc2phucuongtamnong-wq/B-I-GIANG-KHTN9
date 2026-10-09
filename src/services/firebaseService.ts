@@ -459,17 +459,51 @@ function isBetterStudentRecord(candidate: StudentProgressItem, existing: Student
   if (candidateLessonsCount > existingLessonsCount) return true;
   if (candidateLessonsCount < existingLessonsCount) return false;
 
-  // 5. Ưu tiên số 5: Có classId hợp lệ thuộc 8 lớp khối 9 (9A1 -> 9A8)
+  // 5. Ưu tiên số 5: Có số mục chính hoàn thành nhiều hơn
+  const candidateStepCount = candidate.completedStepCount || 0;
+  const existingStepCount = existing.completedStepCount || 0;
+  if (candidateStepCount > existingStepCount) return true;
+  if (candidateStepCount < existingStepCount) return false;
+
+  // 6. Ưu tiên số 6: Có classId hợp lệ thuộc 8 lớp khối 9 (9A1 -> 9A8)
   const isCandidateClassValid = /^9A[1-8]$/i.test(candidate.className || '');
   const isExistingClassValid = /^9A[1-8]$/i.test(existing.className || '');
   if (isCandidateClassValid && !isExistingClassValid) return true;
   if (!isCandidateClassValid && isExistingClassValid) return false;
 
-  // 6. Ưu tiên số 6: Trạng thái học tập thực tế
+  // 7. Ưu tiên số 7: Trạng thái học tập thực tế
   if (candidate.status === 'completed' && existing.status !== 'completed') return true;
   if (candidate.status === 'in_progress' && existing.status === 'not_started') return true;
 
   return false;
+}
+
+/**
+ * Chuẩn hóa email key để deduplicate an toàn:
+ * - Loại bỏ dấu chấm thừa ngay trước ký tự @ (ví dụ "kienduc.@gmail.com" -> "kienduc@gmail.com")
+ * - Riêng tên miền gmail.com và googlemail.com: bỏ toàn bộ dấu chấm ở phần username (ví dụ "kien.duc@gmail.com" -> "kienduc@gmail.com")
+ * - CHỈ dùng làm khóa so sánh (dedupKey). KHÔNG thay đổi email hiển thị hay dữ liệu lưu.
+ */
+export function normalizeEmailKey(rawEmail?: string | null): string {
+  if (!rawEmail) return '';
+  let email = String(rawEmail).trim().toLowerCase();
+  if (!email.includes('@')) return email;
+
+  // Bỏ dấu chấm ngay trước @ (ví dụ: "kienduc.@gmail.com" -> "kienduc@gmail.com")
+  email = email.replace(/\.+@/g, '@');
+
+  const parts = email.split('@');
+  if (parts.length !== 2) return email;
+  const username = parts[0];
+  const domain = parts[1];
+
+  // Riêng gmail.com/googlemail.com bỏ mọi dấu chấm ở phần username
+  if (domain === 'gmail.com' || domain === 'googlemail.com') {
+    const cleanUsername = username.replace(/\./g, '');
+    return `${cleanUsername}@${domain}`;
+  }
+
+  return email;
 }
 
 /**
@@ -641,13 +675,13 @@ export async function fetchStudentsFromFirestore(classFilter?: string): Promise<
         currentStepTitle: studentData.currentStepTitle || `Bài ${latestActiveLessonId} (${latestActiveSection})`,
         completedSteps: completedStepsList,
         totalStepsInLesson: 5,
-        completedStepCount: completedStepsList.length,
+        completedStepCount: Math.min(5, finalStatus === 'completed' ? 5 : Array.from(new Set(completedStepsList.filter(s => ['sec_1', 'sec_2', 'sec_3', 'sec_4', 'sec_5'].includes(s)))).length),
         unlockedLessonIds,
         completedLessonIds,
         overallProgress,
         status: finalStatus,
         completedTests: completedLessonIds.length,
-        completedExercises: completedStepsList.length,
+        completedExercises: Math.min(5, finalStatus === 'completed' ? 5 : Array.from(new Set(completedStepsList.filter(s => ['sec_1', 'sec_2', 'sec_3', 'sec_4', 'sec_5'].includes(s)))).length),
         lastQuizScore: latestScore,
         practiceScore: latestPracticeScore,
         testScore: latestScore,
@@ -673,7 +707,7 @@ export async function fetchStudentsFromFirestore(classFilter?: string): Promise<
       };
 
       // 4. Nhận diện học sinh duy nhất theo email chuẩn hóa (chống trùng lặp giữa std_<slug> và Auth UID)
-      const dedupKey = emailClean || uid;
+      const dedupKey = normalizeEmailKey(emailClean) || uid;
       if (!studentMap.has(dedupKey)) {
         studentMap.set(dedupKey, currentItem);
       } else {

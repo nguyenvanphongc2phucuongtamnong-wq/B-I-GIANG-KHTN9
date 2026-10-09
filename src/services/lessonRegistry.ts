@@ -40,11 +40,24 @@ import {
   FINAL_ASSESSMENT_QUIZ_4
 } from '../data/lesson4Data';
 
+import {
+  HOOK_SCENARIO_5,
+  KNOWLEDGE_CARDS_5,
+  CORE_SUMMARY_5,
+  MATCHING_PAIRS_LESSON_5,
+  DETECTIVE_MISSIONS_LESSON_5,
+  PRACTICE_QUESTIONS_5,
+  REAL_WORLD_APPLICATION_5,
+  EXTENSION_CONTENT_5,
+  FINAL_ASSESSMENT_QUIZ_5
+} from '../data/lesson5Data';
+
 import { 
   ESSAY_QUESTION_LESSON_1, 
   ESSAY_QUESTION_LESSON_2, 
   ESSAY_QUESTION_LESSON_3,
-  ESSAY_QUESTION_LESSON_4 
+  ESSAY_QUESTION_LESSON_4,
+  ESSAY_QUESTION_LESSON_5 
 } from '../data/essayQuestions';
 
 import { EssayQuestion, PracticeQuestion } from '../types';
@@ -300,6 +313,28 @@ export const REGISTERED_LESSONS: RegisteredLesson[] = [
     extension: EXTENSION_CONTENT_4,
     finalQuiz: FINAL_ASSESSMENT_QUIZ_4,
     essay: ESSAY_QUESTION_LESSON_4,
+  },
+  {
+    id: 5,
+    lessonKey: 'lesson_05',
+    lessonNumber: 5,
+    title: 'Bài 5: Khúc xạ ánh sáng',
+    shortTitle: 'Khúc Xạ Ánh Sáng',
+    subtitle: 'Chương II: Ánh sáng - Trang 25 SGK KHTN 9 (Kết nối tri thức)',
+    chapterNumber: 2,
+    chapterTitle: 'Chương II: Ánh Sáng',
+    page: 25,
+    coreKnowledge: 'Hiện tượng khúc xạ ánh sáng; định luật Snell n₁·sin(i) = n₂·sin(r); chiết suất n = c/v; giải thích đũa gập khúc, nâng đáy hồ bơi (h\' ≈ h/n) và khúc xạ kế.',
+    hook: HOOK_SCENARIO_5,
+    knowledgeCards: KNOWLEDGE_CARDS_5,
+    matchingPairs: MATCHING_PAIRS_LESSON_5,
+    summary: CORE_SUMMARY_5,
+    games: DETECTIVE_MISSIONS_LESSON_5,
+    practice: PRACTICE_QUESTIONS_5,
+    realWorld: REAL_WORLD_APPLICATION_5,
+    extension: EXTENSION_CONTENT_5,
+    finalQuiz: FINAL_ASSESSMENT_QUIZ_5,
+    essay: ESSAY_QUESTION_LESSON_5,
   },
 ];
 

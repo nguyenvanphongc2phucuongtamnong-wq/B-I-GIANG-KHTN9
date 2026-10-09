@@ -222,4 +222,68 @@ export const ESSAY_QUESTION_LESSON_4: EssayQuestion = {
   Do phương của trọng lực VUÔNG GÓC với phương chuyển dời của vật (góc α = 90°, cos 90° = 0), lực không làm vật tăng tốc hay dời chỗ theo phương thẳng đứng nên trọng lực không sinh công.`
 };
 
+export const ESSAY_QUESTION_LESSON_5: EssayQuestion = {
+  id: 'essay-lesson-5',
+  title: 'Tự luận Vận dụng Thực tiễn: Khảo Sát Khúc Xạ Ánh Sáng & Ảo Ảnh Đáy Bể Bơi',
+  level: 'van_dung',
+  levelName: 'Mức 3: Vận dụng thực tế',
+  points: 3.0,
+  context: 'Một chiếc đèn laser công suất nhỏ gắn trên thành bể bơi chiếu một tia sáng đơn sắc từ không khí vào mặt nước phẳng lặng của hồ với góc tới i = 45°. Biết nước trong hồ có chiết suất n = 4/3 ≈ 1,33, và độ sâu thực tế của đáy hồ tại vị trí đó là h = 2,4 mét. Tốc độ ánh sáng trong chân không là c = 3 · 10⁸ m/s.',
+  question: `Hãy hoàn thành 3 yêu cầu khoa học sau:\n1. Nêu nội dung định luật khúc xạ ánh sáng và vẽ mô tả đường truyền của tia sáng từ không khí vào nước. Tính góc khúc xạ r trong nước (làm tròn đến độ).\n2. Tính tốc độ truyền của tia sáng laser khi đi vào trong nước (theo đơn vị m/s và km/s). So sánh với tốc độ trong chân không.\n3. Một em nhỏ đứng trên bờ nhìn gần như thẳng đứng xuống một viên gạch lát đáy bể. Hãy giải thích vì sao em nhỏ lại thấy viên gạch dường như ở nông hơn thực tế và tính độ sâu biểu kiến h' của viên gạch mà em nhỏ nhìn thấy. Cảnh báo nguy cơ an toàn đuối nước từ hiện tượng quang học này.`,
+  guidelines: [
+    'Phần 1 (1.0 điểm): Nêu đúng 2 ý của định luật Snell: tia khúc xạ trong mặt phẳng tới và ở bên kia pháp tuyến; sin i / sin r = n₂₁ = 4/3. Tính sin r = sin 45° / (4/3) ≈ 0,5303 => r ≈ 32°.',
+    'Phần 2 (1.0 điểm): Tính v = c / n = 3·10⁸ / (4/3) = 2,25·10⁸ m/s = 225 000 km/s. Nêu đúng: Tốc độ ánh sáng giảm đi 1,33 lần khi truyền từ không khí vào nước.',
+    'Phần 3 (1.0 điểm): Giải thích tia sáng từ viên gạch ra không khí bị lệch xa pháp tuyến (r > i) làm ảnh ảo nâng lên. Tính h\' = h / n = 2,4 / (4/3) = 1,8 m. Cảnh báo nguy hiểm đuối nước do lầm tưởng đáy bể nông.'
+  ],
+  rubric: [
+    {
+      id: 'r1',
+      criterion: 'Định luật khúc xạ & Tính góc khúc xạ r',
+      maxPoints: 1.0,
+      description: 'Nêu đúng định luật Snell: n₁·sin(i) = n₂·sin(r); tính sin r = 0,5303 và góc khúc xạ r ≈ 32°.',
+      keywords: ['định luật khúc xạ', 'Snell', 'mặt phẳng tới', 'sin', '32', '32°']
+    },
+    {
+      id: 'r2',
+      criterion: 'Tính Tốc độ ánh sáng trong nước',
+      maxPoints: 1.0,
+      description: 'Áp dụng v = c / n = 2,25 · 10⁸ m/s (225 000 km/s); giải thích tốc độ ánh sáng bị chậm lại.',
+      keywords: ['2,25', '225000', '2.25', '10^8', 'chậm', 'chiết suất']
+    },
+    {
+      id: 'r3',
+      criterion: 'Giải thích hiện tượng nâng đáy & Tính độ sâu biểu kiến',
+      maxPoints: 1.0,
+      description: 'Giải thích khúc xạ làm ảnh ảo nâng lên; tính h\' = h / n = 1,8 m; nêu cảnh báo nguy hiểm đuối nước.',
+      keywords: ['1,8', '1.8', 'nâng lên', 'ảnh ảo', 'biểu kiến', 'đuối nước', 'an toàn']
+    }
+  ],
+  sampleAnswer: `1. Định luật khúc xạ ánh sáng và tính góc khúc xạ r:
+- Nội dung định luật khúc xạ ánh sáng:
+  + Tia khúc xạ luôn nằm trong mặt phẳng tới và ở bên kia pháp tuyến so với tia tới.
+  + Với hai môi trường trong suốt nhất định, tỉ số giữa sin góc tới và sin góc khúc xạ là một hằng số:
+    (sin i) / (sin r) = n₂ / n₁ <=> n₁ · sin(i) = n₂ · sin(r).
+- Tính góc khúc xạ r trong nước:
+  Ở đây tia sáng truyền từ không khí (n₁ = 1) vào nước (n₂ = 4/3), góc tới i = 45°.
+  Ta có: 1 · sin(45°) = (4/3) · sin(r)
+  => sin(r) = sin(45°) / (4/3) = (√2 / 2) · (3 / 4) = (3√2) / 8 ≈ 0,5303.
+  Tra bảng lượng giác suy ra: góc khúc xạ r ≈ 32° (r < i = 45° vì nước chiết quang hơn không khí).
+
+2. Tốc độ truyền ánh sáng trong nước:
+- Áp dụng công thức liên hệ giữa chiết suất tuyệt đối và tốc độ truyền sáng: n = c / v.
+- Tốc độ truyền của ánh sáng trong nước:
+  v = c / n = (3 · 10⁸) / (4/3) = 2,25 · 10⁸ m/s = 225 000 km/s.
+- So sánh: Tốc độ ánh sáng trong nước bị giảm đi 1,33 lần (chỉ bằng 75%) so với tốc độ cực đại trong chân không (300 000 km/s), do mật độ quang học của môi trường nước lớn hơn chân không.
+
+3. Giải thích hiện tượng nâng đáy và độ sâu biểu kiến h':
+- Giải thích bản chất quang học:
+  Tia sáng xuất phát từ viên gạch dưới đáy hồ khi truyền từ nước ra không khí gặp mặt nước bị khúc xạ, lệch ra xa pháp tuyến (góc khúc xạ lớn hơn góc tới). Mắt người đứng trên bờ hứng chùm tia khúc xạ này sẽ định vị viên gạch theo phương truyền thẳng kéo dài của các tia sáng, tạo ra một ảnh ảo của viên gạch nằm ở phía trên vị trí thật.
+- Tính độ sâu biểu kiến:
+  Khi nhìn gần như vuông góc từ trên xuống, khoảng cách từ mặt nước đến ảnh ảo của viên gạch là:
+  h' ≈ h / n = 2,4 / (4/3) = 1,8 mét.
+- Cảnh báo an toàn đuối nước:
+  Viên gạch ở độ sâu thực tế là 2,4 m (ngập sâu quá đầu người lớn), nhưng mắt nhìn thấy dường như chỉ sâu 1,8 m (nông hơn thực tế 0,6 m). Hiện tượng khúc xạ ánh sáng này rất dễ đánh lừa thị giác của các bạn học sinh và trẻ nhỏ, gây ảo tưởng rằng bể bơi hoặc khúc sông nông, dẫn tới nguy cơ trượt chân đuối nước nghiêm trọng nếu không có kĩ năng bơi lội và không quan sát biển báo độ sâu!`
+};
+
+
 

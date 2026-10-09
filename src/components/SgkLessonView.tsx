@@ -43,7 +43,8 @@ import {
   MechanicalEnergySim,
   PendulumEnergySim,
   WorkPowerSim,
-  CranePowerSim
+  CranePowerSim,
+  RefractionLightSim
 } from './Simulations';
 import { 
   getSgkLessonData, 
@@ -969,6 +970,7 @@ export const SgkLessonView: React.FC<SgkLessonViewProps> = ({
                 {currentTopic.simulation === 'pendulum_energy' && <PendulumEnergySim />}
                 {currentTopic.simulation === 'work_power' && <WorkPowerSim />}
                 {currentTopic.simulation === 'crane_power' && <CranePowerSim />}
+                {currentTopic.simulation === 'refraction_light' && <RefractionLightSim />}
 
                 {enrichedTopic.simObservation && (
                   <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs space-y-1">

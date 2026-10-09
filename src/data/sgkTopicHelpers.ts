@@ -947,6 +947,204 @@ export const ENRICHED_TOPICS_MAP: Record<string, EnrichedTopicData> = {
         explanation: 'Áp dụng \\(P = \\frac{A}{t} = \\frac{12\\,000}{30} = 400\\text{ W}\\).'
       }
     ]
+  },
+
+  // ==========================================
+  // BÀI 5: KHÚC XẠ ÁNH SÁNG
+  // ==========================================
+  topic_5_1: {
+    hierarchy: {
+      romanHeader: 'I. HIỆN TƯỢNG KHÚC XẠ ÁNH SÁNG',
+      subHeader: '1. Khái niệm và các yếu tố hình học của hiện tượng khúc xạ',
+      subItems: [
+        'a) Định nghĩa: Hiện tượng tia sáng bị đổi hướng (gãy khúc) tại mặt phân cách khi truyền xiên góc',
+        'b) Các yếu tố quang hình học: Điểm tới I, tia tới SI, pháp tuyến NN\', tia khúc xạ IR',
+        'c) Góc tới i (hợp bởi SI và NN\') và Góc khúc xạ r (hợp bởi IR và NN\')',
+        'd) Trường hợp chiếu vuông góc (i = 0°): Tia sáng truyền thẳng (r = 0°)'
+      ]
+    },
+    tableOrDiagram: {
+      title: 'Các yếu tố quang hình học trong hiện tượng khúc xạ (SGK KHTN 9 Trang 26)',
+      headers: ['Yếu tố hình học', 'Kí hiệu', 'Bản chất quang học'],
+      rows: [
+        ['Điểm tới', 'I', 'Điểm gặp nhau giữa tia sáng tới và mặt phân cách hai môi trường'],
+        ['Tia tới', 'SI', 'Tia sáng truyền thẳng từ nguồn sáng đến điểm tới I'],
+        ['Pháp tuyến', 'NN\'', 'Đường thẳng vuông góc với mặt phân cách tại điểm tới I'],
+        ['Tia khúc xạ', 'IR', 'Tia sáng đi vào môi trường thứ hai từ điểm tới I'],
+        ['Góc tới', 'i (góc SIN)', 'Góc tạo bởi tia tới SI và pháp tuyến NN\''],
+        ['Góc khúc xạ', 'r (góc N\'IR)', 'Góc tạo bởi tia khúc xạ IR và pháp tuyến NN\''],
+        ['Mặt phẳng tới', 'Mặt phẳng (S, I, N)', 'Mặt phẳng chứa tia tới SI và pháp tuyến NN\'']
+      ]
+    },
+    warningNote: '⚠ LƯU Ý QUAN TRỌNG: Góc tới i và góc khúc xạ r LUÔN LUÔN được đo so với đường PHÁP TUYẾN NN\', tuyệt đối KHÔNG ĐƯỢC đo so với mặt phân cách nằm ngang!',
+    exampleDetail: {
+      type: 'phenomenon',
+      title: 'Thí nghiệm chiếu tia laser từ không khí vào khối bán trụ thuỷ tinh (Hình 5.2)',
+      givenOrPhenomenon: 'Chiếu tia sáng laser hẹp vào mặt phẳng của khối bán trụ thuỷ tinh tại tâm I với góc tới i = 45°.',
+      stepsOrExplanation: 'Tại điểm tới I trên mặt phân cách, vệt laser bị bẻ cong lệch hướng và đi vào khối thuỷ tinh với góc khúc xạ r ≈ 28° (nhỏ hơn góc tới 45°).',
+      resultOrTakeaway: 'Khi truyền từ không khí vào thuỷ tinh, tia sáng bị khúc xạ lệch lại gần pháp tuyến hơn.'
+    },
+    interactiveQuizzes: [
+      {
+        id: 'iq_5_1_1',
+        question: 'Trong hiện tượng khúc xạ ánh sáng, góc khúc xạ r là góc hợp bởi hai đường nào?',
+        options: [
+          { id: 'opt_1', text: 'Tia khúc xạ và pháp tuyến tại điểm tới', isCorrect: true },
+          { id: 'opt_2', text: 'Tia khúc xạ và tia tới', isCorrect: false },
+          { id: 'opt_3', text: 'Tia khúc xạ và mặt phân cách', isCorrect: false },
+          { id: 'opt_4', text: 'Tia tới và mặt phân cách', isCorrect: false }
+        ],
+        explanation: 'Theo quy ước quang hình học chuẩn, góc khúc xạ r là góc hợp bởi tia khúc xạ IR và pháp tuyến NN\' tại điểm tới I.'
+      }
+    ]
+  },
+
+  topic_5_2: {
+    hierarchy: {
+      romanHeader: 'I. HIỆN TƯỢNG KHÚC XẠ ÁNH SÁNG',
+      subHeader: '2. Định luật khúc xạ ánh sáng (Định luật Snellius)',
+      subItems: [
+        'a) Vị trí tia khúc xạ: Nằm trong mặt phẳng tới và ở bên kia pháp tuyến so với tia tới',
+        'b) Mối quan hệ định lượng: Tỉ số giữa sin i và sin r là một hằng số đối với hai môi trường xác định',
+        'c) Quy tắc so sánh góc: Khi n₁ < n₂ thì r < i; khi n₁ > n₂ thì r > i'
+      ]
+    },
+    formula: {
+      title: 'Định luật khúc xạ ánh sáng (Định luật Snell)',
+      formula: '\\frac{\\sin i}{\\sin r} = \\text{hằng số} = n_{21} \\iff n_1 \\cdot \\sin i = n_2 \\cdot \\sin r',
+      explanation: 'Tia khúc xạ nằm trong mặt phẳng tới và ở bên kia pháp tuyến; tỉ số giữa sin góc tới và sin góc khúc xạ là hằng số.',
+      variables: [
+        { symbol: 'i', name: 'Góc tới', unit: 'độ (°)' },
+        { symbol: 'r', name: 'Góc khúc xạ', unit: 'độ (°)' },
+        { symbol: 'n_{21}', name: 'Chiết suất tỉ đối của môi trường 2 đối với môi trường 1', unit: 'không có đơn vị' }
+      ]
+    },
+    warningNote: '⚠ LƯU Ý GÓC LỚN HƠN: Khi ánh sáng truyền từ không khí vào nước/thuỷ tinh (môi trường chiết quang hơn) thì r < i; ngược lại từ nước/thuỷ tinh ra không khí thì r > i!',
+    exampleDetail: {
+      type: 'problem',
+      title: 'Kiểm nghiệm bảng số liệu góc tới và góc khúc xạ trong SGK KHTN 9 (trang 27)',
+      givenOrPhenomenon: 'Chiếu tia sáng từ không khí vào nước (n ≈ 1,33) với các góc tới i lần lượt là 30°, 45°, 60°.',
+      stepsOrExplanation: 'Áp dụng \\(\\sin r = \\frac{\\sin i}{1,33}\\):\n• Với i = 30°: \\(\\sin r = \\frac{0,5}{1,33} \\approx 0,3759 \\implies r \\approx 22°\\).\n• Với i = 45°: \\(\\sin r = \\frac{0,7071}{1,33} \\approx 0,5316 \\implies r \\approx 32°\\).\n• Với i = 60°: \\(\\sin r = \\frac{0,866}{1,33} \\approx 0,6511 \\implies r \\approx 40,6°\\).',
+      resultOrTakeaway: 'Tỉ số \\(\\frac{\\sin i}{\\sin r}\\) luôn xấp xỉ bằng 1,33 (bằng chiết suất của nước).'
+    },
+    simObservation: {
+      title: 'Thí nghiệm ảo: Khúc xạ ánh sáng trên đĩa chia độ tròn',
+      instruction: 'Thay đổi góc tới i từ 0° đến 80° và chọn các môi trường (Nước, Thuỷ tinh, Kim cương). Quan sát đường truyền tia sáng.',
+      observationQuestion: 'Khi góc tới i = 0° (chiếu vuông góc với mặt phân cách), tia khúc xạ truyền như thế nào?',
+      observationAnswer: 'Khi i = 0°, tia sáng đi trùng với pháp tuyến nên tiếp tục truyền thẳng mà không bị đổi hướng (r = 0°).'
+    },
+    interactiveQuizzes: [
+      {
+        id: 'iq_5_2_1',
+        question: 'Chiếu một tia sáng từ không khí vào bể nước với góc tới \\(i = 45°\\). Nhận định nào sau đây về góc khúc xạ \\(r\\) là đúng?',
+        options: [
+          { id: 'opt_1', text: 'Góc khúc xạ r nhỏ hơn 45° (r < 45°)', isCorrect: true },
+          { id: 'opt_2', text: 'Góc khúc xạ r bằng 45° (r = 45°)', isCorrect: false },
+          { id: 'opt_3', text: 'Góc khúc xạ r lớn hơn 45° (r > 45°)', isCorrect: false },
+          { id: 'opt_4', text: 'Góc khúc xạ r bằng 0°', isCorrect: false }
+        ],
+        explanation: 'Vì nước chiết quang hơn không khí (nước n ≈ 1,33 > không khí n ≈ 1), tia sáng bị bẻ cong về phía pháp tuyến nên r < i = 45° (thực tế r ≈ 32°).'
+      }
+    ]
+  },
+
+  topic_5_3: {
+    hierarchy: {
+      romanHeader: 'II. CHIẾT SUẤT CỦA MÔI TRƯỜNG',
+      subHeader: '1. Chiết suất tuyệt đối và Chiết suất tỉ đối',
+      subItems: [
+        'a) Chiết suất tuyệt đối: n = c / v (với c = 3 · 10⁸ m/s, luôn có n ≥ 1)',
+        'b) Bảng chiết suất một số chất thông dụng: Nước (1,33), Thuỷ tinh (1,50), Kim cương (2,42)',
+        'c) Chiết suất tỉ đối: n₂₁ = n₂ / n₁ = v₁ / v₂',
+        'd) Dạng đối xứng của định luật Snell: n₁ · sin(i) = n₂ · sin(r)'
+      ]
+    },
+    formula: {
+      title: 'Chiết suất tuyệt đối của môi trường',
+      formula: 'n = \\frac{c}{v} \\ge 1',
+      explanation: 'Chiết suất tuyệt đối đặc trưng cho khả năng làm chậm tốc độ truyền ánh sáng của môi trường so với chân không.',
+      variables: [
+        { symbol: 'n', name: 'Chiết suất tuyệt đối', unit: 'không có đơn vị (n ≥ 1)' },
+        { symbol: 'c', name: 'Tốc độ ánh sáng trong chân không (3 · 10⁸ m/s)', unit: 'm/s' },
+        { symbol: 'v', name: 'Tốc độ ánh sáng trong môi trường', unit: 'm/s' }
+      ]
+    },
+    tableOrDiagram: {
+      title: 'Bảng chiết suất tuyệt đối của một số chất thông dụng (SGK KHTN 9 Trang 28)',
+      headers: ['Chất trong suốt', 'Chiết suất tuyệt đối (n)', 'Tốc độ ánh sáng trong chất (v)'],
+      rows: [
+        ['Chân không', '1,0000 (chuẩn)', '300 000 km/s (3 · 10⁸ m/s)'],
+        ['Không khí', '1,0003 ≈ 1,0', '≈ 300 000 km/s'],
+        ['Nước tinh khiết', '1,333 (4/3)', '≈ 225 000 km/s (2,25 · 10⁸ m/s)'],
+        ['Thuỷ tinh Crown', '1,50 đến 1,52', '≈ 200 000 km/s (2 · 10⁸ m/s)'],
+        ['Kim cương', '2,417 ≈ 2,42', '≈ 124 000 km/s (1,24 · 10⁸ m/s)']
+      ]
+    },
+    warningNote: '⚠ LƯU Ý VỀ TỐC ĐỘ: Môi trường có chiết suất n càng lớn thì tốc độ truyền ánh sáng trong môi trường đó càng CHẬM (v = c / n).',
+    exampleDetail: {
+      type: 'problem',
+      title: 'Tính tốc độ ánh sáng trong nước',
+      givenOrPhenomenon: 'Biết chiết suất của nước là n = 4/3 và tốc độ ánh sáng trong chân không là c = 3 · 10⁸ m/s.',
+      stepsOrExplanation: 'Áp dụng công thức liên hệ giữa chiết suất và vận tốc: \\(v = \\frac{c}{n} = \\frac{3 \\cdot 10^8}{4/3} = 2,25 \\cdot 10^8\\text{ m/s}\\).',
+      resultOrTakeaway: 'Tốc độ ánh sáng trong nước là 225 000 km/s (chậm hơn 25% so với trong chân không).'
+    },
+    interactiveQuizzes: [
+      {
+        id: 'iq_5_3_1',
+        question: 'Biết chiết suất thuỷ tinh là n = 1,5. Tốc độ ánh sáng trong khối thuỷ tinh đó là bao nhiêu (cho c = 3 · 10⁸ m/s)?',
+        options: [
+          { id: 'opt_1', text: '2,0 · 10⁸ m/s (tức 200 000 km/s)', isCorrect: true },
+          { id: 'opt_2', text: '4,5 · 10⁸ m/s', isCorrect: false },
+          { id: 'opt_3', text: '1,5 · 10⁸ m/s', isCorrect: false },
+          { id: 'opt_4', text: '3,0 · 10⁸ m/s', isCorrect: false }
+        ],
+        explanation: 'Áp dụng v = c / n = (3 · 10⁸) / 1,5 = 2,0 · 10⁸ m/s.'
+      }
+    ]
+  },
+
+  topic_5_4: {
+    hierarchy: {
+      romanHeader: 'II. CHIẾT SUẤT CỦA MÔI TRƯỜNG',
+      subHeader: '2. Ứng dụng & Giải thích các hiện tượng thực tế',
+      subItems: [
+        'a) Hiện tượng nâng đáy hồ bơi (độ sâu biểu kiến h\' ≈ h / n)',
+        'b) Hiện tượng chiếc đũa bị gãy khúc trong cốc nước',
+        'c) Kinh nghiệm đâm cá của người dân chài',
+        'd) Khúc xạ kế đo độ ngọt (°Brix) và độ mặn dung dịch'
+      ]
+    },
+    formula: {
+      title: 'Độ sâu biểu kiến khi nhìn gần như vuông góc',
+      formula: 'h\' \\approx \\frac{h}{n}',
+      explanation: 'Đáy hồ hoặc vật thể dưới nước nhìn từ trên bờ dường như ở gần mặt nước hơn vị trí thực.',
+      variables: [
+        { symbol: 'h', name: 'Độ sâu thực tế của vật', unit: 'm (hoặc cm)' },
+        { symbol: 'h\'', name: 'Độ sâu biểu kiến của ảnh ảo', unit: 'm (hoặc cm)' },
+        { symbol: 'n', name: 'Chiết suất của môi trường chất lỏng', unit: 'không có đơn vị' }
+      ]
+    },
+    warningNote: '⚠ NGUY CƠ ĐUỐI NƯỚC: Do hiện tượng khúc xạ ánh sáng làm đáy hồ bơi trông nông hơn thực tế (sâu 2 m chỉ trông như 1,5 m), học sinh tuyệt đối không ước lượng độ sâu bằng mắt!',
+    exampleDetail: {
+      type: 'problem',
+      title: 'Tính độ sâu biểu kiến của đáy bể bơi',
+      givenOrPhenomenon: 'Một bể bơi sâu thực tế h = 2,0 m chứa đầy nước trong suốt có chiết suất n = 4/3.',
+      stepsOrExplanation: 'Khi người đứng trên bờ nhìn gần như thẳng đứng xuống đáy bể:\n\\(h\' \\approx \\frac{h}{n} = \\frac{2,0}{4/3} = 1,5\\text{ m}\\).',
+      resultOrTakeaway: 'Đáy hồ dường như được nâng lên 0,5 m, đánh lừa thị giác người quan sát.'
+    },
+    interactiveQuizzes: [
+      {
+        id: 'iq_5_4_1',
+        question: 'Một người đứng trên bờ nhìn con cá dưới hồ nước. Để phóng lao đâm trúng con cá, người đó cần căn mũi lao như thế nào?',
+        options: [
+          { id: 'opt_1', text: 'Nhắm vào vị trí thấp hơn vị trí con cá mà mắt nhìn thấy', isCorrect: true },
+          { id: 'opt_2', text: 'Nhắm đúng ngay vào vị trí con cá mà mắt nhìn thấy', isCorrect: false },
+          { id: 'opt_3', text: 'Nhắm vào vị trí cao hơn vị trí con cá mà mắt nhìn thấy', isCorrect: false },
+          { id: 'opt_4', text: 'Nhắm sang bên phải con cá 1 mét', isCorrect: false }
+        ],
+        explanation: 'Khúc xạ ánh sáng từ nước ra không khí làm ảnh ảo con cá nằm cao hơn con cá thật. Muốn đâm trúng phải nhắm xuống phía dưới ảnh nhìn thấy.'
+      }
+    ]
   }
 };
 

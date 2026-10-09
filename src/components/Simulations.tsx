@@ -2114,6 +2114,260 @@ export const CranePowerSim: React.FC = () => {
   );
 };
 
+// 10. Refraction of Light Simulation (SGK KHTN 9 Bài 5 - Trang 26)
+export const RefractionLightSim: React.FC = () => {
+  const [incidentAngle, setIncidentAngle] = useState<number>(45); // degrees
+  const [medium, setMedium] = useState<'water' | 'glass' | 'diamond'>('water');
+  const [direction, setDirection] = useState<'air_to_med' | 'med_to_air'>('air_to_med');
+
+  const mediums = {
+    water: { name: 'Nước tinh khiết', n: 1.33, color: 'rgba(56, 189, 248, 0.25)', speed: '225 000 km/s' },
+    glass: { name: 'Thuỷ tinh Crown', n: 1.50, color: 'rgba(168, 85, 247, 0.25)', speed: '200 000 km/s' },
+    diamond: { name: 'Kim cương quý', n: 2.42, color: 'rgba(236, 72, 153, 0.25)', speed: '124 000 km/s' },
+  };
+
+  const selectedMed = mediums[medium];
+  const n1 = direction === 'air_to_med' ? 1.0 : selectedMed.n;
+  const n2 = direction === 'air_to_med' ? selectedMed.n : 1.0;
+
+  // Snell's Law: n1 * sin(i) = n2 * sin(r) => sin(r) = (n1 / n2) * sin(i)
+  const iRad = (incidentAngle * Math.PI) / 180;
+  const sinI = Math.sin(iRad);
+  const sinR = (n1 / n2) * sinI;
+
+  const isTotalReflection = sinR > 1.0;
+  const rDeg = isTotalReflection ? 90 : Math.round((Math.asin(sinR) * 180) / Math.PI * 10) / 10;
+  const rRad = isTotalReflection ? Math.PI / 2 : (rDeg * Math.PI) / 180;
+
+  // SVG Coordinates setup (center at 150, 150, radius = 120)
+  const cx = 150;
+  const cy = 150;
+  const len = 110;
+
+  // Incident ray (starts from top-left for air_to_med, or bottom-left for med_to_air)
+  const rayYSign = direction === 'air_to_med' ? -1 : 1;
+  const startX = cx - len * Math.sin(iRad);
+  const startY = cy + rayYSign * len * Math.cos(iRad);
+
+  // Refracted ray (goes to opposite side across normal)
+  const refrYSign = direction === 'air_to_med' ? 1 : -1;
+  const endX = cx + len * Math.sin(rRad);
+  const endY = cy + refrYSign * len * Math.cos(rRad);
+
+  // Partial or total reflected ray
+  const reflX = cx + len * Math.sin(iRad);
+  const reflY = startY;
+
+  return (
+    <div className="bg-slate-900 text-white p-5 rounded-2xl border border-slate-700 shadow-xl">
+      <div className="flex items-center justify-between border-b border-slate-700 pb-3 mb-4">
+        <div className="flex items-center gap-2">
+          <span className="p-1.5 bg-emerald-500/20 text-emerald-400 rounded-lg">
+            <Sun className="w-5 h-5" />
+          </span>
+          <div>
+            <h4 className="font-bold text-slate-100 text-base">Thí nghiệm Ảo: Khúc Xạ Ánh Sáng & Đĩa Chia Độ Tròn</h4>
+            <p className="text-xs text-slate-400">Hình 5.2 & Thí nghiệm Hình 5.3 SGK KHTN 9 (Trang 26 - 27)</p>
+          </div>
+        </div>
+        <button
+          onClick={() => {
+            setIncidentAngle(45);
+            setMedium('water');
+            setDirection('air_to_med');
+          }}
+          className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-2.5 py-1 rounded flex items-center gap-1 border border-slate-700"
+        >
+          <RotateCcw className="w-3.5 h-3.5" /> Đặt lại
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-center">
+        {/* Optical Disk Canvas */}
+        <div className="lg:col-span-6 bg-slate-950 p-4 rounded-xl border border-slate-800 flex flex-col items-center justify-center relative overflow-hidden">
+          <svg viewBox="0 0 300 300" className="w-full max-w-[280px] h-auto drop-shadow-md">
+            {/* Medium 2 Background Semi-circle or Lower half */}
+            <rect 
+              x="20" 
+              y={direction === 'air_to_med' ? "150" : "20"} 
+              width="260" 
+              height="130" 
+              fill={selectedMed.color} 
+              className="transition-colors duration-300"
+            />
+
+            {/* Protractor Circle */}
+            <circle cx={cx} cy={cy} r={len} fill="none" stroke="#334155" strokeWidth="1.5" strokeDasharray="3 3" />
+            <circle cx={cx} cy={cy} r="3" fill="#94a3b8" />
+
+            {/* Interface Line (Mặt phân cách) */}
+            <line x1="20" y1={cy} x2="280" y2={cy} stroke="#38bdf8" strokeWidth="2.5" />
+            <text x="25" y="144" fill="#38bdf8" fontSize="9" fontWeight="bold">Mặt phân cách</text>
+
+            {/* Normal Line (Pháp tuyến NN') */}
+            <line x1={cx} y1="25" x2={cx} y2="275" stroke="#94a3b8" strokeWidth="1.5" strokeDasharray="4 4" />
+            <text x={cx + 4} y="38" fill="#94a3b8" fontSize="9" fontWeight="bold">N</text>
+            <text x={cx + 4} y="268" fill="#94a3b8" fontSize="9" fontWeight="bold">N'</text>
+
+            {/* Incident Angle Arc */}
+            {incidentAngle > 0 && (
+              <path
+                d={`M ${cx} ${cy + rayYSign * 25} A 25 25 0 0 ${direction === 'air_to_med' ? 1 : 0} ${cx - 25 * Math.sin(iRad)} ${cy + rayYSign * 25 * Math.cos(iRad)}`}
+                fill="none"
+                stroke="#f43f5e"
+                strokeWidth="1.5"
+              />
+            )}
+            <text x={cx - 18} y={direction === 'air_to_med' ? cy - 30 : cy + 35} fill="#f43f5e" fontSize="10" fontWeight="bold">
+              i={incidentAngle}°
+            </text>
+
+            {/* Refracted Angle Arc */}
+            {!isTotalReflection && rDeg > 0 && (
+              <path
+                d={`M ${cx} ${cy + refrYSign * 25} A 25 25 0 0 ${direction === 'air_to_med' ? 0 : 1} ${cx + 25 * Math.sin(rRad)} ${cy + refrYSign * 25 * Math.cos(rRad)}`}
+                fill="none"
+                stroke="#10b981"
+                strokeWidth="1.5"
+              />
+            )}
+            {!isTotalReflection && (
+              <text x={cx + 12} y={direction === 'air_to_med' ? cy + 35 : cy - 30} fill="#10b981" fontSize="10" fontWeight="bold">
+                r={rDeg}°
+              </text>
+            )}
+
+            {/* Incident Ray (Laser đỏ) */}
+            <line x1={startX} y1={startY} x2={cx} y2={cy} stroke="#f43f5e" strokeWidth="3" />
+            <circle cx={startX} cy={startY} r="4" fill="#fb7185" className="animate-pulse" />
+
+            {/* Reflected Ray (mờ hơn) */}
+            <line x1={cx} y1={cy} x2={reflX} y2={reflY} stroke="#f43f5e" strokeWidth={isTotalReflection ? "3" : "1.2"} strokeOpacity={isTotalReflection ? "1" : "0.4"} strokeDasharray={isTotalReflection ? "none" : "3 2"} />
+
+            {/* Refracted Ray (Laser xanh ngọc) */}
+            {!isTotalReflection ? (
+              <line x1={cx} y1={cy} x2={endX} y2={endY} stroke="#10b981" strokeWidth="3" />
+            ) : (
+              <text x="60" y="220" fill="#f43f5e" fontSize="11" fontWeight="extrabold">
+                ⚠ PHẢN XẠ TOÀN PHẦN!
+              </text>
+            )}
+
+            {/* Medium labels */}
+            <text x="25" y={direction === 'air_to_med' ? "120" : "180"} fill="#cbd5e1" fontSize="10" fontWeight="bold">
+              {direction === 'air_to_med' ? 'Môi trường 1: Không khí (n₁ = 1,0)' : `Môi trường 1: ${selectedMed.name} (n₁ = ${selectedMed.n})`}
+            </text>
+            <text x="25" y={direction === 'air_to_med' ? "180" : "120"} fill="#38bdf8" fontSize="10" fontWeight="bold">
+              {direction === 'air_to_med' ? `Môi trường 2: ${selectedMed.name} (n₂ = ${selectedMed.n})` : 'Môi trường 2: Không khí (n₂ = 1,0)'}
+            </text>
+          </svg>
+
+          <div className="mt-2 text-center text-[11px] text-slate-400">
+            {isTotalReflection ? (
+              <span className="text-rose-400 font-bold">Góc tới i vượt quá góc tới hạn phản xạ toàn phần (không có tia khúc xạ ra không khí)!</span>
+            ) : direction === 'air_to_med' ? (
+              <span>Ánh sáng từ không khí vào {selectedMed.name}: <b>r &lt; i</b> ({rDeg}° &lt; {incidentAngle}°), tia khúc xạ bị bẻ <b>lại gần pháp tuyến</b>.</span>
+            ) : (
+              <span>Ánh sáng từ {selectedMed.name} ra không khí: <b>r &gt; i</b> ({rDeg}° &gt; {incidentAngle}°), tia khúc xạ bị bẻ <b>ra xa pháp tuyến</b>.</span>
+            )}
+          </div>
+        </div>
+
+        {/* Controls & Math Details */}
+        <div className="lg:col-span-6 space-y-3.5">
+          {/* Direction toggle */}
+          <div className="flex bg-slate-800 p-1 rounded-xl border border-slate-700">
+            <button
+              onClick={() => setDirection('air_to_med')}
+              className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                direction === 'air_to_med' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Không khí ➔ Môi trường (r &lt; i)
+            </button>
+            <button
+              onClick={() => setDirection('med_to_air')}
+              className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                direction === 'med_to_air' ? 'bg-amber-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Môi trường ➔ Không khí (r &gt; i)
+            </button>
+          </div>
+
+          {/* Medium Selector */}
+          <div className="space-y-1.5">
+            <label className="text-xs text-slate-300 font-medium">Chọn môi trường trong suốt thứ hai:</label>
+            <div className="grid grid-cols-3 gap-2">
+              {(['water', 'glass', 'diamond'] as const).map((mKey) => (
+                <button
+                  key={mKey}
+                  onClick={() => setMedium(mKey)}
+                  className={`py-2 px-2.5 rounded-xl text-xs font-bold border transition-all text-center ${
+                    medium === mKey
+                      ? 'bg-sky-500/20 border-sky-400 text-sky-300 shadow-xs'
+                      : 'bg-slate-800/80 border-slate-700 text-slate-400 hover:bg-slate-800 hover:text-slate-200'
+                  }`}
+                >
+                  <div>{mediums[mKey].name.split(' ')[0]}</div>
+                  <div className="text-[10px] text-slate-400 font-mono mt-0.5">n = {mediums[mKey].n}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Incident Angle Slider */}
+          <div className="space-y-1 bg-slate-950 p-3 rounded-xl border border-slate-800">
+            <div className="flex justify-between items-center text-xs">
+              <span className="text-slate-300 font-medium">Góc tới của tia sáng (i):</span>
+              <span className="font-mono font-extrabold text-rose-400 text-sm bg-rose-950/60 px-2 py-0.5 rounded border border-rose-800">
+                {incidentAngle}°
+              </span>
+            </div>
+            <input
+              type="range"
+              min="0"
+              max="80"
+              step="1"
+              value={incidentAngle}
+              onChange={(e) => setIncidentAngle(Number(e.target.value))}
+              className="w-full accent-rose-500 cursor-pointer h-2 bg-slate-800 rounded-lg"
+            />
+            <div className="flex justify-between text-[10px] text-slate-500 font-mono">
+              <span>0° (Vuông góc)</span>
+              <span>45°</span>
+              <span>80° (Xiên sát mặt)</span>
+            </div>
+          </div>
+
+          {/* Formula & Live Metrics */}
+          <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-2 text-xs">
+            <div className="flex justify-between items-center">
+              <span className="text-slate-400">Sin góc tới: sin({incidentAngle}°):</span>
+              <span className="font-mono font-bold text-rose-400">{sinI.toFixed(4)}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-slate-400">Sin góc khúc xạ: sin(r):</span>
+              <span className="font-mono font-bold text-emerald-400">{isTotalReflection ? 'Không tồn tại (>1)' : sinR.toFixed(4)}</span>
+            </div>
+            <div className="flex justify-between items-center border-t border-slate-800 pt-1.5">
+              <span className="text-slate-300 font-semibold">Tỉ số n₁·sin(i) = n₂·sin(r):</span>
+              <span className="font-mono font-bold text-amber-300">
+                {isTotalReflection ? 'Góc tới hạn vượt ngưỡng' : `${(n1 * sinI).toFixed(3)} = ${(n2 * (isTotalReflection ? 0 : sinR)).toFixed(3)}`}
+              </span>
+            </div>
+            <div className="flex justify-between items-center border-t border-slate-800 pt-1.5">
+              <span className="text-slate-400">Tốc độ sáng trong {selectedMed.name}:</span>
+              <span className="font-mono font-bold text-sky-400">{selectedMed.speed}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+
 
 
 

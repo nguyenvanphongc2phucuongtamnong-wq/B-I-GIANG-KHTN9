@@ -592,7 +592,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                       <div className="w-32">
                         <div className="flex justify-between text-[10px] font-bold text-slate-600 mb-1">
                           <span>{student.overallProgress}%</span>
-                          <span>{student.completedStepCount || (student.status === 'completed' ? 5 : (student.completedSteps && student.completedSteps.length > 0 ? 1 : 0))}/5 mục</span>
+                          <span>{Math.min(5, student.completedStepCount || (student.status === 'completed' ? 5 : Math.min(5, student.completedSteps?.length || 0)))}/5 mục</span>
                         </div>
                         <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
                           <div 
@@ -989,7 +989,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                 <div className="text-xs font-bold text-slate-700 mb-2.5 flex items-center justify-between">
                   <span>Tiến trình 5 mục bài học:</span>
                   <span className="text-[11px] text-blue-600 font-semibold">
-                    {selectedStudent.completedStepCount || (selectedStudent.status === 'completed' ? 5 : (selectedStudent.completedSteps?.length || 0))}/5 mục hoàn thành
+                    {Math.min(5, selectedStudent.completedStepCount || (selectedStudent.status === 'completed' ? 5 : Math.min(5, selectedStudent.completedSteps?.length || 0)))}/5 mục hoàn thành
                   </span>
                 </div>
                 <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
