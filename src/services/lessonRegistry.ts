@@ -52,12 +52,25 @@ import {
   FINAL_ASSESSMENT_QUIZ_5
 } from '../data/lesson5Data';
 
+import {
+  HOOK_SCENARIO_6,
+  KNOWLEDGE_CARDS_6,
+  CORE_SUMMARY_6,
+  MATCHING_PAIRS_LESSON_6,
+  DETECTIVE_MISSIONS_LESSON_6,
+  PRACTICE_QUESTIONS_6,
+  REAL_WORLD_APPLICATION_6,
+  EXTENSION_CONTENT_6,
+  FINAL_ASSESSMENT_QUIZ_6
+} from '../data/lesson6Data';
+
 import { 
   ESSAY_QUESTION_LESSON_1, 
   ESSAY_QUESTION_LESSON_2, 
   ESSAY_QUESTION_LESSON_3,
   ESSAY_QUESTION_LESSON_4,
-  ESSAY_QUESTION_LESSON_5 
+  ESSAY_QUESTION_LESSON_5,
+  ESSAY_QUESTION_LESSON_6
 } from '../data/essayQuestions';
 
 import { EssayQuestion, PracticeQuestion } from '../types';
@@ -335,6 +348,28 @@ export const REGISTERED_LESSONS: RegisteredLesson[] = [
     extension: EXTENSION_CONTENT_5,
     finalQuiz: FINAL_ASSESSMENT_QUIZ_5,
     essay: ESSAY_QUESTION_LESSON_5,
+  },
+  {
+    id: 6,
+    lessonKey: 'lesson_06',
+    lessonNumber: 6,
+    title: 'Bài 6: Phản xạ toàn phần',
+    shortTitle: 'Phản Xạ Toàn Phần',
+    subtitle: 'Chương II: Ánh sáng - Trang 30 SGK KHTN 9 (Kết nối tri thức)',
+    chapterNumber: 2,
+    chapterTitle: 'Chương II: Ánh Sáng',
+    page: 30,
+    coreKnowledge: 'Hiện tượng phản xạ toàn phần; hai điều kiện xảy ra (n₁ > n₂ và i ≥ i_th); công thức sin(i_th) = n₂/n₁; ứng dụng cáp quang Internet, nội soi y tế, lăng kính 45°-90°-45° và ảo ảnh sa mạc.',
+    hook: HOOK_SCENARIO_6,
+    knowledgeCards: KNOWLEDGE_CARDS_6,
+    matchingPairs: MATCHING_PAIRS_LESSON_6,
+    summary: CORE_SUMMARY_6,
+    games: DETECTIVE_MISSIONS_LESSON_6,
+    practice: PRACTICE_QUESTIONS_6,
+    realWorld: REAL_WORLD_APPLICATION_6,
+    extension: EXTENSION_CONTENT_6,
+    finalQuiz: FINAL_ASSESSMENT_QUIZ_6,
+    essay: ESSAY_QUESTION_LESSON_6,
   },
 ];
 

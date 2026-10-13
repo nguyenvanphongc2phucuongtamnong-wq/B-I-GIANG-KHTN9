@@ -1145,11 +1145,196 @@ export const ENRICHED_TOPICS_MAP: Record<string, EnrichedTopicData> = {
         explanation: 'Khúc xạ ánh sáng từ nước ra không khí làm ảnh ảo con cá nằm cao hơn con cá thật. Muốn đâm trúng phải nhắm xuống phía dưới ảnh nhìn thấy.'
       }
     ]
+  },
+
+  // ==========================================
+  // BÀI 6: PHẢN XẠ TOÀN PHẦN
+  // ==========================================
+  topic_6_1: {
+    hierarchy: {
+      romanHeader: 'I. HIỆN TƯỢNG PHẢN XẠ TOÀN PHẦN',
+      subHeader: '1. Khái niệm và đặc điểm của hiện tượng phản xạ toàn phần',
+      subItems: [
+        'a) Định nghĩa: Toàn bộ tia sáng tới bị phản xạ trở lại môi trường ban đầu tại mặt phân cách',
+        'b) Đặc điểm năng lượng: 100% ánh sáng bị hắt ngược lại, không còn tia khúc xạ sang môi trường 2',
+        'c) Độ sáng: Tia phản xạ toàn phần sáng rực rỡ tương đương tia tới, khác biệt hoàn toàn với phản xạ một phần'
+      ]
+    },
+    tableOrDiagram: {
+      title: 'So sánh Hiện tượng Khúc xạ ánh sáng và Phản xạ toàn phần (SGK Trang 30)',
+      headers: ['Tiêu chí so sánh', 'Khúc xạ ánh sáng', 'Phản xạ toàn phần'],
+      rows: [
+        ['Tia sáng đi vào môi trường 2', 'Có tia khúc xạ IR đi vào môi trường 2', 'Hoàn toàn KHÔNG CÓ tia khúc xạ ló ra'],
+        ['Năng lượng ánh sáng', 'Bị phân chia giữa tia khúc xạ và tia phản xạ mờ', '100% năng lượng ánh sáng được giữ lại trong môi trường 1'],
+        ['Cường độ tia phản xạ', 'Rất mờ nhạt (chỉ phản xạ một phần nhỏ)', 'Rất sáng (sáng bằng cường độ tia tới)'],
+        ['Điều kiện xảy ra', 'Chỉ cần chiếu xiên góc qua 2 môi trường trong suốt', 'Cần n₁ > n₂ VÀ góc tới i ≥ i_th']
+      ]
+    },
+    simObservation: {
+      title: 'Quan sát sự biến mất của tia khúc xạ và bùng sáng của tia phản xạ toàn phần',
+      instruction: 'Kéo thanh trượt tăng dần góc tới i từ 0° đến 80° trong môi trường thuỷ tinh (i_th ≈ 41,8°).',
+      observationQuestion: 'Khi tăng dần góc tới i vượt qua góc giới hạn i_th, quan sát thấy điều gì xảy ra với tia khúc xạ IR và tia phản xạ?',
+      observationAnswer: 'Tia khúc xạ IR tiến sát lại mặt phân cách rồi biến mất hoàn toàn khi i ≥ i_th. Cùng lúc đó, tia phản xạ sáng bừng lên rực rỡ và nhận trọn vẹn 100% năng lượng của tia tới!'
+    },
+    warningNote: '⚠ LƯU Ý PHÂN BIỆT: Phản xạ thông thường chỉ hắt lại một phần nhỏ ánh sáng (vẫn có tia khúc xạ). Phản xạ TOÀN PHẦN hắt lại TOÀN BỘ 100% ánh sáng và triệt tiêu hoàn toàn tia khúc xạ!',
+    exampleDetail: {
+      type: 'phenomenon',
+      title: 'Thí nghiệm khối bán trụ thuỷ tinh (Hình 6.1 SGK Trang 30)',
+      givenOrPhenomenon: 'Chiếu tia sáng từ khối thuỷ tinh (n = 1,5) ra không khí với góc tới i = 60°.',
+      stepsOrExplanation: 'Do góc tới hạn của thuỷ tinh là i_th ≈ 41,8°, góc tới 60° đã vượt ngưỡng giới hạn.',
+      resultOrTakeaway: 'Tia sáng bị phản xạ toàn phần bên trong khối thuỷ tinh, không có tia sáng nào thoát ra ngoài không khí.'
+    },
+    interactiveQuizzes: [
+      {
+        id: 'iq_6_1_1',
+        question: 'Điểm khác biệt cốt lõi giữa phản xạ toàn phần và phản xạ một phần thông thường là gì?',
+        options: [
+          { id: 'opt_1', text: 'Phản xạ toàn phần không còn tia khúc xạ và giữ lại 100% năng lượng ánh sáng', isCorrect: true },
+          { id: 'opt_2', text: 'Phản xạ toàn phần chỉ xảy ra trong bóng tối', isCorrect: false },
+          { id: 'opt_3', text: 'Phản xạ toàn phần làm biến đổi màu sắc của ánh sáng', isCorrect: false },
+          { id: 'opt_4', text: 'Phản xạ toàn phần chỉ xảy ra khi chiếu vuông góc', isCorrect: false }
+        ],
+        explanation: 'Trong phản xạ toàn phần, không còn tia khúc xạ đi vào môi trường thứ hai và toàn bộ năng lượng ánh sáng bị hắt ngược lại môi trường ban đầu.'
+      }
+    ]
+  },
+
+  topic_6_2: {
+    hierarchy: {
+      romanHeader: 'II. ĐIỀU KIỆN ĐỂ CÓ PHẢN XẠ TOÀN PHẦN',
+      subHeader: '2. Hai điều kiện bắt buộc và công thức góc tới giới hạn i_th',
+      subItems: [
+        'a) Điều kiện môi trường: n₁ > n₂ (truyền từ môi trường chiết quang hơn sang kém chiết quang hơn)',
+        'b) Điều kiện góc tới: i ≥ i_th (góc tới lớn hơn hoặc bằng góc tới giới hạn)',
+        'c) Công thức xác định: \\sin(i_{th}) = \\frac{n_2}{n_1} (khi n₂ là không khí: \\sin(i_{th}) = \\frac{1}{n_1})',
+        'd) Ý nghĩa vật lí: Khi i = i_th thì góc khúc xạ cực đại r = 90° (tia khúc xạ đi là là mặt phân cách)'
+      ]
+    },
+    formula: {
+      title: 'Công thức tính góc tới giới hạn phản xạ toàn phần',
+      formula: '\\sin(i_{th}) = \\frac{n_2}{n_1} \\quad (n_1 > n_2)',
+      explanation: 'Điều kiện sin(i_th) ≤ 1 đòi hỏi n₂ phải nhỏ hơn n₁. Nếu n₁ < n₂ thì không tồn tại góc i_th!',
+      variables: [
+        { symbol: 'i_th', name: 'Góc tới giới hạn phản xạ toàn phần', unit: 'độ (°)' },
+        { symbol: 'n₁', name: 'Chiết suất của môi trường tới (môi trường 1)', unit: 'không có đơn vị (n₁ > n₂)' },
+        { symbol: 'n₂', name: 'Chiết suất của môi trường khúc xạ (môi trường 2)', unit: 'không có đơn vị' }
+      ]
+    },
+    warningNote: '⚠ BẪY THƯỜNG GẶP: Khi chiếu tia sáng từ KHÔNG KHÍ vào NƯỚC hoặc THUỶ TINH (n₁ = 1 < n₂), thì DÙ GÓC TỚI LỚN ĐẾN ĐÂU CŨNG TUYỆT ĐỐI KHÔNG BAO GIỜ có phản xạ toàn phần vì vi phạm điều kiện n₁ > n₂!',
+    exampleDetail: {
+      type: 'problem',
+      title: 'Tính góc tới hạn của nước và thuỷ tinh khi truyền ra không khí',
+      givenOrPhenomenon: 'Nước có n₁ = 4/3, thuỷ tinh có n₁ = 1,5 truyền ra không khí n₂ = 1.',
+      stepsOrExplanation: '• Nước: \\(\\sin(i_{th}) = \\frac{1}{4/3} = 0,75 \\Rightarrow i_{th} \\approx 48,6^\\circ\\).\n• Thuỷ tinh: \\(\\sin(i_{th}) = \\frac{1}{1,5} = 0,667 \\Rightarrow i_{th} \\approx 41,8^\\circ\\).',
+      resultOrTakeaway: 'Góc tới i phải lớn hơn 48,6° (trong nước) hoặc 41,8° (trong thuỷ tinh) thì mới có phản xạ toàn phần.'
+    },
+    interactiveQuizzes: [
+      {
+        id: 'iq_6_2_1',
+        question: 'Tia sáng truyền từ nước (n = 4/3) ra không khí (n = 1) với góc tới i = 50°. Hiện tượng gì sẽ xảy ra?',
+        options: [
+          { id: 'opt_1', text: 'Xảy ra hiện tượng phản xạ toàn phần vì n_nước > n_kk và i = 50° > i_th ≈ 48,6°', isCorrect: true },
+          { id: 'opt_2', text: 'Chỉ có hiện tượng khúc xạ với góc r < 50°', isCorrect: false },
+          { id: 'opt_3', text: 'Tia sáng bị gãy khúc vuông góc 90°', isCorrect: false },
+          { id: 'opt_4', text: 'Không có hiện tượng gì xảy ra', isCorrect: false }
+        ],
+        explanation: 'Thoả mãn cả 2 điều kiện: n₁ > n₂ (4/3 > 1) và i = 50° > i_th (48,6°) nên xảy ra phản xạ toàn phần.'
+      }
+    ]
+  },
+
+  topic_6_3: {
+    hierarchy: {
+      romanHeader: 'III. ỨNG DỤNG CỦA HIỆN TƯỢNG PHẢN XẠ TOÀN PHẦN: CÁP QUANG',
+      subHeader: '3. Cấu tạo và nguyên lí hoạt động của sợi quang học',
+      subItems: [
+        'a) Cấu tạo: Phần lõi (core) chiết suất n₁ lớn, phần vỏ (cladding) chiết suất n₂ nhỏ hơn (n₁ > n₂)',
+        'b) Nguyên lí: Ánh sáng truyền vào lõi bị phản xạ toàn phần liên tục tại mặt phân cách lõi - vỏ',
+        'c) Ưu điểm: Tốc độ cực cao (tốc độ ánh sáng), dung lượng truyền tải khổng lồ, không bị nhiễu điện từ, không suy hao',
+        'd) Ứng dụng y học: Bó sợi quang mềm dùng trong máy nội soi dạ dày, phế quản, ruột non'
+      ]
+    },
+    tableOrDiagram: {
+      title: 'So sánh Cáp Đồng truyền thống và Cáp Quang hiện đại',
+      headers: ['Tiêu chí', 'Cáp đồng truyền thống', 'Cáp quang hiện đại'],
+      rows: [
+        ['Môi chất truyền tải', 'Dòng electron chạy trong kim loại đồng', 'Xung ánh sáng laser trong sợi thuỷ tinh'],
+        ['Tốc độ truyền dẫn', 'Hạn chế (vài trăm Mbps đến vài Gbps)', 'Siêu tốc độ (hàng trăm Terabits/giây)'],
+        ['Độ suy hao cự li', 'Suy hao lớn, cần trạm tiếp sóng dày đặc', 'Suy hao cực thấp, truyền xuyên đại dương'],
+        ['Chống nhiễu', 'Dễ bị nhiễu bởi sấm sét và từ trường', 'Miễn nhiễm hoàn toàn với sóng điện từ'],
+        ['An toàn cháy nổ', 'Có nguy cơ chập cháy điện', 'Không có dòng điện, an toàn cháy nổ 100%']
+      ]
+    },
+    warningNote: '⚠ LƯU Ý KĨ THUẬT: Sợi cáp quang có thể uốn cong theo địa hình nhưng không được gập góc quá gắt vượt bán kính uốn cong tối thiểu, vì góc tới có thể giảm xuống dưới i_th làm ánh sáng bị lọt ra ngoài!',
+    exampleDetail: {
+      type: 'phenomenon',
+      title: 'Cơ chế hoạt động của ống nội soi dạ dày mềm',
+      givenOrPhenomenon: 'Bác sĩ đưa ống nội soi mềm đường kính nhỏ qua miệng bệnh nhân vào sâu trong dạ dày.',
+      stepsOrExplanation: 'Ống chứa 2 bó sợi quang riêng biệt: một bó dẫn ánh sáng từ ngoài vào chiếu sáng niêm mạc, một bó nhận ánh sáng phản xạ từ dạ dày và dẫn truyền ngược ra ngoài camera.',
+      resultOrTakeaway: 'Nhờ phản xạ toàn phần, hình ảnh sắc nét được truyền nguyên vẹn giúp bác sĩ phát hiện vết loét hoặc khối u sớm.'
+    },
+    interactiveQuizzes: [
+      {
+        id: 'iq_6_3_1',
+        question: 'Tại sao trong sợi cáp quang, phần lõi (core) bắt buộc phải có chiết suất n₁ lớn hơn phần vỏ (cladding) n₂?',
+        options: [
+          { id: 'opt_1', text: 'Để thoả mãn điều kiện n₁ > n₂ giúp ánh sáng phản xạ toàn phần liên tục dọc theo thân lõi', isCorrect: true },
+          { id: 'opt_2', text: 'Để làm cho sợi quang chịu lực kéo căng tốt hơn', isCorrect: false },
+          { id: 'opt_3', text: 'Để ngăn ngừa nước mưa ngấm vào lõi', isCorrect: false },
+          { id: 'opt_4', text: 'Để dòng điện trong lõi không bị rò rỉ ra vỏ', isCorrect: false }
+        ],
+        explanation: 'Điều kiện n₁ > n₂ là điều kiện bắt buộc để xảy ra phản xạ toàn phần tại mặt phân cách lõi - vỏ.'
+      }
+    ]
+  },
+
+  topic_6_4: {
+    hierarchy: {
+      romanHeader: 'IV. LĂNG KÍNH PHẢN XẠ TOÀN PHẦN & ẢO ẢNH TỰ NHIÊN',
+      subHeader: '4. Ứng dụng trong quang cụ chính xác và giải thích hiện tượng tự nhiên',
+      subItems: [
+        'a) Lăng kính phản xạ toàn phần: Khối thuỷ tinh tam giác vuông cân (45° - 90° - 45°)',
+        'b) Cơ chế bẻ góc tia sáng: Chiếu vuông góc vào mặt bên => góc tới ở đáy là 45° > i_th (41,8°) => bẻ ngoặt 90° hoặc 180°',
+        'c) Ứng dụng: Ống nhòm hai mắt, máy ảnh cơ DSLR, kính tiềm vọng của tàu ngầm quân sự',
+        'd) Ảo ảnh mặt đường hè & Sa mạc: Không khí nóng sát mặt đất có n nhỏ, tia sáng từ trời bị phản xạ toàn phần vào mắt'
+      ]
+    },
+    tableOrDiagram: {
+      title: 'Ưu thế vượt trội của Lăng kính phản xạ toàn phần so với Gương phẳng',
+      headers: ['Đặc điểm', 'Gương phẳng tráng bạc', 'Lăng kính phản xạ toàn phần'],
+      rows: [
+        ['Hiệu suất phản xạ', 'Đạt khoảng 85% – 90% (hao hụt 10-15%)', 'Đạt xấp xỉ 100% lượng ánh sáng tới'],
+        ['Số lượng ảnh tạo ra', 'Có thể sinh ảnh phụ do phản xạ ở 2 mặt kính', 'Chỉ tạo 1 ảnh duy nhất cực kì sắc nét'],
+        ['Độ bền theo thời gian', 'Lớp bạc dễ bị oxi hoá, mốc và xước', 'Mặt phân cách tự nhiên, bền vững vĩnh cửu']
+      ]
+    },
+    warningNote: '⚠ HIỂU ĐÚNG BẢN CHẤT ẢO ẢNH: Ảo ảnh "vũng nước" trên mặt đường mùa hè thực chất là ảnh ảo của NỀN TRỜI XANH được phản xạ toàn phần vào mắt, không phải là ảo giác tâm lý hay do ảo ảnh ma thuật!',
+    exampleDetail: {
+      type: 'phenomenon',
+      title: 'Giải thích hiện tượng ảo ảnh nước trên sa mạc / đường nhựa',
+      givenOrPhenomenon: 'Trưa hè nắng chang chang, lái xe thấy mặt đường phía trước loang loáng như ngập nước.',
+      stepsOrExplanation: 'Mặt đường nóng nung nóng lớp không khí bên dưới (n_dưới nhỏ). Ánh sáng từ bầu trời đi xuống (n_trên lớn > n_dưới) bị uốn cong dần rồi phản xạ toàn phần ở tầng không khí sát mặt đường, phóng vào mắt tài xế.',
+      resultOrTakeaway: 'Mắt nhìn theo đường thẳng thấy khoảng trời xanh nằm ngay trên mặt đường, đánh lừa não bộ như một vũng nước.'
+    },
+    interactiveQuizzes: [
+      {
+        id: 'iq_6_4_1',
+        question: 'Vì sao trong lăng kính phản xạ toàn phần (thuỷ tinh n = 1,5), góc tới i = 45° lại đủ để gây phản xạ toàn phần?',
+        options: [
+          { id: 'opt_1', text: 'Vì góc tới hạn của thuỷ tinh là i_th ≈ 41,8°, góc tới 45° đã lớn hơn i_th', isCorrect: true },
+          { id: 'opt_2', text: 'Vì góc 45° là góc nửa vuông góc', isCorrect: false },
+          { id: 'opt_3', text: 'Vì lăng kính được tráng một lớp bạc phản quang ở đáy', isCorrect: false },
+          { id: 'opt_4', text: 'Vì ánh sáng đi trong lăng kính có tốc độ nhanh hơn', isCorrect: false }
+        ],
+        explanation: 'Ta có sin(i_th) = 1/1,5 ≈ 0,667 => i_th ≈ 41,8°. Do 45° > 41,8° nên xảy ra phản xạ toàn phần 100%.'
+      }
+    ]
   }
 };
 
 // Hàm lấy thông tin làm giàu cho một topic (nếu có, hoặc tạo mặc định dự phòng)
 export function getEnrichedTopicData(topicId: string, fallbackTopic: any): EnrichedTopicData {
+
   if (ENRICHED_TOPICS_MAP[topicId]) {
     return ENRICHED_TOPICS_MAP[topicId];
   }

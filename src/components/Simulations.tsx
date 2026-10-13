@@ -2367,6 +2367,364 @@ export const RefractionLightSim: React.FC = () => {
   );
 };
 
+// 11. Total Internal Reflection & Optical Fiber Simulation (SGK KHTN 9 Bài 6)
+export const TotalInternalReflectionSim: React.FC = () => {
+  const [incidentAngle, setIncidentAngle] = useState<number>(45); // 0 to 80 degrees
+  const [mediumType, setMediumType] = useState<'water' | 'glass' | 'diamond'>('glass');
+  const [mode, setMode] = useState<'semicircle' | 'fiber'>('semicircle');
+
+  const mediums = {
+    water: { name: 'Nước', n: 1.333, ith: 48.6, color: '#38bdf8' },
+    glass: { name: 'Thuỷ tinh', n: 1.5, ith: 41.8, color: '#a855f7' },
+    diamond: { name: 'Kim cương', n: 2.42, ith: 24.4, color: '#06b6d4' }
+  };
+
+  const currentMed = mediums[mediumType];
+  const n1 = currentMed.n;
+  const n2 = 1.0; // không khí
+  const ith = currentMed.ith;
+  const isTIR = incidentAngle >= ith;
+
+  // Semicircle geometry
+  const cx = 150;
+  const cy = 150;
+  const len = 110;
+  const iRad = (incidentAngle * Math.PI) / 180;
+  const sinI = Math.sin(iRad);
+  const sinR = (n1 / n2) * sinI;
+  const rRad = sinR <= 1.0 ? Math.asin(sinR) : Math.PI / 2;
+  const rDeg = sinR <= 1.0 ? Math.round((rRad * 180) / Math.PI) : 90;
+
+  // Incident ray (từ dưới lên)
+  const xIn = cx - len * Math.sin(iRad);
+  const yIn = cy + len * Math.cos(iRad);
+
+  // Refracted ray (vào không khí phía trên)
+  const xRefr = cx + len * Math.sin(rRad);
+  const yRefr = cy - len * Math.cos(rRad);
+
+  // Reflected ray (hắt ngược trở lại môi trường 1 phía dưới)
+  const xRefl = cx + len * Math.sin(iRad);
+  const yRefl = cy + len * Math.cos(iRad);
+
+  return (
+    <div className="p-4 rounded-2xl bg-slate-900 text-white shadow-xl border border-slate-800 space-y-4">
+      {/* Header */}
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-3">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="px-2 py-0.5 text-[10px] font-black uppercase tracking-wider rounded bg-rose-500/20 text-rose-300 border border-rose-500/30">
+              Thí nghiệm ảo tương tác • Bài 6 SGK
+            </span>
+            <span className="text-xs text-slate-400">Hình 6.1 & 6.2 SGK Trang 30-31</span>
+          </div>
+          <h4 className="text-base font-extrabold text-white mt-1">
+            Mô Phỏng Phản Xạ Toàn Phần & Nguyên Lý Sợi Cáp Quang
+          </h4>
+        </div>
+
+        {/* Mode selector */}
+        <div className="flex items-center gap-1 bg-slate-800 p-1 rounded-xl text-xs">
+          <button
+            onClick={() => setMode('semicircle')}
+            className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
+              mode === 'semicircle' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            Khối Bán Trụ Quang Học
+          </button>
+          <button
+            onClick={() => setMode('fiber')}
+            className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
+              mode === 'fiber' ? 'bg-cyan-600 text-white shadow' : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            Sợi Cáp Quang Dẫn Sáng
+          </button>
+        </div>
+      </div>
+
+      {mode === 'semicircle' ? (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-center">
+          {/* SVG Canvas */}
+          <div className="lg:col-span-7 flex flex-col items-center justify-center bg-slate-950 rounded-xl p-3 border border-slate-800">
+            <svg viewBox="0 0 300 300" className="w-full max-w-[320px] aspect-square">
+              {/* Air background (top) */}
+              <rect x="15" y="15" width="270" height="135" fill="#0f172a" />
+              <text x="25" y="35" fill="#94a3b8" fontSize="10" fontWeight="bold">
+                Môi trường 2: Không khí (n₂ = 1,00)
+              </text>
+
+              {/* Medium background (bottom: Semicircle glass) */}
+              <path
+                d="M 25 150 A 125 125 0 0 0 275 150 Z"
+                fill={currentMed.color}
+                fillOpacity="0.25"
+                stroke={currentMed.color}
+                strokeWidth="2"
+              />
+              <text x="25" y="275" fill={currentMed.color} fontSize="10" fontWeight="bold">
+                Môi trường 1: {currentMed.name} (n₁ = {currentMed.n})
+              </text>
+
+              {/* Interface Line */}
+              <line x1="20" y1={cy} x2="280" y2={cy} stroke="#38bdf8" strokeWidth="2.5" />
+              <text x="220" y="144" fill="#38bdf8" fontSize="9" fontWeight="bold">
+                Mặt phẳng tới
+              </text>
+
+              {/* Normal NN' */}
+              <line x1={cx} y1="20" x2={cx} y2="280" stroke="#64748b" strokeWidth="1.5" strokeDasharray="4 4" />
+              <text x={cx + 5} y="32" fill="#64748b" fontSize="9" fontWeight="bold">N</text>
+              <text x={cx + 5} y="275" fill="#64748b" fontSize="9" fontWeight="bold">N'</text>
+
+              {/* Incident Ray (dưới lên tâm I) */}
+              <line x1={xIn} y1={yIn} x2={cx} y2={cy} stroke="#ef4444" strokeWidth="3" />
+              {/* Arrow */}
+              <circle cx={(xIn + cx) / 2} cy={(yIn + cy) / 2} r="3" fill="#ef4444" />
+              <text x={xIn - 5} y={yIn + 15} fill="#ef4444" fontSize="10" fontWeight="bold">
+                Tia tới SI (i={incidentAngle}°)
+              </text>
+
+              {/* Refracted Ray (nếu chưa PXTP) */}
+              {!isTIR && incidentAngle > 0 && (
+                <>
+                  <line
+                    x1={cx}
+                    y1={cy}
+                    x2={xRefr}
+                    y2={yRefr}
+                    stroke="#10b981"
+                    strokeWidth={sinR > 0.95 ? "2" : "2.5"}
+                    strokeOpacity={Math.max(0.2, 1 - sinI / Math.sin((ith * Math.PI) / 180))}
+                  />
+                  <text x={Math.min(220, xRefr + 5)} y={Math.max(45, yRefr - 5)} fill="#10b981" fontSize="10" fontWeight="bold">
+                    Tia khúc xạ IR (r={rDeg}°)
+                  </text>
+                </>
+              )}
+
+              {/* Reflected Ray */}
+              <line
+                x1={cx}
+                y1={cy}
+                x2={xRefl}
+                y2={yRefl}
+                stroke="#f59e0b"
+                strokeWidth={isTIR ? "3.5" : "1.5"}
+                strokeOpacity={isTIR ? 1.0 : 0.4}
+              />
+              <text x={xRefl - 5} y={yRefl + 15} fill="#f59e0b" fontSize="10" fontWeight="bold">
+                {isTIR ? 'Tia PXTP (100% sáng)' : 'Tia phản xạ mờ'}
+              </text>
+
+              {/* Center I */}
+              <circle cx={cx} cy={cy} r="4" fill="#38bdf8" />
+              <text x={cx - 15} y={cy - 6} fill="#38bdf8" fontSize="10" fontWeight="bold">I</text>
+            </svg>
+
+            {/* Status Alert Banner */}
+            <div
+              className={`w-full mt-2 p-2.5 rounded-lg text-center font-bold text-xs flex items-center justify-center gap-2 ${
+                isTIR
+                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 animate-pulse'
+                  : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+              }`}
+            >
+              {isTIR ? (
+                <>⚡ ĐÃ XẢY RA PHẢN XẠ TOÀN PHẦN! (i = {incidentAngle}° ≥ i_th = {ith}°). Không còn tia khúc xạ ra không khí!</>
+              ) : (
+                <>🔍 Có cả khúc xạ (r = {rDeg}°) và phản xạ mờ (i = {incidentAngle}° &lt; i_th = {ith}°)</>
+              )}
+            </div>
+          </div>
+
+          {/* Controls & Metrics */}
+          <div className="lg:col-span-5 space-y-4">
+            {/* Medium Selector */}
+            <div>
+              <label className="text-xs font-bold text-slate-300 block mb-1.5">
+                1. Chọn môi trường chiết quang hơn (Môi trường 1):
+              </label>
+              <div className="grid grid-cols-3 gap-2">
+                {(['water', 'glass', 'diamond'] as const).map(k => (
+                  <button
+                    key={k}
+                    onClick={() => setMediumType(k)}
+                    className={`p-2 rounded-xl text-xs font-bold border transition-all text-center ${
+                      mediumType === k
+                        ? 'bg-indigo-600 border-indigo-400 text-white shadow'
+                        : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'
+                    }`}
+                  >
+                    <div>{mediums[k].name}</div>
+                    <div className="text-[10px] text-slate-400">n = {mediums[k].n}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Slider */}
+            <div>
+              <div className="flex justify-between text-xs font-bold mb-1">
+                <span className="text-slate-300">2. Góc tới i:</span>
+                <span className="text-rose-400 font-mono text-sm">{incidentAngle}°</span>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="80"
+                step="1"
+                value={incidentAngle}
+                onChange={e => setIncidentAngle(parseInt(e.target.value, 10))}
+                className="w-full accent-rose-500 cursor-pointer"
+              />
+              <div className="flex justify-between text-[10px] text-slate-500 mt-0.5">
+                <span>0° (chiếu thẳng)</span>
+                <span className="text-amber-400 font-bold">i_th = {ith}°</span>
+                <span>80°</span>
+              </div>
+            </div>
+
+            {/* Quick angle presets */}
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] text-slate-400 font-bold">Mẫu góc:</span>
+              <button
+                onClick={() => setIncidentAngle(Math.max(0, Math.floor(ith) - 10))}
+                className="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-[10px] font-bold text-slate-300"
+              >
+                i &lt; i_th ({Math.floor(ith) - 10}°)
+              </button>
+              <button
+                onClick={() => setIncidentAngle(Math.round(ith))}
+                className="px-2 py-1 rounded bg-amber-600/30 border border-amber-500/50 hover:bg-amber-600/50 text-[10px] font-bold text-amber-300"
+              >
+                i ≈ i_th ({Math.round(ith)}°)
+              </button>
+              <button
+                onClick={() => setIncidentAngle(Math.min(80, Math.ceil(ith) + 15))}
+                className="px-2 py-1 rounded bg-rose-600/30 border border-rose-500/50 hover:bg-rose-600/50 text-[10px] font-bold text-rose-300"
+              >
+                i &gt; i_th ({Math.ceil(ith) + 15}°)
+              </button>
+            </div>
+
+            {/* Calculation card */}
+            <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 text-xs space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-slate-400">Góc tới giới hạn i_th:</span>
+                <span className="font-mono font-bold text-amber-300">{ith}°</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-slate-400">Công thức: sin(i_th) = n₂ / n₁:</span>
+                <span className="font-mono font-bold text-slate-300">
+                  1 / {n1} = {(1 / n1).toFixed(3)}
+                </span>
+              </div>
+              <div className="flex justify-between items-center border-t border-slate-800 pt-1.5">
+                <span className="text-slate-400">Góc khúc xạ r:</span>
+                <span className="font-mono font-bold text-emerald-400">
+                  {isTIR ? 'Không tồn tại (PXTP)' : `${rDeg}°`}
+                </span>
+              </div>
+              <div className="flex justify-between items-center border-t border-slate-800 pt-1.5">
+                <span className="text-slate-400">Trạng thái quang học:</span>
+                <span
+                  className={`font-mono font-bold ${
+                    isTIR ? 'text-amber-400' : 'text-emerald-400'
+                  }`}
+                >
+                  {isTIR ? 'PHẢN XẠ TOÀN PHẦN' : 'KHÚC XẠ + PHẢN XẠ MỜ'}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : (
+        /* Optical Fiber Interactive View */
+        <div className="space-y-4">
+          <div className="p-4 bg-slate-950 rounded-xl border border-slate-800 space-y-3">
+            <div className="text-xs text-slate-300 font-semibold flex items-center justify-between">
+              <span>Đường truyền xung laser bên trong sợi quang Internet (Lõi n₁ = 1,50 | Vỏ n₂ = 1,41)</span>
+              <span className="px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 font-mono text-[10px]">
+                i_th ≈ 70° • Luôn phản xạ toàn phần
+              </span>
+            </div>
+
+            {/* SVG Optical Fiber Canvas */}
+            <svg viewBox="0 0 600 140" className="w-full h-auto rounded-lg bg-slate-900 border border-slate-800">
+              {/* Outer Cladding (Vỏ bọc) */}
+              <rect x="20" y="15" width="560" height="25" fill="#1e293b" />
+              <rect x="20" y="100" width="560" height="25" fill="#1e293b" />
+              <text x="30" y="32" fill="#64748b" fontSize="10" fontWeight="bold">
+                Lớp vỏ bảo vệ Cladding (n₂ = 1,41)
+              </text>
+              <text x="30" y="117" fill="#64748b" fontSize="10" fontWeight="bold">
+                Lớp vỏ bảo vệ Cladding (n₂ = 1,41)
+              </text>
+
+              {/* Core (Lõi quang) */}
+              <rect x="20" y="40" width="560" height="60" fill="#0284c7" fillOpacity="0.2" stroke="#0284c7" strokeWidth="1" />
+              <text x="30" y="74" fill="#38bdf8" fontSize="11" fontWeight="extrabold">
+                Lõi thủy tinh Core (n₁ = 1,50 &gt; n₂)
+              </text>
+
+              {/* Zig-Zag Laser Light Ray */}
+              <polyline
+                points="20,70 90,40 180,100 270,40 360,100 450,40 540,100 580,70"
+                fill="none"
+                stroke="#f43f5e"
+                strokeWidth="3.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+
+              {/* Reflection points glow */}
+              {[
+                [90, 40],
+                [180, 100],
+                [270, 40],
+                [360, 100],
+                [450, 40],
+                [540, 100]
+              ].map(([x, y], idx) => (
+                <circle key={idx} cx={x} cy={y} r="4" fill="#fbbf24" />
+              ))}
+
+              {/* Explanatory text on ray */}
+              <text x="210" y="60" fill="#fbcfe8" fontSize="9" fontWeight="bold">
+                Phản xạ toàn phần 100% tại thành lõi
+              </text>
+            </svg>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs text-slate-300 pt-1">
+              <div className="p-2.5 rounded-lg bg-slate-900 border border-slate-800">
+                <div className="font-bold text-sky-400 mb-1">1. Lõi chiết quang hơn vỏ</div>
+                <p className="text-[11px] text-slate-400">
+                  Lõi n₁ &gt; Vỏ n₂ đảm bảo điều kiện cần thiết đầu tiên của hiện tượng phản xạ toàn phần.
+                </p>
+              </div>
+              <div className="p-2.5 rounded-lg bg-slate-900 border border-slate-800">
+                <div className="font-bold text-amber-400 mb-1">2. Góc tới luôn lớn hơn i_th</div>
+                <p className="text-[11px] text-slate-400">
+                  Tia sáng laser chiếu nông vào đầu sợi quang đập vào thành lõi với góc nghiêng i ≥ 70° &gt; i_th.
+                </p>
+              </div>
+              <div className="p-2.5 rounded-lg bg-slate-900 border border-slate-800">
+                <div className="font-bold text-emerald-400 mb-1">3. Không suy hao tín hiệu</div>
+                <p className="text-[11px] text-slate-400">
+                  Toàn bộ photon bị giam giữ trong lõi, truyền đi hàng nghìn km qua đáy đại dương với tốc độ ánh sáng!
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+
 
 
 

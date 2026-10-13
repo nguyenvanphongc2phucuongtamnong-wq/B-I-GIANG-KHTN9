@@ -285,5 +285,64 @@ export const ESSAY_QUESTION_LESSON_5: EssayQuestion = {
   Viên gạch ở độ sâu thực tế là 2,4 m (ngập sâu quá đầu người lớn), nhưng mắt nhìn thấy dường như chỉ sâu 1,8 m (nông hơn thực tế 0,6 m). Hiện tượng khúc xạ ánh sáng này rất dễ đánh lừa thị giác của các bạn học sinh và trẻ nhỏ, gây ảo tưởng rằng bể bơi hoặc khúc sông nông, dẫn tới nguy cơ trượt chân đuối nước nghiêm trọng nếu không có kĩ năng bơi lội và không quan sát biển báo độ sâu!`
 };
 
+export const ESSAY_QUESTION_LESSON_6: EssayQuestion = {
+  id: 'essay-lesson-6',
+  title: 'Tự luận Vận dụng Thực tiễn: Hiện Tượng Phản Xạ Toàn Phần & Nguyên Lí Sợi Quang',
+  level: 'van_dung',
+  levelName: 'Mức 3: Vận dụng thực tế',
+  points: 3.0,
+  context: 'Một kĩ sư viễn thông đang thiết kế một sợi cáp quang dẫn sáng. Phần lõi trong suốt của sợi cáp được làm bằng thuỷ tinh thạch anh có chiết suất n₁ = 1,50. Bên ngoài lõi được bao bọc bởi một lớp vỏ bảo vệ bằng chất dẻo trong suốt có chiết suất n₂ = 1,41 ≈ √2. Ánh sáng laser truyền bên trong lõi cáp từ một đầu đến đầu kia.',
+  question: `Hãy hoàn thành 3 yêu cầu khoa học sau:\n1. Nêu hai điều kiện bắt buộc để xảy ra hiện tượng phản xạ toàn phần. Sợi cáp quang trên đã thoả mãn điều kiện thứ nhất về môi trường hay chưa? Vì sao?\n2. Tính góc tới giới hạn phản xạ toàn phần i_th tại mặt phân cách giữa phần lõi và phần vỏ của sợi cáp (làm tròn đến độ). Để ánh sáng truyền đi được dọc theo sợi cáp mà không bị thất thoát ra ngoài vỏ, góc tới i tại mặt phân cách lõi - vỏ phải thoả mãn điều kiện gì?\n3. Một bác sĩ sử dụng ống nội soi dạ dày được bện từ hàng nghìn sợi cáp quang siêu nhỏ tương tự. Em hãy giải thích cơ chế dẫn truyền ánh sáng và hình ảnh từ bên trong dạ dày ra màn hình quan sát của bác sĩ. Tại sao việc gập uốn cong sợi cáp quang trong giới hạn cho phép lại không làm mất mát ánh sáng?`,
+  guidelines: [
+    'Phần 1 (1.0 điểm): Nêu đủ 2 điều kiện: n₁ > n₂ và i ≥ i_th. Khẳng định sợi cáp thoả mãn điều kiện môi trường vì lõi n₁ = 1,50 > vỏ n₂ = 1,41.',
+    'Phần 2 (1.0 điểm): Tính sin(i_th) = n₂ / n₁ = 1,41 / 1,50 = 0,94 => i_th ≈ 70° (hoặc 70,5°). Nêu điều kiện: góc tới i ≥ 70°.',
+    'Phần 3 (1.0 điểm): Giải thích bó sợi quang truyền ánh sáng vào chiếu sáng dạ dày và truyền ảnh ngược lại ra ngoài bằng phản xạ toàn phần liên tục. Khi uốn cong sợi cáp, góc tới tại thành sợi vẫn lớn hơn i_th nên toàn bộ tia sáng vẫn bị giữ lại trong lõi.'
+  ],
+  rubric: [
+    {
+      id: 'r1',
+      criterion: 'Điều kiện phản xạ toàn phần & Phân tích chiết suất',
+      maxPoints: 1.0,
+      description: 'Nêu đủ 2 điều kiện; giải thích thoả mãn vì n₁ = 1,50 > n₂ = 1,41.',
+      keywords: ['chiết quang hơn', 'n1 > n2', 'i >= i_th', 'thoả mãn', '1,50', '1,41']
+    },
+    {
+      id: 'r2',
+      criterion: 'Tính góc tới giới hạn i_th & Điều kiện góc tới',
+      maxPoints: 1.0,
+      description: 'Tính đúng sin(i_th) = n₂/n₁ ≈ 0,94 => i_th ≈ 70°; nêu điều kiện i ≥ 70°.',
+      keywords: ['sin', 'i_th', '70', '70°', '0,94', 'lớn hơn hoặc bằng']
+    },
+    {
+      id: 'r3',
+      criterion: 'Ứng dụng nội soi y học & Giải thích uốn cong sợi quang',
+      maxPoints: 1.0,
+      description: 'Giải thích nguyên lý dẫn sáng nội soi và lý do uốn cong góc tới vẫn ≥ i_th.',
+      keywords: ['nội soi', 'phản xạ toàn phần', 'uốn cong', 'không thất thoát', 'giữ lại trong lõi']
+    }
+  ],
+  sampleAnswer: `1. Hai điều kiện bắt buộc để xảy ra hiện tượng phản xạ toàn phần:
+- Điều kiện 1 (Về môi trường): Ánh sáng phải truyền từ môi trường có chiết suất lớn hơn (chiết quang hơn) sang môi trường có chiết suất nhỏ hơn (kém chiết quang hơn): n₁ > n₂.
+- Điều kiện 2 (Về góc tới): Góc tới i tại mặt phân cách phải lớn hơn hoặc bằng góc tới giới hạn: i ≥ i_th.
+- Đánh giá sợi cáp quang của kĩ sư:
+  Sợi cáp quang hoàn toàn thoả mãn điều kiện thứ nhất về môi trường, vì lõi cáp có chiết suất n₁ = 1,50 lớn hơn chiết suất của vỏ bọc n₂ = 1,41 (1,50 > 1,41).
+
+2. Tính góc tới giới hạn i_th và điều kiện góc tới để ánh sáng không lọt ra ngoài:
+- Công thức tính góc tới giới hạn:
+  sin(i_th) = n₂ / n₁ = 1,41 / 1,50 ≈ 0,94.
+- Tra bảng lượng giác hoặc bấm máy tính:
+  i_th = arcsin(0,94) ≈ 70° (chính xác hơn là 70,5°).
+- Kết luận điều kiện góc tới:
+  Để tia sáng laser truyền đi an toàn dọc theo lõi sợi cáp mà không bị khúc xạ lọt ra ngoài lớp vỏ bọc, góc tới i của tia sáng khi đập vào mặt phân cách giữa lõi và vỏ phải thoả mãn: i ≥ 70°.
+
+3. Cơ chế ứng dụng trong ống nội soi y tế và giải thích khi uốn cong:
+- Cơ chế dẫn truyền của ống nội soi:
+  Ống nội soi y tế chứa hai bó sợi cáp quang độc lập:
+  + Bó sợi dẫn truyền ánh sáng: Đưa chùm sáng mạnh từ nguồn đèn bên ngoài đi vào sâu bên trong khoang dạ dày để chiếu sáng các cơ quan nội tạng.
+  + Bó sợi truyền hình ảnh: Nhận chùm sáng phản xạ từ thành niêm mạc dạ dày, ánh sáng đi vào từng sợi cáp quang và liên tục phản xạ toàn phần hàng nghìn lần dọc theo thân sợi cáp để truyền nguyên vẹn hình ảnh ra ngoài cảm biến máy ảnh, chiếu lên màn hình theo thời gian thực.
+- Giải thích vì sao uốn cong sợi cáp không làm mất mát ánh sáng:
+  Khi bác sĩ uốn cong ống nội soi để luồn lách qua vòm họng và đường tiêu hoá (trong giới hạn bán kính uốn cong cho phép của nhà sản xuất), góc nghiêng giữa tia sáng laser và thành ống tại điểm chạm vẫn luôn luôn lớn hơn góc giới hạn i_th (i ≥ 70°). Do đó, tại mỗi điểm va chạm trên thành sợi, 100% năng lượng ánh sáng đều bị phản xạ ngược lại vào trong lõi, giúp tia sáng len lỏi uốn lượn theo sợi cáp mà không hề bị khúc xạ thất thoát ra ngoài môi trường!`
+};
+
 
 

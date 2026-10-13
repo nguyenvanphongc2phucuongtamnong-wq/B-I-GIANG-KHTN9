@@ -40,7 +40,7 @@ export interface SgkTopicItem {
   coreSummary: string[];
   exampleTitle: string;
   exampleText: string;
-  simulation?: 'optics' | 'galvanometer' | 'chemistry' | 'kinetic_ramp' | 'potential_gravity' | 'mechanical_energy' | 'pendulum_energy' | 'work_power' | 'crane_power' | 'refraction_light';
+  simulation?: 'optics' | 'galvanometer' | 'chemistry' | 'kinetic_ramp' | 'potential_gravity' | 'mechanical_energy' | 'pendulum_energy' | 'work_power' | 'crane_power' | 'refraction_light' | 'total_internal_reflection';
   quickQuiz: {
     question: string;
     options: SgkQuestionOption[];
@@ -2304,8 +2304,317 @@ export const LESSON_5_DATA: SgkLessonPackage = {
   ]
 };
 
-// Hàm lấy dữ liệu bài học theo ID (hỗ trợ Bài 1, Bài 2, Bài 3, Bài 4 và Bài 5 bám sát SGK)
+// =========================================================================
+// BÀI 6: PHẢN XẠ TOÀN PHẦN (SGK KHTN 9 - KẾT NỐI TRI THỨC VỚI CUỘC SỐNG)
+// =========================================================================
+export const LESSON_6_DATA: SgkLessonPackage = {
+  id: 6,
+  title: 'BÀI 6: PHẢN XẠ TOÀN PHẦN',
+  shortTitle: 'Bài 6: Phản xạ toàn phần',
+  chapterTitle: 'CHƯƠNG II: ÁNH SÁNG • SGK KHTN 9 (KẾT NỐI TRI THỨC VỚI CUỘC SỐNG)',
+  pageInfo: 'SGK Trang 30 – 33',
+  warmup: {
+    scenarioTitle: 'Ảo ảnh vũng nước trên mặt đường hè & Sợi cáp quang Internet',
+    scenarioText:
+      'Vào những buổi trưa hè nắng gắt, đi trên đường nhựa ta thường thấy mặt đường loang loáng như có nước phản chiếu bầu trời. Nhưng khi lại gần, mặt đường lại hoàn toàn khô ráo! Đồng thời, các sợi cáp quang Internet mỏng manh như sợi tóc có thể truyền tín hiệu ánh sáng đi hàng nghìn km qua đáy đại dương mà không bị thất thoát tia sáng nào ra ngoài vỏ.',
+    question: 'Điều kiện nào khiến toàn bộ tia sáng bị phản xạ ngược lại mà không còn tia khúc xạ sang môi trường thứ hai?',
+    options: [
+      { id: 'opt_1', text: 'Tia sáng truyền từ không khí vào khối thuỷ tinh với góc tới nhỏ hơn 30°', isCorrect: false },
+      { id: 'opt_2', text: 'Tia sáng truyền từ môi trường chiết quang hơn sang kém chiết quang hơn và góc tới i ≥ i_th', isCorrect: true },
+      { id: 'opt_3', text: 'Mặt phân cách giữa hai môi trường phải được tráng một lớp gương bạc kim loại', isCorrect: false },
+      { id: 'opt_4', text: 'Tia sáng phải có cường độ cực lớn làm đốt cháy môi trường thứ hai', isCorrect: false }
+    ],
+    explanation:
+      'Chính xác! Khi ánh sáng truyền từ môi trường chiết quang hơn sang môi trường kém chiết quang hơn (n₁ > n₂) với góc tới i ≥ i_th, toàn bộ tia sáng bị phản xạ ngược lại vào môi trường ban đầu. Đó là hiện tượng phản xạ toàn phần!'
+  },
+  topics: [
+    {
+      id: 'topic_6_1',
+      order: 'Mục I',
+      title: 'Hiện Tượng Phản Xạ Toàn Phần',
+      badge: 'Khái niệm & Định nghĩa cốt lõi',
+      page: 'Trang 30',
+      newKnowledge: [
+        'Phản xạ toàn phần là hiện tượng toàn bộ tia sáng tới bị phản xạ trở lại môi trường ban đầu tại mặt phân cách giữa hai môi trường trong suốt.',
+        'Trong hiện tượng này, toàn bộ năng lượng ánh sáng của chùm tia tới được giữ lại trong môi trường ban đầu, không còn tia khúc xạ đi vào môi trường thứ hai.',
+        'Cường độ sáng của tia phản xạ toàn phần sáng rõ gần như 100% so với tia tới, vượt trội hoàn toàn so với tia phản xạ một phần thông thường.'
+      ],
+      coreSummary: [
+        'Định nghĩa: Toàn bộ tia sáng bị phản xạ trở lại tại mặt phân cách giữa hai môi trường trong suốt.',
+        'Đặc điểm: Cường độ tia phản xạ toàn phần bằng cường độ tia tới (không có tia khúc xạ).'
+      ],
+      exampleTitle: 'Thí nghiệm chiếu tia sáng từ thuỷ tinh ra không khí (Hình 6.1 SGK Trang 30)',
+      exampleText:
+        'Chiếu tia laser từ mặt cong vào tâm I của khối bán trụ thuỷ tinh (n₁ = 1,5) ra không khí (n₂ = 1). Khi góc tới i = 60° lớn hơn góc tới hạn (41,8°), ta quan sát thấy chỉ có duy nhất một tia phản xạ rất sáng hắt ngược trở lại khối thuỷ tinh, không còn vệt sáng khúc xạ nào ló ra ngoài không khí.',
+      simulation: 'total_internal_reflection',
+      quickQuiz: {
+        question: 'Hiện tượng phản xạ toàn phần xảy ra khi nào?',
+        options: [
+          { id: 'opt_1', text: 'Khi ánh sáng truyền qua mặt phân cách và bị tách thành 7 màu', isCorrect: false },
+          { id: 'opt_2', text: 'Khi toàn bộ tia sáng tới bị phản xạ trở lại môi trường ban đầu tại mặt phân cách', isCorrect: true },
+          { id: 'opt_3', text: 'Khi tia sáng bị môi trường thứ hai hấp thụ 100%', isCorrect: false },
+          { id: 'opt_4', text: 'Khi góc khúc xạ bằng 0°', isCorrect: false }
+        ],
+        explanation: 'Theo định nghĩa SGK, phản xạ toàn phần là hiện tượng toàn bộ tia sáng tới bị phản xạ trở lại môi trường ban đầu tại mặt phân cách.'
+      },
+      keyTakeaway: 'Phản xạ toàn phần giữ lại 100% ánh sáng trong môi trường ban đầu, chấm dứt hoàn toàn hiện tượng khúc xạ!'
+    },
+    {
+      id: 'topic_6_2',
+      order: 'Mục II',
+      title: 'Điều Kiện Để Xảy Ra Hiện Tượng Phản Xạ Toàn Phần',
+      badge: 'Quy luật & Công thức tính góc tới hạn',
+      page: 'Trang 31',
+      newKnowledge: [
+        'Để xảy ra hiện tượng phản xạ toàn phần, phải thoả mãn ĐỒNG THỜI hai điều kiện bắt buộc:',
+        'Điều kiện 1 (Về môi trường): Ánh sáng phải truyền từ môi trường có chiết suất lớn hơn sang môi trường có chiết suất nhỏ hơn (n₁ > n₂, tức từ môi trường chiết quang hơn sang kém chiết quang hơn).',
+        'Điều kiện 2 (Về góc tới): Góc tới i phải lớn hơn hoặc bằng góc tới giới hạn phản xạ toàn phần: i ≥ i_th.',
+        'Công thức tính góc tới giới hạn: sin(i_th) = n₂ / n₁. Khi môi trường thứ hai là không khí (n₂ ≈ 1) thì sin(i_th) = 1 / n₁.'
+      ],
+      coreSummary: [
+        'Điều kiện 1: Truyền từ môi trường chiết quang hơn sang kém chiết quang hơn (n₁ > n₂).',
+        'Điều kiện 2: Góc tới i ≥ i_th (góc tới giới hạn).',
+        'Công thức tính góc giới hạn: sin(i_th) = n₂ / n₁.'
+      ],
+      exampleTitle: 'Góc tới giới hạn của nước và thuỷ tinh khi truyền ra không khí',
+      exampleText:
+        'Với nước (n₁ = 4/3): sin(i_th) = 1 / (4/3) = 0,75 => i_th ≈ 48,6°.\nVới thuỷ tinh (n₁ = 1,5): sin(i_th) = 1 / 1,5 = 0,667 => i_th ≈ 41,8°.\nKhi chiếu từ không khí vào nước (n₁ = 1 < n₂ = 4/3), điều kiện 1 không thoả mãn nên KHÔNG BAO GIỜ xảy ra phản xạ toàn phần!',
+      quickQuiz: {
+        question: 'Chiếu tia sáng từ thuỷ tinh (n₁ = 1,5) ra không khí (n₂ = 1) với góc tới i = 45°. Hiện tượng gì sẽ xảy ra?',
+        options: [
+          { id: 'opt_1', text: 'Chỉ có hiện tượng khúc xạ ánh sáng', isCorrect: false },
+          { id: 'opt_2', text: 'Hiện tượng phản xạ toàn phần (vì i = 45° > i_th ≈ 41,8°)', isCorrect: true },
+          { id: 'opt_3', text: 'Tia sáng truyền thẳng không bị đổi hướng', isCorrect: false },
+          { id: 'opt_4', text: 'Tia sáng bị tán sắc thành dải cầu vồng', isCorrect: false }
+        ],
+        explanation: 'Ta có sin(i_th) = 1/1,5 => i_th ≈ 41,8°. Do n₁ > n₂ và góc tới i = 45° > 41,8° nên đã thoả mãn cả hai điều kiện để xảy ra phản xạ toàn phần.'
+      },
+      keyTakeaway: 'Phải đi từ "ĐẶC" sang "LOÃNG" (n₁ > n₂) và góc tới phải đủ lớn (i ≥ i_th) thì mới có phản xạ toàn phần!'
+    },
+    {
+      id: 'topic_6_3',
+      order: 'Mục III',
+      title: 'Ứng Dụng: Cáp Quang Trong Truyền Thông Tin & Y Học',
+      badge: 'Công nghệ cao & Kỷ nguyên Internet',
+      page: 'Trang 32',
+      newKnowledge: [
+        'Cáp quang là dây dẫn sáng ứng dụng hiện tượng phản xạ toàn phần để truyền tín hiệu ánh sáng (xung laser).',
+        'Cấu tạo sợi quang gồm 2 phần chính: Phần lõi (core) trong suốt bằng thuỷ tinh siêu tinh khiết có chiết suất n₁, và phần vỏ (cladding) bao quanh có chiết suất n₂ nhỏ hơn (n₁ > n₂).',
+        'Ánh sáng đi vào một đầu của sợi quang với góc nghiêng phù hợp sẽ liên tục phản xạ toàn phần tại mặt phân cách lõi - vỏ, truyền ziczac dọc theo sợi quang đi xa hàng nghìn km mà độ suy hao tín hiệu cực nhỏ.',
+        'Ứng dụng y học: Ống nội soi mềm gồm các bó sợi cáp quang dẫn ánh sáng chiếu sáng các bộ phận nội tạng và truyền hình ảnh chi tiết ra ngoài phục vụ chẩn đoán bệnh.'
+      ],
+      coreSummary: [
+        'Cấu tạo cáp quang: Lõi trong suốt có chiết suất n₁ lớn hơn chiết suất vỏ bọc n₂ (n₁ > n₂).',
+        'Cơ chế truyền dẫn: Ánh sáng phản xạ toàn phần liên tục dọc theo thân sợi cáp.',
+        'Ứng dụng: Mạng Internet viễn thông tốc độ cao, ống nội soi y khoa không xâm lấn.'
+      ],
+      exampleTitle: 'Vì sao uốn cong sợi cáp quang ánh sáng vẫn không bị lọt ra ngoài?',
+      exampleText:
+        'Dù sợi cáp quang bị uốn lượn quanh co (với bán kính uốn trong giới hạn kĩ thuật), góc đập của tia laser vào thành lõi vẫn luôn lớn hơn góc tới hạn i_th ≈ 70°. Tại mỗi điểm chạm, 100% ánh sáng bị hắt ngược trở lại tâm lõi, giúp dữ liệu Internet truyền an toàn qua đáy đại dương!',
+      quickQuiz: {
+        question: 'Vì sao lớp vỏ bao bọc sợi cáp quang phải có chiết suất nhỏ hơn phần lõi?',
+        options: [
+          { id: 'opt_1', text: 'Để ánh sáng dễ dàng khúc xạ xuyên qua vỏ ra ngoài không khí', isCorrect: false },
+          { id: 'opt_2', text: 'Để đảm bảo điều kiện n₁ > n₂, giúp ánh sáng phản xạ toàn phần liên tục bên trong lõi', isCorrect: true },
+          { id: 'opt_3', text: 'Để sợi quang có khối lượng nhẹ hơn và dễ uốn dẻo', isCorrect: false },
+          { id: 'opt_4', text: 'Để bảo vệ sợi quang không bị sét đánh', isCorrect: false }
+        ],
+        explanation: 'Lớp lõi n₁ > vỏ n₂ là điều kiện tiên quyết để xảy ra phản xạ toàn phần, ngăn ánh sáng thất thoát ra ngoài.'
+      },
+      keyTakeaway: 'Sợi quang là xa lộ thông tin của nhân loại: Lõi n₁ > Vỏ n₂ biến ánh sáng thành phương tiện truyền dẫn siêu tốc!'
+    },
+    {
+      id: 'topic_6_4',
+      order: 'Mục IV',
+      title: 'Lăng Kính Phản Xạ Toàn Phần & Ảo Ảnh Quang Học Tự Nhiên',
+      badge: 'Quang cụ & Hiện tượng tự nhiên',
+      page: 'Trang 33',
+      newKnowledge: [
+        'Lăng kính phản xạ toàn phần là một khối thuỷ tinh trong suốt có tiết diện là hình tam giác vuông cân (góc 90° - 45° - 45°).',
+        'Khi chiếu chùm sáng vuông góc vào một mặt bên của lăng kính, tia sáng đi thẳng tới mặt đáy với góc tới i = 45°. Do i = 45° > i_th của thuỷ tinh (≈ 41,8°), tia sáng bị phản xạ toàn phần và bẻ ngoặt 90°.',
+        'Ưu điểm so với gương phẳng: Phản xạ gần như 100% ánh sáng, không có hiện tượng tạo nhiều ảnh mờ và không bị bong tróc, mốc lớp tráng bạc.',
+        'Ảo ảnh sa mạc và mặt đường mùa hè: Mặt đất nung nóng không khí bên dưới nở ra loãng hơn (n_dưới < n_trên). Tia sáng từ bầu trời đi xuống gặp góc nghiêng lớn bị phản xạ toàn phần hắt ngược vào mắt, làm mắt nhìn thấy ảnh phản chiếu của nền trời trông như vũng nước.'
+      ],
+      coreSummary: [
+        'Lăng kính phản xạ toàn phần: Tiết diện tam giác vuông cân, bẻ ngoặt tia sáng 90° hoặc 180° với hiệu suất 100%.',
+        'Ứng dụng: Trang bị trong ống nhòm quân sự, máy ảnh DSLR, kính tiềm vọng tàu ngầm.',
+        'Ảo ảnh mặt đường hè: Phản xạ toàn phần của ánh sáng trời tại tầng không khí nóng sát mặt đất.'
+      ],
+      exampleTitle: 'Ứng dụng lăng kính phản xạ toàn phần trong ống nhòm 2 mắt',
+      exampleText:
+        'Trong ống nhòm, mỗi ống chứa hai lăng kính phản xạ toàn phần đặt vuông góc nhau. Chúng bẻ gập đường truyền ánh sáng để rút ngắn chiều dài thân ống nhòm, đồng thời lộn ngược chiều ảnh để mắt nhìn thấy hình ảnh xuôi chiều tự nhiên.',
+      quickQuiz: {
+        question: 'Tại sao người ta dùng lăng kính phản xạ toàn phần thay thế gương phẳng trong ống nhòm cao cấp?',
+        options: [
+          { id: 'opt_1', text: 'Vì lăng kính rẻ tiền hơn gương phẳng', isCorrect: false },
+          { id: 'opt_2', text: 'Vì lăng kính phản xạ hầu như 100% ánh sáng và không bị suy giảm chất lượng theo thời gian', isCorrect: true },
+          { id: 'opt_3', text: 'Vì gương phẳng làm đảo ngược màu sắc của vật thể', isCorrect: false },
+          { id: 'opt_4', text: 'Vì lăng kính làm tăng nhiệt độ của ảnh thu được', isCorrect: false }
+        ],
+        explanation: 'Phản xạ toàn phần có hiệu suất gần 100% và không có lớp tráng kim loại dễ mốc hỏng như gương phẳng.'
+      },
+      keyTakeaway: 'Lăng kính phản xạ toàn phần cho hình ảnh sắc nét tuyệt đối, vượt xa gương tráng bạc truyền thống!'
+    }
+  ],
+  practiceQuestions: [
+    {
+      id: 'p6_1',
+      level: 'BIẾT',
+      levelColor: 'bg-emerald-100 text-emerald-800 border-emerald-300',
+      question: 'Hiện tượng phản xạ toàn phần là hiện tượng gì?',
+      subText: 'Định nghĩa SGK KHTN 9 Bài 6',
+      options: [
+        { id: 'o1', text: 'Toàn bộ tia sáng tới bị phản xạ trở lại môi trường ban đầu tại mặt phân cách giữa hai môi trường trong suốt', isCorrect: true },
+        { id: 'o2', text: 'Tia sáng bị gãy khúc khi đi qua mặt phân cách giữa hai môi trường', isCorrect: false },
+        { id: 'o3', text: 'Ánh sáng bị hấp thụ hoàn toàn và chuyển thành nhiệt năng', isCorrect: false },
+        { id: 'o4', text: 'Tia sáng bị phân tách thành 7 màu cầu vồng', isCorrect: false }
+      ],
+      explanation: 'SGK Trang 30: Phản xạ toàn phần là hiện tượng toàn bộ tia sáng tới bị phản xạ trở lại môi trường ban đầu tại mặt phân cách giữa hai môi trường trong suốt.'
+    },
+    {
+      id: 'p6_2',
+      level: 'BIẾT',
+      levelColor: 'bg-emerald-100 text-emerald-800 border-emerald-300',
+      question: 'Để xảy ra hiện tượng phản xạ toàn phần, tia sáng phải truyền theo chiều nào sau đây?',
+      subText: 'Điều kiện cần về môi trường truyền sáng',
+      options: [
+        { id: 'o1', text: 'Từ môi trường chiết quang hơn sang môi trường kém chiết quang hơn (n₁ > n₂)', isCorrect: true },
+        { id: 'o2', text: 'Từ môi trường kém chiết quang sang môi trường chiết quang hơn (n₁ < n₂)', isCorrect: false },
+        { id: 'o3', text: 'Từ chân không vào bất kì môi trường trong suốt nào', isCorrect: false },
+        { id: 'o4', text: 'Theo phương thẳng đứng vuông góc với mặt phân cách', isCorrect: false }
+      ],
+      explanation: 'Điều kiện cần đầu tiên: Ánh sáng phải truyền từ môi trường có chiết suất lớn hơn sang môi trường có chiết suất nhỏ hơn (n₁ > n₂).'
+    },
+    {
+      id: 'p6_3',
+      level: 'HIỂU',
+      levelColor: 'bg-blue-100 text-blue-800 border-blue-300',
+      question: 'Cho ánh sáng truyền từ môi trường (1) có chiết suất n₁ sang môi trường (2) có chiết suất n₂ (với n₁ > n₂). Công thức tính góc tới giới hạn i_th là:',
+      subText: 'Công thức toán học góc tới giới hạn',
+      options: [
+        { id: 'o1', text: 'sin(i_th) = n₂ / n₁', isCorrect: true },
+        { id: 'o2', text: 'sin(i_th) = n₁ / n₂', isCorrect: false },
+        { id: 'o3', text: 'cos(i_th) = n₂ / n₁', isCorrect: false },
+        { id: 'o4', text: 'tan(i_th) = n₁ · n₂', isCorrect: false }
+      ],
+      explanation: 'sin(i_th) = n₂ / n₁ (với n₁ > n₂ để sin ≤ 1).'
+    },
+    {
+      id: 'p6_4',
+      level: 'HIỂU',
+      levelColor: 'bg-blue-100 text-blue-800 border-blue-300',
+      question: 'Chiếu tia sáng từ nước (n = 4/3) ra không khí (n = 1). Góc tới giới hạn phản xạ toàn phần i_th xấp xỉ bằng:',
+      subText: 'Tính toán góc tới hạn của nước',
+      options: [
+        { id: 'o1', text: '48,6° (hoặc 48°35\')', isCorrect: true },
+        { id: 'o2', text: '41,8°', isCorrect: false },
+        { id: 'o3', text: '60,0°', isCorrect: false },
+        { id: 'o4', text: '30,0°', isCorrect: false }
+      ],
+      explanation: 'sin(i_th) = 1 / (4/3) = 0,75 => i_th = arcsin(0,75) ≈ 48,6°.'
+    },
+    {
+      id: 'p6_5',
+      level: 'VẬN DỤNG',
+      levelColor: 'bg-purple-100 text-purple-800 border-purple-300',
+      question: 'Một tia sáng chiếu từ thuỷ tinh (n₁ = 1,5) ra không khí (n₂ = 1) với góc tới i = 45°. Nhận định nào sau đây là ĐÚNG?',
+      subText: 'So sánh góc tới với góc giới hạn',
+      options: [
+        { id: 'o1', text: 'Xảy ra phản xạ toàn phần vì i = 45° > i_th ≈ 41,8°', isCorrect: true },
+        { id: 'o2', text: 'Chỉ xảy ra khúc xạ ánh sáng', isCorrect: false },
+        { id: 'o3', text: 'Tia sáng truyền thẳng không bị đổi hướng', isCorrect: false },
+        { id: 'o4', text: 'Tia sáng bị thuỷ tinh hấp thụ 100%', isCorrect: false }
+      ],
+      explanation: 'Ta có sin(i_th) = 1 / 1,5 = 0,667 => i_th ≈ 41,8°. Do góc tới i = 45° > 41,8° và n_thuỷ tinh > n_kk nên xảy ra phản xạ toàn phần.'
+    },
+    {
+      id: 'p6_6',
+      level: 'VẬN DỤNG',
+      levelColor: 'bg-purple-100 text-purple-800 border-purple-300',
+      question: 'Cấu tạo sợi cáp quang dẫn sáng trong viễn thông yêu cầu:',
+      subText: 'Nguyên lí sợi quang học',
+      options: [
+        { id: 'o1', text: 'Phần lõi có chiết suất n₁ lớn hơn chiết suất phần vỏ bọc n₂ (n₁ > n₂)', isCorrect: true },
+        { id: 'o2', text: 'Phần lõi có chiết suất nhỏ hơn phần vỏ bọc (n₁ < n₂)', isCorrect: false },
+        { id: 'o3', text: 'Lõi và vỏ phải làm bằng kim loại dẫn điện tốt', isCorrect: false },
+        { id: 'o4', text: 'Lõi phải hoàn toàn rỗng chân không', isCorrect: false }
+      ],
+      explanation: 'Lõi n₁ > Vỏ n₂ là điều kiện bắt buộc để ánh sáng phản xạ toàn phần liên tục bên trong lõi mà không thất thoát ra vỏ.'
+    }
+  ],
+  examMCQuestions: [
+    {
+      id: 'e6_mc1',
+      points: 0.5,
+      question: 'Hiện tượng phản xạ toàn phần xảy ra khi nào?',
+      options: [
+        { id: 'e6_mc1_a', text: 'Tia sáng truyền từ môi trường chiết quang hơn sang kém chiết quang hơn và góc tới i ≥ i_th', isCorrect: true },
+        { id: 'e6_mc1_b', text: 'Tia sáng truyền từ không khí vào nước với góc tới rất lớn', isCorrect: false },
+        { id: 'e6_mc1_c', text: 'Tia sáng chiếu vuông góc với mặt phân cách', isCorrect: false },
+        { id: 'e6_mc1_d', text: 'Tia sáng gặp một vật cản màu đen', isCorrect: false }
+      ],
+      explanation: 'Đầy đủ 2 điều kiện: n₁ > n₂ và i ≥ i_th.'
+    },
+    {
+      id: 'e6_mc2',
+      points: 0.5,
+      question: 'Khi góc tới i đúng bằng góc tới giới hạn i_th (i = i_th) và n₁ > n₂, tia khúc xạ sẽ:',
+      options: [
+        { id: 'e6_mc2_a', text: 'Đi là là sát mặt phân cách giữa hai môi trường (góc khúc xạ r = 90°)', isCorrect: true },
+        { id: 'e6_mc2_b', text: 'Bị hắt ngược lại theo phương cũ', isCorrect: false },
+        { id: 'e6_mc2_c', text: 'Vuông góc với mặt phân cách (r = 0°)', isCorrect: false },
+        { id: 'e6_mc2_d', text: 'Biến mất ngay lập tức khi i = 0°', isCorrect: false }
+      ],
+      explanation: 'Khi i = i_th thì sin(r) = 1 => r = 90°, tia khúc xạ đi sát mặt phân cách.'
+    },
+    {
+      id: 'e6_mc3',
+      points: 0.5,
+      question: 'Chiếu tia sáng từ một chất lỏng trong suốt có chiết suất n = √2 ra không khí (n = 1). Góc tới giới hạn i_th là:',
+      options: [
+        { id: 'e6_mc3_a', text: '45°', isCorrect: true },
+        { id: 'e6_mc3_b', text: '30°', isCorrect: false },
+        { id: 'e6_mc3_c', text: '60°', isCorrect: false },
+        { id: 'e6_mc3_d', text: '90°', isCorrect: false }
+      ],
+      explanation: 'sin(i_th) = 1 / √2 = √2 / 2 => i_th = 45°.'
+    },
+    {
+      id: 'e6_mc4',
+      points: 0.5,
+      question: 'Tại sao trong các thiết bị quang học chính xác như ống nhòm quân sự, người ta thường dùng lăng kính phản xạ toàn phần thay cho gương phẳng?',
+      options: [
+        { id: 'e6_mc4_a', text: 'Vì lăng kính phản xạ hầu như 100% ánh sáng và không bị mốc, bong tróc lớp mạ theo thời gian', isCorrect: true },
+        { id: 'e6_mc4_b', text: 'Vì lăng kính nhẹ hơn gương phẳng gấp nhiều lần', isCorrect: false },
+        { id: 'e6_mc4_c', text: 'Vì lăng kính làm tăng nhiệt độ của ảnh', isCorrect: false },
+        { id: 'e6_mc4_d', text: 'Vì lăng kính rẻ tiền hơn', isCorrect: false }
+      ],
+      explanation: 'Phản xạ toàn phần đạt hiệu suất gần 100% và bề mặt phân cách tự nhiên bền vĩnh cửu.'
+    }
+  ],
+  examEssayQuestions: [
+    {
+      id: 'e6_es1',
+      points: 1.5,
+      title: 'Câu 1: Hai điều kiện xảy ra phản xạ toàn phần & So sánh với phản xạ thông thường',
+      prompt: 'Hãy nêu đầy đủ hai điều kiện bắt buộc để xảy ra hiện tượng phản xạ toàn phần. So sánh điểm giống và khác nhau giữa phản xạ toàn phần và hiện tượng phản xạ ánh sáng thông thường trên gương phẳng.',
+      sampleSolution: '1. Hai điều kiện bắt buộc để xảy ra phản xạ toàn phần:\n- Điều kiện 1: Ánh sáng phải truyền từ môi trường chiết quang hơn sang môi trường kém chiết quang hơn (n₁ > n₂).\n- Điều kiện 2: Góc tới i phải lớn hơn hoặc bằng góc tới giới hạn (i ≥ i_th) với sin(i_th) = n₂ / n₁.\n2. So sánh với phản xạ thông thường:\n- Giống nhau: Cả hai hiện tượng đều tuân theo định luật phản xạ ánh sáng (góc phản xạ bằng góc tới i\' = i, tia phản xạ nằm trong mặt phẳng tới).\n- Khác nhau:\n  + Phản xạ thông thường xảy ra ở mọi góc tới và với mọi cặp môi trường, nhưng hiệu suất phản xạ không đạt 100% (bị hấp thụ hoặc khúc xạ một phần).\n  + Phản xạ toàn phần chỉ xảy ra khi thoả mãn n₁ > n₂ và i ≥ i_th, nhưng triệt tiêu hoàn toàn tia khúc xạ và phản xạ trọn vẹn 100% năng lượng ánh sáng.'
+    },
+    {
+      id: 'e6_es2',
+      points: 1.5,
+      title: 'Câu 2: Nguyên lí sợi cáp quang viễn thông & Ứng dụng nội soi y tế',
+      prompt: 'Nêu cấu tạo cơ bản của một sợi cáp quang. Dựa vào hiện tượng phản xạ toàn phần, hãy giải thích cơ chế truyền tín hiệu ánh sáng dọc theo sợi quang và ứng dụng của bó sợi quang trong ống nội soi y khoa.',
+      sampleSolution: '1. Cấu tạo sợi cáp quang:\n- Gồm phần lõi (core) trong suốt có chiết suất n₁ lớn, được bao bọc bởi phần vỏ (cladding) có chiết suất n₂ nhỏ hơn (n₁ > n₂).\n2. Cơ chế truyền tín hiệu:\n- Ánh sáng laser truyền vào lõi với góc tới lớn hơn góc giới hạn i_th tại mặt phân cách lõi - vỏ. Nhờ đó, 100% ánh sáng bị phản xạ toàn phần liên tục tại thành lõi, truyền ziczac dọc theo sợi quang đi xa hàng nghìn km mà hầu như không suy hao.\n3. Ứng dụng nội soi y khoa:\n- Bó sợi quang mềm đưa ánh sáng vào chiếu sáng dạ dày hoặc cơ quan nội tạng, đồng thời truyền hình ảnh phản xạ ra ngoài camera giúp bác sĩ chẩn đoán bệnh chính xác mà không cần phẫu thuật mở.'
+    }
+  ]
+};
+
+// Hàm lấy dữ liệu bài học theo ID (hỗ trợ Bài 1, Bài 2, Bài 3, Bài 4, Bài 5 và Bài 6 bám sát SGK)
 export function getSgkLessonData(lessonId: number): SgkLessonPackage {
+  if (lessonId === 6) {
+    return LESSON_6_DATA;
+  }
   if (lessonId === 5) {
     return LESSON_5_DATA;
   }
@@ -2320,6 +2629,7 @@ export function getSgkLessonData(lessonId: number): SgkLessonPackage {
   }
   return LESSON_1_DATA;
 }
+
 
 
 
