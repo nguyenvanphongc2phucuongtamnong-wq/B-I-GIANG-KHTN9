@@ -205,6 +205,9 @@ export interface StudentProgressItem {
   totalStepsInLesson?: number;
   completedStepCount?: number;
   scoresHistory?: Array<{ lessonId: number; score: number; total: number; date: string }>;
+  lessonScores?: Record<number, number>; // điểm kiểm tra từng bài
+  averageScore?: number | null; // điểm trung bình các bài đã có điểm
+  scoredLessonCount?: number; // số bài đã có điểm
   competency: {
     nhanBietRate: number; // %
     thongHieuRate: number; // %

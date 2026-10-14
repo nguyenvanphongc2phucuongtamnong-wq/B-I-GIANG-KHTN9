@@ -52,7 +52,8 @@ import {
   subscribeToAuthChanges,
   syncUserProfile,
   updateUserClassInFirestore,
-  getStudentAllLessonsProgress
+  getStudentAllLessonsProgress,
+  addUserXpInFirestore
 } from './services/firebaseService';
 import { 
   getAllRegisteredLessons, 
@@ -95,7 +96,7 @@ export default function App() {
         });
 
         // 2. Khôi phục toàn bộ tiến trình các bài học từ subcollection "studentProgress/{uid}/lessons"
-        const lessonsProgress = await getStudentAllLessonsProgress(firebaseUser.uid);
+        const lessonsProgress = await getStudentAllLessonsProgress(firebaseUser.uid, true);
 
         const completedLessonIds: number[] = [];
         let latestActiveLessonId = 1;
@@ -111,6 +112,23 @@ export default function App() {
           if (t >= latestTimestamp) {
             latestTimestamp = t;
             latestActiveLessonId = lp.lessonId;
+          }
+        });
+
+        const restoredQuizRecords: Record<number, any> = {};
+        Object.values(lessonsProgress).forEach((lp) => {
+          if (lp.examScore !== null && lp.examScore !== undefined) {
+            restoredQuizRecords[lp.lessonId] = {
+              lessonId: lp.lessonId,
+              score: lp.examScore,
+              total: 10,
+              date: new Date(lp.completedAt || lp.lastUpdatedAt || Date.now()).toLocaleDateString('vi-VN'),
+              breakdown: {
+                nhanBiet: 2.5,
+                thongHieu: 2.5,
+                vanDung: Math.max(0, +(lp.examScore - 5.0).toFixed(1))
+              }
+            };
           }
         });
 
@@ -131,12 +149,12 @@ export default function App() {
           gradeClass: isTeacher ? 'Tổ Tự Nhiên - Khối 9' : (profile.classId || ''),
           school: 'Trường THCS Phú Ninh',
           joinDate: profile.createdAt ? new Date(profile.createdAt).toLocaleDateString('vi-VN') : new Date().toLocaleDateString('vi-VN'),
-          xp: isTeacher ? 500 : 0,
+          xp: isTeacher ? 500 : (profile.xp ?? 0),
           streakDays: 1,
           unlockedLessonIds: autoUnlocked,
           completedLessonIds: isTeacher ? allRegisteredLessonIds : completedLessonIds,
           currentLessonId: latestActiveLessonId,
-          quizRecords: {},
+          quizRecords: isTeacher ? {} : restoredQuizRecords,
           badges: isTeacher ? ['teacher_mentor', 'lab_master'] : ['learner_bronze']
         };
 
@@ -151,8 +169,12 @@ export default function App() {
         }
       } catch (err) {
         console.error('Lỗi khi khôi phục session Firebase:', err);
+        // KHÔNG tạo tài khoản rỗng: đăng xuất để học sinh đăng nhập lại, tránh ghi đè tiến trình
+        await signOutFirebase();
         if (isMounted) {
+          setCurrentUser(null);
           setAuthLoading(false);
+          alert('Không tải được tiến trình học tập. Vui lòng kiểm tra mạng và đăng nhập lại.');
         }
       }
     });
@@ -237,6 +259,9 @@ export default function App() {
       ...prev,
       xp: (prev.xp || 0) + amount
     }) : null);
+    if (currentUser.role === 'student') {
+      addUserXpInFirestore(currentUser.id, amount);
+    }
   };
 
   const handleCardComplete = (cardId: string) => {
@@ -341,29 +366,55 @@ export default function App() {
     }
   };
 
-  const handleLogin = (newUser: UserAccount) => {
+  const handleLogin = async (newUser: UserAccount) => {
     const isTeacher = newUser.role === 'teacher' || isAuthorizedTeacherEmail(newUser.email);
     const allLessonIds = getAllRegisteredLessons().map(l => l.id);
-    const computedUnlocked = isTeacher
-      ? allLessonIds
-      : computeUnlockedLessonIds(newUser.completedLessonIds || []);
+
+    let finalCompleted = newUser.completedLessonIds || [];
+    let finalUnlocked = newUser.unlockedLessonIds || [1];
+    let finalCurrent = newUser.currentLessonId || 1;
+
+    // Phòng thủ: nếu client gửi progress rỗng → đọc lại từ Firestore
+    if (!isTeacher && finalCompleted.length === 0 && newUser.id) {
+      try {
+        const { getStudentAllLessonsProgress, migrateStudentProgressToUid } = await import('./services/firebaseService');
+        await migrateStudentProgressToUid(newUser.id, newUser.email, newUser.name);
+        const lessonsProgress = await getStudentAllLessonsProgress(newUser.id);
+        Object.values(lessonsProgress).forEach((lp: any) => {
+          if (lp.status === 'completed' || (lp.examScore != null && lp.examScore >= 5)) {
+            if (!finalCompleted.includes(lp.lessonId)) finalCompleted.push(lp.lessonId);
+          }
+        });
+        finalUnlocked = computeUnlockedLessonIds(finalCompleted);
+        finalCurrent = Math.max(...finalUnlocked, 1);
+      } catch (e) {
+        console.warn('[handleLogin] Không đọc được progress từ Firestore:', e);
+      }
+    }
+
+    const computedUnlocked = isTeacher ? allLessonIds : computeUnlockedLessonIds(finalCompleted);
     const mergedUnlocked = isTeacher
       ? allLessonIds
-      : Array.from(new Set([...(newUser.unlockedLessonIds || [1]), ...computedUnlocked]));
+      : Array.from(new Set([...finalUnlocked, ...computedUnlocked]));
+
     const synchronizedUser: UserAccount = {
       ...newUser,
       unlockedLessonIds: mergedUnlocked,
-      completedLessonIds: isTeacher ? allLessonIds : (newUser.completedLessonIds || [])
+      completedLessonIds: isTeacher ? allLessonIds : finalCompleted,
+      currentLessonId: finalCurrent
     };
+
     setCurrentUser(synchronizedUser);
     setUnlockedLessonIds(mergedUnlocked);
+    setActiveLessonId(finalCurrent);
     localStorage.setItem('khtn9_user_profile', JSON.stringify(synchronizedUser));
+
     if (synchronizedUser.role === 'teacher') {
       setCurrentTab('teacher_dashboard');
     } else {
       setCurrentTab('sgk_learning');
       if (synchronizedUser.gradeClass) {
-        registerStudentInDirectory(newUser);
+        registerStudentInDirectory(synchronizedUser);
       }
     }
   };

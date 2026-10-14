@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
-import { UserAccount, VALID_CLASSES, ClassId } from '../types';
-import { isAuthorizedTeacherEmail } from '../config/authConfig';
-import { getAllRegisteredLessons } from '../services/lessonRegistry';
-import { signInWithGoogle, syncUserProfile } from '../services/firebaseService';
+import { UserAccount } from '../types';
+import { signInWithGoogle } from '../services/firebaseService';
 import { 
   X, 
   LogOut, 
@@ -36,70 +34,9 @@ export const GoogleAuthModal: React.FC<GoogleAuthModalProps> = ({
     if (isAuthenticating) return;
     setIsAuthenticating(true);
     setErrorMsg('');
-
     try {
-      const firebaseUser = await signInWithGoogle();
-      const email = (firebaseUser.email || '').trim().toLowerCase();
-      const displayName = firebaseUser.displayName?.trim() || email.split('@')[0] || 'Học sinh KHTN 9';
-      const avatar = firebaseUser.photoURL || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80';
-
-      const isTeacher = isAuthorizedTeacherEmail(email);
-
-      const userProfile = await syncUserProfile({
-        uid: firebaseUser.uid,
-        email,
-        displayName,
-        photoURL: avatar
-      });
-
-      if (isTeacher) {
-        const allLessonIds = getAllRegisteredLessons().map(l => l.id);
-        const teacherAccount: UserAccount = {
-          id: firebaseUser.uid,
-          email,
-          name: displayName.startsWith('Thầy') || displayName.startsWith('Cô') ? displayName : `Thầy ${displayName}`,
-          avatar,
-          role: 'teacher',
-          gradeClass: 'Tổ Tự Nhiên - Khối 9',
-          school: 'Trường THCS Phú Ninh',
-          joinDate: userProfile.createdAt ? new Date(userProfile.createdAt).toLocaleDateString('vi-VN') : '01/09/2026',
-          xp: 500,
-          streakDays: 7,
-          unlockedLessonIds: allLessonIds,
-          currentLessonId: 1,
-          completedLessonIds: allLessonIds,
-          quizRecords: {},
-          badges: ['teacher_mentor', 'lab_master']
-        };
-
-        setIsAuthenticating(false);
-        onLogin(teacherAccount);
-        onClose();
-        return;
-      }
-
-      const hasClass = userProfile.classId && VALID_CLASSES.includes(userProfile.classId as ClassId);
-
-      const studentAccount: UserAccount = {
-        id: firebaseUser.uid,
-        email,
-        name: userProfile.displayName || displayName,
-        avatar,
-        role: 'student',
-        gradeClass: hasClass ? (userProfile.classId as string) : '',
-        school: 'Trường THCS Phú Ninh',
-        joinDate: userProfile.createdAt ? new Date(userProfile.createdAt).toLocaleDateString('vi-VN') : new Date().toLocaleDateString('vi-VN'),
-        xp: 0,
-        streakDays: 1,
-        unlockedLessonIds: [1],
-        currentLessonId: 1,
-        completedLessonIds: [],
-        quizRecords: {},
-        badges: ['learner_bronze']
-      };
-
+      await signInWithGoogle();
       setIsAuthenticating(false);
-      onLogin(studentAccount);
       onClose();
     } catch (err: any) {
       console.error('[GoogleAuthModal] Lỗi:', err);

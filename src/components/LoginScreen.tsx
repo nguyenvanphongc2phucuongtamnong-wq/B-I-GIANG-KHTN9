@@ -1,12 +1,6 @@
 import React, { useState } from 'react';
-import { UserAccount, VALID_CLASSES, ClassId } from '../types';
-import { isAuthorizedTeacherEmail } from '../config/authConfig';
-import { getAllRegisteredLessons } from '../services/lessonRegistry';
-import { 
-  signInWithGoogle, 
-  syncUserProfile,
-  getUserProfileFromFirestore
-} from '../services/firebaseService';
+import { UserAccount } from '../types';
+import { signInWithGoogle } from '../services/firebaseService';
 import { 
   GraduationCap, 
   ShieldCheck, 
@@ -28,75 +22,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
     if (isAuthenticating) return;
     setIsAuthenticating(true);
     setErrorMsg('');
-
     try {
-      // 1. Gọi Firebase Authentication signInWithPopup thật
-      const firebaseUser = await signInWithGoogle();
-      const email = (firebaseUser.email || '').trim().toLowerCase();
-      const displayName = firebaseUser.displayName?.trim() || email.split('@')[0] || 'Học sinh KHTN 9';
-      const avatar = firebaseUser.photoURL || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80';
-
-      // 2. Phân quyền tự động theo email chính thức:
-      // - Duy nhất 'nvphong.thcsphuninh@gmail.com' -> teacher
-      // - Mọi tài khoản khác -> student
-      const isTeacher = isAuthorizedTeacherEmail(email);
-
-      // 3. Đồng bộ User Profile vào collection "users/{uid}" thật (1 UID = 1 document)
-      const userProfile = await syncUserProfile({
-        uid: firebaseUser.uid,
-        email,
-        displayName,
-        photoURL: avatar
-      });
-
-      if (isTeacher) {
-        const allLessonIds = getAllRegisteredLessons().map(l => l.id);
-        const teacherAccount: UserAccount = {
-          id: firebaseUser.uid,
-          email,
-          name: displayName.startsWith('Thầy') || displayName.startsWith('Cô') ? displayName : `Thầy ${displayName}`,
-          avatar,
-          role: 'teacher',
-          gradeClass: 'Tổ Tự Nhiên - Khối 9',
-          school: 'Trường THCS Phú Ninh',
-          joinDate: userProfile.createdAt ? new Date(userProfile.createdAt).toLocaleDateString('vi-VN') : '01/09/2026',
-          xp: 500,
-          streakDays: 7,
-          unlockedLessonIds: allLessonIds,
-          currentLessonId: 1,
-          completedLessonIds: allLessonIds,
-          quizRecords: {},
-          badges: ['teacher_mentor', 'lab_master']
-        };
-
-        setIsAuthenticating(false);
-        onLogin(teacherAccount);
-        return;
-      }
-
-      // 4. Học sinh: Kiểm tra xem đã chọn lớp (9A1 -> 9A8) chưa
-      const hasClass = userProfile.classId && VALID_CLASSES.includes(userProfile.classId as ClassId);
-
-      const studentAccount: UserAccount = {
-        id: firebaseUser.uid,
-        email,
-        name: userProfile.displayName || displayName,
-        avatar,
-        role: 'student',
-        gradeClass: hasClass ? (userProfile.classId as string) : '', // Nếu chưa có -> ClassSelectorModal hiển thị
-        school: 'Trường THCS Phú Ninh',
-        joinDate: userProfile.createdAt ? new Date(userProfile.createdAt).toLocaleDateString('vi-VN') : new Date().toLocaleDateString('vi-VN'),
-        xp: 0,
-        streakDays: 1,
-        unlockedLessonIds: [1],
-        currentLessonId: 1,
-        completedLessonIds: [],
-        quizRecords: {},
-        badges: ['learner_bronze']
-      };
-
-      setIsAuthenticating(false);
-      onLogin(studentAccount);
+      await signInWithGoogle();
+      // App.tsx (onAuthStateChanged) là nguồn DUY NHẤT khôi phục profile + tiến trình.
+      // Dự phòng: mở khóa nút sau 15 giây nếu App đăng xuất lại do lỗi tải tiến trình.
+      setTimeout(() => setIsAuthenticating(false), 15000);
     } catch (err: any) {
       console.error('[handleGoogleSignIn] Lỗi:', err);
       setErrorMsg(err.message || 'Không thể đăng nhập bằng tài khoản Google. Vui lòng thử lại.');

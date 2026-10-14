@@ -18,7 +18,8 @@ import {
   getDocs, 
   collection, 
   getDocFromServer,
-  onSnapshot
+  onSnapshot,
+  increment
 } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
 import { StudentProgressItem } from '../types';
@@ -116,6 +117,7 @@ export interface FirestoreUserProfile {
   photoURL: string;
   role: 'student' | 'teacher';
   classId: string; // 9A1..9A8, rỗng nếu chưa chọn, hoặc 'Tổ Tự Nhiên' cho giáo viên
+  xp?: number;
   createdAt: string;
   lastLoginAt: string;
 }
@@ -314,25 +316,26 @@ export async function getLessonProgressFromFirestore(
   uid: string, 
   lessonId: number
 ): Promise<FirestoreLessonProgress | null> {
+  // KHÔNG nuốt lỗi: lỗi mạng/quyền phải được ném ra để nơi gọi KHÔNG ghi đè dữ liệu cũ.
+  const primaryRef = doc(db, 'studentProgress', uid, 'lessons', String(lessonId));
+  let snap = await getDoc(primaryRef);
+  if (snap.exists()) {
+    return snap.data() as FirestoreLessonProgress;
+  }
+  const fallbackRef = doc(db, 'studentProgress', uid, 'lessons', `lesson${lessonId}`);
+  snap = await getDoc(fallbackRef);
+  if (snap.exists()) {
+    return snap.data() as FirestoreLessonProgress;
+  }
+  return null;
+}
+
+export async function addUserXpInFirestore(uid: string, amount: number): Promise<void> {
+  if (!uid || !amount) return;
   try {
-    // Kiểm tra định dạng ID số (ví dụ: '2')
-    const primaryRef = doc(db, 'studentProgress', uid, 'lessons', String(lessonId));
-    let snap = await getDoc(primaryRef);
-    if (snap.exists()) {
-      return snap.data() as FirestoreLessonProgress;
-    }
-
-    // Dự phòng kiểm tra định dạng 'lesson2'
-    const fallbackRef = doc(db, 'studentProgress', uid, 'lessons', `lesson${lessonId}`);
-    snap = await getDoc(fallbackRef);
-    if (snap.exists()) {
-      return snap.data() as FirestoreLessonProgress;
-    }
-
-    return null;
+    await setDoc(doc(db, 'users', uid), { xp: increment(amount) }, { merge: true });
   } catch (error) {
-    console.warn(`Lỗi đọc studentProgress/${uid}/lessons/${lessonId}:`, error);
-    return null;
+    console.warn('Lỗi lưu XP lên Firestore:', error);
   }
 }
 
@@ -393,7 +396,8 @@ export async function saveLessonProgressToFirestore(
  * Đọc toàn bộ tiến trình các bài học của học sinh từ subcollection "studentProgress/{uid}/lessons"
  */
 export async function getStudentAllLessonsProgress(
-  uid: string
+  uid: string,
+  throwOnError: boolean = false
 ): Promise<Record<number, FirestoreLessonProgress>> {
   const result: Record<number, FirestoreLessonProgress> = {};
   try {
@@ -412,8 +416,57 @@ export async function getStudentAllLessonsProgress(
     });
   } catch (error) {
     console.warn(`Lỗi getStudentAllLessonsProgress cho uid ${uid}:`, error);
+    if (throwOnError) throw error;
   }
   return result;
+}
+
+/**
+ * Di chuyển hoặc sao chép tiến trình học tập cũ (theo email hoặc legacy doc) sang studentProgress/{uid}
+ */
+export async function migrateStudentProgressToUid(
+  uid: string,
+  email?: string,
+  _name?: string
+): Promise<void> {
+  if (!uid) return;
+  try {
+    const cleanEmail = email?.trim().toLowerCase();
+
+    // 1. Kiểm tra nếu có document legacy trong 'studentProgress' theo email
+    if (cleanEmail) {
+      const emailRef = doc(db, 'studentProgress', cleanEmail);
+      const emailSnap = await getDoc(emailRef);
+      if (emailSnap.exists()) {
+        const emailLessons = await getDocs(collection(db, 'studentProgress', cleanEmail, 'lessons'));
+        for (const d of emailLessons.docs) {
+          const lessonData = d.data();
+          await setDoc(doc(db, 'studentProgress', uid, 'lessons', d.id), lessonData, { merge: true });
+        }
+      }
+    }
+
+    // 2. Kiểm tra nếu trong 'students/{uid}' có completedLessons mà 'studentProgress/{uid}' chưa có
+    const studentSnap = await getDoc(doc(db, 'students', uid));
+    if (studentSnap.exists()) {
+      const stData = studentSnap.data() as any;
+      if (Array.isArray(stData.completedLessons)) {
+        for (const lId of stData.completedLessons) {
+          const numId = typeof lId === 'number' ? lId : parseInt(String(lId).replace(/\D/g, ''), 10);
+          if (!isNaN(numId)) {
+            await setDoc(doc(db, 'studentProgress', uid, 'lessons', String(numId)), {
+              lessonId: numId,
+              status: 'completed',
+              progressPercent: 100,
+              completedAt: stData.lastActiveAt || new Date().toISOString()
+            }, { merge: true });
+          }
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('[migrateStudentProgressToUid] Bỏ qua lỗi di chuyển tiến trình:', err);
+  }
 }
 
 // ==========================================
@@ -515,15 +568,55 @@ export function normalizeEmailKey(rawEmail?: string | null): string {
  * - Ưu tiên bản ghi có dữ liệu học tập thực tế mà KHÔNG dùng Math.max() máy móc
  * - TUYỆT ĐỐI KHÔNG dùng mock data, đọc 100% dữ liệu thật từ Firestore
  */
-export async function fetchStudentsFromFirestore(classFilter?: string): Promise<StudentProgressItem[]> {
+export async function fetchStudentsFromFirestore(
+  classFilter?: string,
+  throwOnError: boolean = false
+): Promise<StudentProgressItem[]> {
   try {
-    const studentsCol = collection(db, 'students');
-    const studentsSnap = await getDocs(studentsCol);
+    const [studentsSnap, usersSnap] = await Promise.all([
+      getDocs(collection(db, 'students')),
+      getDocs(collection(db, 'users'))
+    ]);
+
+    // Gộp users/{uid} (nguồn chính: tên, email, lớp) với students/{uid} (bản legacy: điểm, tiến độ)
+    const mergedById = new Map<string, { id: string; data: any }>();
+    for (const d of studentsSnap.docs) {
+      mergedById.set(d.id, { id: d.id, data: { ...(d.data() as any) } });
+    }
+    for (const d of usersSnap.docs) {
+      const u = d.data() as any;
+      if (!u) continue;
+      const prev = mergedById.get(d.id)?.data || {};
+      mergedById.set(d.id, {
+        id: d.id,
+        data: {
+          ...prev,
+          uid: u.uid || d.id,
+          email: u.email || prev.email,
+          displayName: u.displayName || prev.displayName,
+          photoURL: u.photoURL || prev.photoURL,
+          classId: u.classId || prev.classId,
+          role: u.role || prev.role,
+          createdAt: u.createdAt || prev.createdAt,
+          lastLoginAt: u.lastLoginAt || prev.lastLoginAt
+        }
+      });
+    }
+    const candidates = Array.from(mergedById.values());
+
+    // Đọc tiến trình các bài của TẤT CẢ học sinh SONG SONG
+    const progressByUid = new Map<string, Record<number, FirestoreLessonProgress>>();
+    await Promise.all(
+      candidates.map(async (c) => {
+        const cUid = c.data.uid || c.id;
+        progressByUid.set(cUid, await getStudentAllLessonsProgress(cUid, throwOnError));
+      })
+    );
 
     const studentMap = new Map<string, StudentProgressItem>();
 
-    for (const docSnap of studentsSnap.docs) {
-      const studentData = docSnap.data() as any;
+    for (const docSnap of candidates) {
+      const studentData = docSnap.data as any;
       if (!studentData) continue;
 
       // 1. Loại bỏ tài khoản giáo viên (bỏ qua khi hiển thị, không xóa dữ liệu Firestore)
