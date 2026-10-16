@@ -34,18 +34,6 @@ export function isAuthorizedTeacherEmail(email?: string | null): boolean {
     return true;
   }
 
-  // 3. Kiểm tra trong danh sách giáo viên được cấp quyền lưu bổ sung tại localStorage (nếu có)
-  try {
-    const customList = JSON.parse(localStorage.getItem('khtn9_authorized_teachers') || '[]');
-    if (Array.isArray(customList)) {
-      return customList.some(
-        e => typeof e === 'string' && e.trim().toLowerCase() === cleanEmail
-      );
-    }
-  } catch {
-    // bỏ qua lỗi đọc localStorage
-  }
-
   return false;
 }
 

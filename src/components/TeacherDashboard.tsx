@@ -89,8 +89,8 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
         setTransferRequests(fetchedTransfers);
       }
       setLastSyncTime(new Date().toLocaleTimeString('vi-VN'));
-    } catch (err) {
-      console.warn('[TeacherDashboard] Lỗi refresh dữ liệu Cloud Firestore:', err);
+    } catch {
+      console.warn('[TeacherDashboard] Không thể tải dữ liệu hiện tại; giữ nguyên danh sách đã hiển thị.');
     } finally {
       setIsRefreshing(false);
     }
@@ -106,7 +106,8 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
         setLastSyncTime(new Date().toLocaleTimeString('vi-VN'));
       }
     );
-    const interval = setInterval(refreshData, 5000);
+    // Polling dự phòng giãn cách 60 giây (do đã có onSnapshot thời gian thực)
+    const interval = setInterval(refreshData, 60000);
     return () => {
       unsubscribe();
       clearInterval(interval);
@@ -137,8 +138,12 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
   }
 
   // Dashboard Giáo viên đọc TRỰC TIẾP từ Cloud Firestore collection "students" (Yêu cầu 9 & 10)
-  // Lớp phòng vệ bổ sung ở UI: Loại bỏ tuyệt đối email giáo viên khỏi danh sách học sinh
-  const validStudents = serverStudents.filter(s => !isAuthorizedTeacherEmail(s.email));
+  // Lớp phòng vệ bổ sung ở UI: Loại bỏ tuyệt đối email giáo viên và tài khoản tổ tự nhiên khỏi danh sách học sinh
+  const validStudents = serverStudents.filter(s => 
+    !isAuthorizedTeacherEmail(s.email) && 
+    (s.role as any) !== 'teacher' && 
+    !String(s.className || '').toLowerCase().includes('tổ tự nhiên')
+  );
 
   const classStudents = selectedClass === 'all'
     ? validStudents

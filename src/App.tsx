@@ -53,8 +53,11 @@ import {
   syncUserProfile,
   updateUserClassInFirestore,
   getStudentAllLessonsProgress,
-  addUserXpInFirestore
+  addUserXpInFirestore,
+  migrateStudentProgressToUid
 } from './services/firebaseService';
+import { ProgressConflictError } from './services/firebaseService';
+import { chooseRestoreLesson } from './services/progressRecovery.js';
 import { 
   getAllRegisteredLessons, 
   getLessonModule, 
@@ -83,11 +86,26 @@ export default function App() {
         return;
       }
 
+      let restoreStep: 'progress' | 'profile' = 'progress';
       try {
         const email = (firebaseUser.email || '').trim().toLowerCase();
         const isTeacher = isAuthorizedTeacherEmail(email);
 
-        // 1. Đồng bộ / Khôi phục User Profile từ collection "users/{uid}" (1 UID = 1 document)
+        // Đọc tiến trình trước mọi thao tác đồng bộ hồ sơ để lỗi đọc không kích hoạt ghi mặc định.
+        let lessonsProgress = await getStudentAllLessonsProgress(firebaseUser.uid);
+
+        // Nếu studentProgress rỗng và là tài khoản học sinh, kiểm tra và di chuyển dữ liệu legacy nếu có
+        if (Object.keys(lessonsProgress).length === 0 && !isTeacher) {
+          try {
+            await migrateStudentProgressToUid(firebaseUser.uid, email);
+            lessonsProgress = await getStudentAllLessonsProgress(firebaseUser.uid);
+          } catch (migErr) {
+            console.warn('[App] Cảnh báo kiểm tra dữ liệu legacy:', migErr);
+          }
+        }
+
+        // Chỉ đồng bộ hồ sơ sau khi việc đọc tiến trình đã thành công.
+        restoreStep = 'profile';
         const profile = await syncUserProfile({
           uid: firebaseUser.uid,
           email,
@@ -95,12 +113,7 @@ export default function App() {
           photoURL: firebaseUser.photoURL || ''
         });
 
-        // 2. Khôi phục toàn bộ tiến trình các bài học từ subcollection "studentProgress/{uid}/lessons"
-        const lessonsProgress = await getStudentAllLessonsProgress(firebaseUser.uid, true);
-
         const completedLessonIds: number[] = [];
-        let latestActiveLessonId = 1;
-        let latestTimestamp = 0;
 
         Object.values(lessonsProgress).forEach((lp) => {
           if (lp.status === 'completed' || (lp.examScore !== null && lp.examScore !== undefined && lp.examScore >= 5.0)) {
@@ -108,12 +121,17 @@ export default function App() {
               completedLessonIds.push(lp.lessonId);
             }
           }
-          const t = lp.lastUpdatedAt ? new Date(lp.lastUpdatedAt).getTime() : 0;
-          if (t >= latestTimestamp) {
-            latestTimestamp = t;
-            latestActiveLessonId = lp.lessonId;
-          }
         });
+
+        // Bổ sung các bài đã hoàn thành từ profile legacy nếu có mà lessonsProgress chưa phản ánh
+        if (Array.isArray((profile as any)?.completedLessons)) {
+          (profile as any).completedLessons.forEach((lId: any) => {
+            const numId = Number(lId);
+            if (!isNaN(numId) && !completedLessonIds.includes(numId)) {
+              completedLessonIds.push(numId);
+            }
+          });
+        }
 
         const restoredQuizRecords: Record<number, any> = {};
         Object.values(lessonsProgress).forEach((lp) => {
@@ -134,11 +152,9 @@ export default function App() {
 
         const allRegisteredLessonIds = getAllRegisteredLessons().map(l => l.id);
         const autoUnlocked = isTeacher ? allRegisteredLessonIds : computeUnlockedLessonIds(completedLessonIds);
-
-        // Đảm bảo activeLessonId thuộc danh sách mở khóa
-        if (!autoUnlocked.includes(latestActiveLessonId)) {
-          latestActiveLessonId = Math.max(...autoUnlocked, 1);
-        }
+        const restoreChoice = chooseRestoreLesson(lessonsProgress, autoUnlocked);
+        if (restoreChoice.status !== 'selected') throw new ProgressConflictError();
+        const latestActiveLessonId = restoreChoice.lessonId;
 
         const userAccount: UserAccount = {
           id: firebaseUser.uid,
@@ -168,13 +184,17 @@ export default function App() {
           setAuthLoading(false);
         }
       } catch (err) {
-        console.error('Lỗi khi khôi phục session Firebase:', err);
-        // KHÔNG tạo tài khoản rỗng: đăng xuất để học sinh đăng nhập lại, tránh ghi đè tiến trình
+        console.error('Không thể hoàn tất bước khôi phục phiên học.');
+        // Không dựng phiên học với dữ liệu mặc định khi Firestore lỗi hoặc có xung đột.
         await signOutFirebase();
         if (isMounted) {
           setCurrentUser(null);
           setAuthLoading(false);
-          alert('Không tải được tiến trình học tập. Vui lòng kiểm tra mạng và đăng nhập lại.');
+          alert(err instanceof ProgressConflictError
+            ? err.message
+            : restoreStep === 'progress'
+              ? 'Không đọc được tiến trình học tập. Dữ liệu chưa bị khởi tạo lại. Vui lòng kiểm tra kết nối rồi đăng nhập để thử lại.'
+              : 'Không thể đồng bộ hồ sơ lúc này. Tiến trình học chưa được mở; vui lòng thử đăng nhập lại.');
         }
       }
     });
@@ -374,28 +394,31 @@ export default function App() {
     let finalUnlocked = newUser.unlockedLessonIds || [1];
     let finalCurrent = newUser.currentLessonId || 1;
 
-    // Phòng thủ: nếu client gửi progress rỗng → đọc lại từ Firestore
-    if (!isTeacher && finalCompleted.length === 0 && newUser.id) {
+    // Đọc dữ liệu mới nhất trước khi mở màn hình học; không tự chạy migration ghi dữ liệu.
+    if (!isTeacher && newUser.id) {
       try {
-        const { getStudentAllLessonsProgress, migrateStudentProgressToUid } = await import('./services/firebaseService');
-        await migrateStudentProgressToUid(newUser.id, newUser.email, newUser.name);
+        const { getStudentAllLessonsProgress } = await import('./services/firebaseService');
         const lessonsProgress = await getStudentAllLessonsProgress(newUser.id);
+        finalCompleted = [];
         Object.values(lessonsProgress).forEach((lp: any) => {
           if (lp.status === 'completed' || (lp.examScore != null && lp.examScore >= 5)) {
             if (!finalCompleted.includes(lp.lessonId)) finalCompleted.push(lp.lessonId);
           }
         });
         finalUnlocked = computeUnlockedLessonIds(finalCompleted);
-        finalCurrent = Math.max(...finalUnlocked, 1);
+        const restoreChoice = chooseRestoreLesson(lessonsProgress, finalUnlocked);
+        if (restoreChoice.status !== 'selected') throw new ProgressConflictError();
+        finalCurrent = restoreChoice.lessonId;
       } catch (e) {
-        console.warn('[handleLogin] Không đọc được progress từ Firestore:', e);
+        alert(e instanceof ProgressConflictError
+          ? e.message
+          : 'Không đọc được tiến trình học tập. Dữ liệu chưa bị khởi tạo lại. Vui lòng thử đăng nhập lại khi kết nối ổn định.');
+        return;
       }
     }
 
     const computedUnlocked = isTeacher ? allLessonIds : computeUnlockedLessonIds(finalCompleted);
-    const mergedUnlocked = isTeacher
-      ? allLessonIds
-      : Array.from(new Set([...finalUnlocked, ...computedUnlocked]));
+    const mergedUnlocked = computedUnlocked;
 
     const synchronizedUser: UserAccount = {
       ...newUser,

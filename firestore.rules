@@ -25,9 +25,10 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
-    // Test connection check
+    // Test connection check (read-only)
     match /test/{docId} {
-      allow read, write: if true;
+      allow read: if true;
+      allow write: if false;
     }
 
     // User Profile collection (1 UID = 1 document)
@@ -36,20 +37,21 @@ service cloud.firestore {
       allow write: if isOwner(userId) || isTeacher();
     }
 
-    // Student Progress collection and subcollection
+    // Student Progress collection and subcollection (strictly owner or teacher)
     match /studentProgress/{userId} {
-      allow read: if isSignedIn();
+      allow read: if isOwner(userId) || isTeacher();
       allow write: if isOwner(userId) || isTeacher();
 
       match /lessons/{lessonId} {
-        allow read: if isSignedIn();
+        allow read: if isOwner(userId) || isTeacher();
         allow write: if isOwner(userId) || isTeacher();
       }
     }
 
-    // Legacy students collection
+    // Legacy students collection (strictly signed in, owner or teacher write)
     match /students/{studentId} {
-      allow read, write: if true;
+      allow read: if isSignedIn();
+      allow write: if isOwner(studentId) || isTeacher();
     }
   }
 }
