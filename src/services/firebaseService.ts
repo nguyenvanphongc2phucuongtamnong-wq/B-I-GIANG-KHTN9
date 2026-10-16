@@ -19,11 +19,13 @@ import {
   collection, 
   getDocFromServer,
   onSnapshot,
-  increment
+  increment,
+  runTransaction
 } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
 import { StudentProgressItem } from '../types';
 import { isAuthorizedTeacherEmail } from '../config/authConfig';
+import { commitProgressWrites, findProgressConflicts, resolveProgressDocuments } from './progressRecovery.js';
 
 // ==========================================
 // 1. KHỞI TẠO FIREBASE SDK & AUTH PERSISTENCE
@@ -64,42 +66,13 @@ export enum OperationType {
   WRITE = 'write',
 }
 
-export interface FirestoreErrorInfo {
-  error: string;
-  operationType: OperationType;
-  path: string | null;
-  authInfo: {
-    userId?: string | null;
-    email?: string | null;
-    emailVerified?: boolean | null;
-    isAnonymous?: boolean | null;
-    tenantId?: string | null;
-    providerInfo?: {
-      providerId?: string | null;
-      email?: string | null;
-    }[];
-  };
-}
-
-export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null): never {
-  const errInfo: FirestoreErrorInfo = {
-    error: error instanceof Error ? error.message : String(error),
-    authInfo: {
-      userId: auth.currentUser?.uid,
-      email: auth.currentUser?.email,
-      emailVerified: auth.currentUser?.emailVerified,
-      isAnonymous: auth.currentUser?.isAnonymous,
-      tenantId: auth.currentUser?.tenantId,
-      providerInfo: auth.currentUser?.providerData?.map(provider => ({
-        providerId: provider.providerId,
-        email: provider.email,
-      })) || []
-    },
-    operationType,
-    path
-  };
-  console.error('Firestore Error: ', JSON.stringify(errInfo));
-  throw new Error(JSON.stringify(errInfo));
+export function handleFirestoreError(error: unknown, operationType: OperationType, _path: string | null): never {
+  const code = typeof error === 'object' && error !== null && 'code' in error && typeof error.code === 'string'
+    ? error.code
+    : 'unknown';
+  // Không ghi đường dẫn tài liệu, UID, email hoặc thông báo lỗi có thể chứa dữ liệu định danh.
+  console.error(`Firestore operation failed (${operationType}; ${code}).`);
+  throw new Error(`Firestore operation failed (${operationType}; ${code}).`);
 }
 
 // ==========================================
@@ -143,6 +116,13 @@ export interface FirestoreLessonProgress {
   examScore?: number | null;
   examMcAnswers?: Record<string, string>;
   examEssayAnswers?: Record<string, string>;
+}
+
+export class ProgressConflictError extends Error {
+  constructor() {
+    super('Dữ liệu tiến trình không nhất quán. Vui lòng liên hệ giáo viên để kiểm tra.');
+    this.name = 'ProgressConflictError';
+  }
 }
 
 // ==========================================
@@ -262,7 +242,7 @@ export async function syncUserProfile(params: {
       return newProfile;
     }
   } catch (error) {
-    console.error('Lỗi khi syncUserProfile:', error);
+    console.error('Không thể đồng bộ hồ sơ người dùng với Firestore.');
     handleFirestoreError(error, OperationType.WRITE, `users/${params.uid}`);
   }
 }
@@ -316,18 +296,16 @@ export async function getLessonProgressFromFirestore(
   uid: string, 
   lessonId: number
 ): Promise<FirestoreLessonProgress | null> {
-  // KHÔNG nuốt lỗi: lỗi mạng/quyền phải được ném ra để nơi gọi KHÔNG ghi đè dữ liệu cũ.
-  const primaryRef = doc(db, 'studentProgress', uid, 'lessons', String(lessonId));
-  let snap = await getDoc(primaryRef);
-  if (snap.exists()) {
-    return snap.data() as FirestoreLessonProgress;
-  }
-  const fallbackRef = doc(db, 'studentProgress', uid, 'lessons', `lesson${lessonId}`);
-  snap = await getDoc(fallbackRef);
-  if (snap.exists()) {
-    return snap.data() as FirestoreLessonProgress;
-  }
-  return null;
+  const [numericSnap, legacySnap] = await Promise.all([
+    getDoc(doc(db, 'studentProgress', uid, 'lessons', String(lessonId))),
+    getDoc(doc(db, 'studentProgress', uid, 'lessons', `lesson${lessonId}`))
+  ]);
+  const documents = [numericSnap, legacySnap]
+    .filter((snap) => snap.exists())
+    .map((snap) => ({ id: snap.id, data: snap.data() as FirestoreLessonProgress }));
+  const result = resolveProgressDocuments(documents);
+  if (result.status === 'conflict') throw new ProgressConflictError();
+  return result.status === 'found' ? result.progress : null;
 }
 
 export async function addUserXpInFirestore(uid: string, amount: number): Promise<void> {
@@ -346,8 +324,9 @@ export async function addUserXpInFirestore(uid: string, amount: number): Promise
 export async function saveLessonProgressToFirestore(
   uid: string,
   lessonId: number,
-  data: Partial<FirestoreLessonProgress>
-): Promise<void> {
+  data: Partial<FirestoreLessonProgress>,
+  options: { onlyIfMissing?: boolean } = {}
+): Promise<{ status: 'saved' | 'saved_with_warning' | 'already_exists' }> {
   const now = new Date().toISOString();
   const docRefNum = doc(db, 'studentProgress', uid, 'lessons', String(lessonId));
   const docRefStr = doc(db, 'studentProgress', uid, 'lessons', `lesson${lessonId}`);
@@ -359,64 +338,47 @@ export async function saveLessonProgressToFirestore(
     lastUpdatedAt: now
   };
 
-  try {
-    await Promise.all([
-      setDoc(docRefNum, payload, { merge: true }),
-      setDoc(docRefStr, payload, { merge: true }),
-      setDoc(parentRef, {
-        uid,
-        currentLessonId: lessonId,
-        lastActiveAt: now
-      }, { merge: true })
+  // Ghi ba bản ghi chính nguyên tử, kiểm tra xung đột alias ngay trước khi ghi.
+  return commitProgressWrites(() => runTransaction(db, async (transaction) => {
+    const [numericSnap, legacySnap] = await Promise.all([
+      transaction.get(docRefNum),
+      transaction.get(docRefStr)
     ]);
-
-    // Đồng bộ nhanh vào legacy students/{uid} để các module cũ tiếp tục hoạt động trơn tru
-    try {
-      const studentDocRef = doc(db, 'students', uid);
-      const updates: any = {
-        currentLessonId: lessonId,
-        lastActiveAt: now
-      };
-      if (data.progressPercent !== undefined) updates.progressPercent = data.progressPercent;
-      if (data.currentSection) updates.currentStepId = data.currentSection;
-      if (data.status) updates.status = data.status;
-      if (data.completedSections) updates.completedSteps = data.completedSections;
-      if (data.practiceScore !== undefined) updates.practiceScore = data.practiceScore;
-      if (data.examScore !== undefined) updates.testScore = data.examScore;
-      await setDoc(studentDocRef, updates, { merge: true });
-    } catch {
-      // ignore legacy error
-    }
-  } catch (error) {
-    console.error(`Lỗi ghi studentProgress/${uid}/lessons/${lessonId}:`, error);
-  }
+    const existingDocs = [numericSnap, legacySnap]
+      .filter((snap) => snap.exists())
+      .map((snap) => ({ id: snap.id, data: snap.data() as FirestoreLessonProgress }));
+    if (findProgressConflicts(existingDocs).length > 0) throw new ProgressConflictError();
+    if (options.onlyIfMissing && existingDocs.length > 0) return { status: 'already_exists' as const };
+    transaction.set(docRefNum, payload, { merge: true });
+    transaction.set(docRefStr, payload, { merge: true });
+    transaction.set(parentRef, { uid, currentLessonId: lessonId, lastActiveAt: now }, { merge: true });
+    return { status: 'committed' as const };
+  }), async () => {
+    // Mirror legacy phục vụ Teacher Dashboard và module cũ; lỗi được báo riêng.
+    const studentDocRef = doc(db, 'students', uid);
+    const updates: Record<string, unknown> = { currentLessonId: lessonId, lastActiveAt: now };
+    if (data.progressPercent !== undefined) updates.progressPercent = data.progressPercent;
+    if (data.currentSection) updates.currentStepId = data.currentSection;
+    if (data.status) updates.status = data.status;
+    if (data.completedSections) updates.completedSteps = data.completedSections;
+    if (data.practiceScore !== undefined) updates.practiceScore = data.practiceScore;
+    if (data.examScore !== undefined) updates.testScore = data.examScore;
+    await setDoc(studentDocRef, updates, { merge: true });
+  });
 }
 
 /**
  * Đọc toàn bộ tiến trình các bài học của học sinh từ subcollection "studentProgress/{uid}/lessons"
  */
 export async function getStudentAllLessonsProgress(
-  uid: string,
-  throwOnError: boolean = false
+  uid: string
 ): Promise<Record<number, FirestoreLessonProgress>> {
   const result: Record<number, FirestoreLessonProgress> = {};
-  try {
-    const colRef = collection(db, 'studentProgress', uid, 'lessons');
-    const snapshot = await getDocs(colRef);
-
-    snapshot.forEach(docSnap => {
-      const data = docSnap.data() as FirestoreLessonProgress;
-      if (data && data.lessonId) {
-        const idNum = Number(data.lessonId);
-        // Ưu tiên bản ghi có progress cao hơn nếu có trùng lặp giữa '2' và 'lesson2'
-        if (!result[idNum] || (data.progressPercent || 0) >= (result[idNum].progressPercent || 0)) {
-          result[idNum] = data;
-        }
-      }
-    });
-  } catch (error) {
-    console.warn(`Lỗi getStudentAllLessonsProgress cho uid ${uid}:`, error);
-    if (throwOnError) throw error;
+  const snapshot = await getDocs(collection(db, 'studentProgress', uid, 'lessons'));
+  const documents = snapshot.docs.map((docSnap) => ({ id: docSnap.id, data: docSnap.data() as FirestoreLessonProgress }));
+  if (findProgressConflicts(documents).length > 0) throw new ProgressConflictError();
+  for (const document of documents) {
+    result[Number(document.data.lessonId)] = document.data;
   }
   return result;
 }
@@ -454,18 +416,24 @@ export async function migrateStudentProgressToUid(
         for (const lId of stData.completedLessons) {
           const numId = typeof lId === 'number' ? lId : parseInt(String(lId).replace(/\D/g, ''), 10);
           if (!isNaN(numId)) {
-            await setDoc(doc(db, 'studentProgress', uid, 'lessons', String(numId)), {
+            const lessonRecord = {
               lessonId: numId,
-              status: 'completed',
+              status: 'completed' as const,
               progressPercent: 100,
+              currentSection: 'sec_5',
+              lastViewedSection: 'sec_5',
               completedAt: stData.lastActiveAt || new Date().toISOString()
-            }, { merge: true });
+            };
+            await Promise.all([
+              setDoc(doc(db, 'studentProgress', uid, 'lessons', String(numId)), lessonRecord, { merge: true }),
+              setDoc(doc(db, 'studentProgress', uid, 'lessons', `lesson${numId}`), lessonRecord, { merge: true })
+            ]);
           }
         }
       }
     }
   } catch (err) {
-    console.warn('[migrateStudentProgressToUid] Bỏ qua lỗi di chuyển tiến trình:', err);
+    console.warn('[migrateStudentProgressToUid] Không thể hoàn tất thao tác chuyển dữ liệu.');
   }
 }
 
@@ -570,7 +538,7 @@ export function normalizeEmailKey(rawEmail?: string | null): string {
  */
 export async function fetchStudentsFromFirestore(
   classFilter?: string,
-  throwOnError: boolean = false
+  throwOnError: boolean = true
 ): Promise<StudentProgressItem[]> {
   try {
     const [studentsSnap, usersSnap] = await Promise.all([
@@ -604,15 +572,6 @@ export async function fetchStudentsFromFirestore(
     }
     const candidates = Array.from(mergedById.values());
 
-    // Đọc tiến trình các bài của TẤT CẢ học sinh SONG SONG
-    const progressByUid = new Map<string, Record<number, FirestoreLessonProgress>>();
-    await Promise.all(
-      candidates.map(async (c) => {
-        const cUid = c.data.uid || c.id;
-        progressByUid.set(cUid, await getStudentAllLessonsProgress(cUid, throwOnError));
-      })
-    );
-
     const studentMap = new Map<string, StudentProgressItem>();
 
     for (const docSnap of candidates) {
@@ -623,8 +582,12 @@ export async function fetchStudentsFromFirestore(
       const emailClean = String(studentData.email || '').trim().toLowerCase();
       if (isAuthorizedTeacherEmail(emailClean)) continue;
 
-      // 2. Xử lý role an toàn: chấp nhận 'STUDENT' và 'student', bỏ qua tài khoản có role khác nếu có
+      const classIdStr = String(studentData.classId || '').trim().toLowerCase();
+      if (classIdStr.includes('tổ tự nhiên') || classIdStr.includes('giáo viên') || classIdStr.includes('giao vien')) continue;
+
+      // 2. Xử lý role an toàn: chấp nhận 'STUDENT' và 'student', bỏ qua tài khoản giáo viên hoặc role khác nếu có
       const roleStr = String(studentData.role || '').trim().toUpperCase();
+      if (roleStr === 'TEACHER') continue;
       if (roleStr && roleStr !== 'STUDENT') continue;
 
       const uid = studentData.uid || docSnap.id;
@@ -633,7 +596,12 @@ export async function fetchStudentsFromFirestore(
       if (uid.startsWith('mock_')) continue;
 
       // 3. Lấy dữ liệu tiến trình thật từ subcollection studentProgress/{uid}/lessons (nếu có)
-      const lessonsProgress = await getStudentAllLessonsProgress(uid);
+      let lessonsProgress: Record<number, FirestoreLessonProgress> = {};
+      try {
+        lessonsProgress = await getStudentAllLessonsProgress(uid);
+      } catch (err) {
+        console.warn(`[fetchStudentsFromFirestore] Không thể đọc subcollection cho học sinh ${uid}:`, err);
+      }
       const lessonEntries = Object.values(lessonsProgress);
 
       // Xác định các bài đã hoàn thành từ subcollection
@@ -840,7 +808,8 @@ export async function fetchStudentsFromFirestore(
 
     return items;
   } catch (error) {
-    console.error('Lỗi khi fetchStudentsFromFirestore:', error);
+    console.error('Không thể tải danh sách tiến trình cho Teacher Dashboard.');
+    if (throwOnError) throw error;
     return [];
   }
 }
@@ -858,11 +827,11 @@ export function subscribeToStudentsFromFirestore(
     try {
       const items = await fetchStudentsFromFirestore(classFilter);
       callback(items);
-    } catch (err) {
-      console.warn('[subscribeToStudentsFromFirestore] Lỗi snapshot:', err);
+    } catch {
+      console.warn('[subscribeToStudentsFromFirestore] Không thể đồng bộ danh sách hiện tại.');
     }
-  }, (err) => {
-    console.warn('[subscribeToStudentsFromFirestore] Lỗi:', err);
+  }, () => {
+    console.warn('[subscribeToStudentsFromFirestore] Không thể đọc thay đổi mới.');
   });
 }
 
@@ -896,7 +865,7 @@ export async function updateStudentStepProgressInFirestore(params: {
   stepTitle?: string;
   completedStepId?: string;
   totalStepsInLesson?: number;
-}): Promise<{ success: boolean; progressPercent: number; completedCount: number }> {
+}): Promise<{ success: boolean; progressPercent: number; completedCount: number; saveStatus?: 'saved' | 'saved_with_warning' | 'already_exists' }> {
   try {
     const existing = await getLessonProgressFromFirestore(params.uid, params.lessonId);
     const completedSections = existing?.completedSections ? [...existing.completedSections] : [];
@@ -908,7 +877,7 @@ export async function updateStudentStepProgressInFirestore(params: {
     const completedMainCount = mainKeys.filter(k => completedSections.includes(k)).length;
     const progressPercent = Math.min(100, completedMainCount * 20);
 
-    await saveLessonProgressToFirestore(params.uid, params.lessonId, {
+    const saveResult = await saveLessonProgressToFirestore(params.uid, params.lessonId, {
       currentSection: params.stepId,
       lastViewedSection: params.stepId,
       progressPercent,
@@ -916,9 +885,9 @@ export async function updateStudentStepProgressInFirestore(params: {
       status: progressPercent === 100 ? 'completed' : 'in_progress'
     });
 
-    return { success: true, progressPercent, completedCount: completedSections.length };
+    return { success: true, progressPercent, completedCount: completedSections.length, saveStatus: saveResult.status };
   } catch (error) {
-    console.warn('Lỗi updateStudentStepProgressInFirestore:', error);
+    console.warn('Không thể cập nhật tiến trình học.');
     return { success: false, progressPercent: 0, completedCount: 0 };
   }
 }
@@ -931,8 +900,7 @@ export async function recordStudentQuizScoreInFirestore(params: {
   completedStepId?: string;
   testType?: 'practice' | 'test';
   details?: any;
-}): Promise<void> {
-  try {
+}): Promise<{ status: 'saved' | 'saved_with_warning' | 'already_exists' }> {
     const existing = await getLessonProgressFromFirestore(params.uid, params.lessonId);
     const completedSections = existing?.completedSections ? [...existing.completedSections] : [];
     if (params.completedStepId && !completedSections.includes(params.completedStepId)) {
@@ -963,10 +931,7 @@ export async function recordStudentQuizScoreInFirestore(params: {
       updates.progressPercent = Math.max(existing?.progressPercent || 0, 60);
     }
 
-    await saveLessonProgressToFirestore(params.uid, params.lessonId, updates);
-  } catch (error) {
-    console.warn('Lỗi recordStudentQuizScoreInFirestore:', error);
-  }
+    return await saveLessonProgressToFirestore(params.uid, params.lessonId, updates);
 }
 
 export async function getStudentFromFirestore(uid: string): Promise<any | null> {

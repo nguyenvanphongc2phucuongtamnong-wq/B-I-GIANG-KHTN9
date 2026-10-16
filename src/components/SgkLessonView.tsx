@@ -31,7 +31,8 @@ import {
 import { UserAccount } from '../types';
 import { 
   getLessonProgressFromFirestore,
-  saveLessonProgressToFirestore
+  saveLessonProgressToFirestore,
+  ProgressConflictError
 } from '../services/firebaseService';
 import { apiRecordQuizAttempt } from '../services/apiService';
 import { 
@@ -124,6 +125,8 @@ export const SgkLessonView: React.FC<SgkLessonViewProps> = ({
   const [activeSection, setActiveSection] = useState<MainSectionId>('sec_1');
   const [completedSections, setCompletedSections] = useState<MainSectionId[]>([]);
   const [syncNotice, setSyncNotice] = useState<string>('');
+  const [progressLoadState, setProgressLoadState] = useState<'loading' | 'ready' | 'error' | 'conflict' | 'changed'>('loading');
+  const [progressLoadAttempt, setProgressLoadAttempt] = useState(0);
 
   // Trạng thái Tab 1: Khởi động
   const [warmupAnswer, setWarmupAnswer] = useState<string | null>(null);
@@ -154,12 +157,35 @@ export const SgkLessonView: React.FC<SgkLessonViewProps> = ({
   const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
   const [examViewMode, setExamViewMode] = useState<'summary' | 'review'>('summary');
 
+  const saveProgressWithNotice = async (
+    data: Parameters<typeof saveLessonProgressToFirestore>[2],
+    successMessage: string,
+    options?: Parameters<typeof saveLessonProgressToFirestore>[3]
+  ) => {
+    setSyncNotice('Đang lưu tiến trình...');
+    try {
+      const result = await saveLessonProgressToFirestore(currentUser.id, lessonId, data, options);
+      if (result.status === 'already_exists') {
+        setSyncNotice('Tiến trình vừa được cập nhật ở nơi khác. Đang đọc lại dữ liệu mới nhất...');
+        return 'already_exists' as const;
+      }
+      setSyncNotice(result.status === 'saved'
+        ? successMessage
+        : 'Tiến trình chính đã lưu, nhưng chưa đồng bộ được bảng theo dõi của giáo viên. Hãy báo giáo viên kiểm tra.');
+      return result.status;
+    } catch {
+      setSyncNotice('Chưa lưu được tiến trình. Nội dung vẫn còn trên màn hình; hãy giữ trang này và thử lại sau khi mạng ổn định.');
+      return false as const;
+    }
+  };
+
   // Khôi phục trạng thái từ Cloud Firestore (studentProgress/{uid}/lessons/{lessonId})
   useEffect(() => {
     let isCancelled = false;
 
     async function restoreLessonProgress() {
       if (!currentUser.id) return;
+      setProgressLoadState('loading');
 
       try {
         const saved = await getLessonProgressFromFirestore(currentUser.id, lessonId);
@@ -206,16 +232,25 @@ export const SgkLessonView: React.FC<SgkLessonViewProps> = ({
           // Mở bài mới lần đầu: ghi nhận trạng thái in_progress với 10%
           setActiveSection('sec_1');
           setCompletedSections([]);
-          await saveLessonProgressToFirestore(currentUser.id, lessonId, {
+          const saved = await saveProgressWithNotice({
             status: 'in_progress',
             progressPercent: 10,
             currentSection: 'sec_1',
             lastViewedSection: 'sec_1',
             startedAt: new Date().toISOString()
-          });
+          }, 'Đã khởi tạo tiến trình mới cho bài học.', { onlyIfMissing: true });
+          if (saved === 'already_exists') {
+            if (!isCancelled) setProgressLoadState('changed');
+            return;
+          }
+          if (!saved) {
+            if (!isCancelled) setProgressLoadState('error');
+            return;
+          }
         }
+        if (!isCancelled) setProgressLoadState('ready');
       } catch (err) {
-        console.warn('Lỗi khôi phục tiến trình bài học từ Firestore:', err);
+        if (!isCancelled) setProgressLoadState(err instanceof ProgressConflictError ? 'conflict' : 'error');
       }
     }
 
@@ -224,7 +259,7 @@ export const SgkLessonView: React.FC<SgkLessonViewProps> = ({
     return () => {
       isCancelled = true;
     };
-  }, [lessonId, currentUser.id]);
+  }, [lessonId, currentUser.id, progressLoadAttempt]);
 
   // Tạo các mảng câu hỏi với phương án đã được xáo trộn A, B, C, D ổn định
   const currentUserId = currentUser?.id || 'guest_user';
@@ -266,12 +301,12 @@ export const SgkLessonView: React.FC<SgkLessonViewProps> = ({
 
     // Lưu ngay vị trí phần đang xem vào Cloud Firestore
     if (currentUser.id) {
-      saveLessonProgressToFirestore(currentUser.id, lessonId, {
+      void saveProgressWithNotice({
         currentSection: secId,
         lastViewedSection: secId,
         status: completedSections.includes('sec_4') ? 'completed' : 'in_progress',
         progressPercent: Math.max(progressPercent, completedSections.length * 25)
-      }).catch(err => console.warn(err));
+      }, 'Đã lưu vị trí học hiện tại.');
     }
   };
 
@@ -280,21 +315,14 @@ export const SgkLessonView: React.FC<SgkLessonViewProps> = ({
     const nextCompleted = Array.from(new Set([...completedSections, 'sec_1' as MainSectionId]));
     setCompletedSections(nextCompleted);
 
-    setSyncNotice('Đang lưu kết quả Khởi động vào Cloud Firestore...');
     if (currentUser.id) {
-      try {
-        await saveLessonProgressToFirestore(currentUser.id, lessonId, {
+      await saveProgressWithNotice({
           status: 'in_progress',
           currentSection: 'sec_2',
           lastViewedSection: 'sec_2',
           completedSections: nextCompleted,
           progressPercent: 25
-        });
-        setSyncNotice('✓ Đã đồng bộ tiến trình: Hoàn thành Tab 1 - Khởi động (25%)');
-        setTimeout(() => setSyncNotice(''), 3000);
-      } catch (err) {
-        console.warn('Lỗi lưu Khởi động:', err);
-      }
+        }, 'Đã lưu tiến trình: hoàn thành Tab 1 - Khởi động (25%).');
     }
 
     setActiveSection('sec_2');
@@ -319,35 +347,28 @@ export const SgkLessonView: React.FC<SgkLessonViewProps> = ({
       window.scrollTo({ top: 0, behavior: 'smooth' });
 
       if (currentUser.id) {
-        saveLessonProgressToFirestore(currentUser.id, lessonId, {
+        void saveProgressWithNotice({
           currentSection: 'sec_2',
           lastViewedSection: 'sec_2',
           currentTopicIdx: nextIdx,
           completedTopicIds: nextTopicCompleted,
           progressPercent: Math.max(progressPercent, 25 + Math.round((nextIdx / lessonData.topics.length) * 25))
-        }).catch(e => console.warn(e));
+        }, 'Đã lưu vị trí học hiện tại.');
       }
     } else {
       // Đã học hết toàn bộ các đề mục SGK -> Hoàn thành Tab 2 (50%)
       const nextCompleted = Array.from(new Set([...completedSections, 'sec_2' as MainSectionId]));
       setCompletedSections(nextCompleted);
 
-      setSyncNotice('Đang cập nhật hoàn thành Tab 2 vào Firestore...');
       if (currentUser.id) {
-        try {
-          await saveLessonProgressToFirestore(currentUser.id, lessonId, {
+        await saveProgressWithNotice({
             status: 'in_progress',
             currentSection: 'sec_3',
             lastViewedSection: 'sec_3',
             completedSections: nextCompleted,
             progressPercent: 50,
             completedTopicIds: nextTopicCompleted
-          });
-          setSyncNotice('✓ Giáo viên đã nhận được tiến trình Tab 2 (50%)');
-          setTimeout(() => setSyncNotice(''), 3000);
-        } catch (err) {
-          console.warn('Lỗi lưu Tab 2:', err);
-        }
+          }, 'Đã lưu tiến trình: hoàn thành Tab 2 (50%).');
       }
 
       setActiveSection('sec_3');
@@ -378,10 +399,8 @@ export const SgkLessonView: React.FC<SgkLessonViewProps> = ({
     const nextCompleted = Array.from(new Set([...completedSections, 'sec_3' as MainSectionId]));
     setCompletedSections(nextCompleted);
 
-    setSyncNotice('Đang lưu kết quả Luyện tập vào Cloud Firestore...');
     if (currentUser.id) {
-      try {
-        await saveLessonProgressToFirestore(currentUser.id, lessonId, {
+      await saveProgressWithNotice({
           status: 'in_progress',
           currentSection: 'sec_4',
           lastViewedSection: 'sec_4',
@@ -389,12 +408,7 @@ export const SgkLessonView: React.FC<SgkLessonViewProps> = ({
           progressPercent: 75,
           practiceScore: calculatedScore,
           practiceAnswers
-        });
-        setSyncNotice(`✓ Điểm Luyện tập (${calculatedScore}/10) đã lưu trên hệ thống! (75%)`);
-        setTimeout(() => setSyncNotice(''), 3500);
-      } catch (err) {
-        console.warn('Lỗi lưu điểm luyện tập:', err);
-      }
+        }, `Đã lưu điểm luyện tập (${calculatedScore}/10).`);
     }
   };
 
@@ -442,9 +456,8 @@ export const SgkLessonView: React.FC<SgkLessonViewProps> = ({
 
     // ĐỒNG BỘ TRỰC TIẾP LÊN CLOUD FIRESTORE
     if (currentUser.id) {
-      setSyncNotice('Đang nộp bài kiểm tra và đồng bộ bảng điểm giáo viên...');
       try {
-        await saveLessonProgressToFirestore(currentUser.id, lessonId, {
+        const saved = await saveProgressWithNotice({
           status: isPassed ? 'completed' : 'in_progress',
           currentSection: 'sec_4',
           lastViewedSection: 'sec_4',
@@ -454,7 +467,12 @@ export const SgkLessonView: React.FC<SgkLessonViewProps> = ({
           examMcAnswers,
           examEssayAnswers,
           completedAt: new Date().toISOString()
-        });
+        }, 'Đã lưu kết quả kiểm tra.');
+
+        if (!saved) {
+          setIsSubmitting(false);
+          return;
+        }
 
         apiRecordQuizAttempt({
           attemptId: `attempt_${Date.now()}_${currentUser.id}`,
@@ -472,10 +490,8 @@ export const SgkLessonView: React.FC<SgkLessonViewProps> = ({
           status: 'SUBMITTED'
         }).catch(e => console.warn(e));
 
-        setSyncNotice(`✓ NỘP BÀI THÀNH CÔNG! Điểm kiểm tra: ${totalExam}/10.0 đã cập nhật hồ sơ học tập.`);
-        setTimeout(() => setSyncNotice(''), 4000);
       } catch (err) {
-        console.warn('Lỗi lưu điểm thi:', err);
+        setSyncNotice('Chưa lưu được kết quả kiểm tra. Hãy giữ trang này và thử lại sau khi mạng ổn định.');
       }
     }
 
@@ -489,6 +505,28 @@ export const SgkLessonView: React.FC<SgkLessonViewProps> = ({
     setExamViewMode('summary');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+
+  if (progressLoadState === 'loading') {
+    return <div className="max-w-xl mx-auto mt-12 rounded-2xl border border-blue-200 bg-blue-50 p-6 text-center text-sm font-semibold text-blue-900">Đang tải tiến trình bài học. Vui lòng chờ...</div>;
+  }
+
+  if (progressLoadState === 'error' || progressLoadState === 'conflict' || progressLoadState === 'changed') {
+    return (
+      <div className="max-w-xl mx-auto mt-12 rounded-2xl border border-amber-200 bg-amber-50 p-6 text-center space-y-4">
+        <p className="text-sm font-semibold text-amber-950">
+          {progressLoadState === 'conflict'
+            ? 'Dữ liệu của bài học đang không nhất quán. Ứng dụng chưa thay đổi dữ liệu; vui lòng nhờ giáo viên kiểm tra.'
+            : progressLoadState === 'changed'
+              ? 'Tiến trình vừa được cập nhật ở nơi khác. Ứng dụng không ghi đè; hãy tải lại dữ liệu để tiếp tục.'
+              : 'Chưa đọc hoặc lưu được tiến trình. Ứng dụng chưa khởi tạo lại bài học; hãy kiểm tra kết nối rồi thử lại.'}
+        </p>
+        <div className="flex justify-center gap-3">
+          <button type="button" onClick={() => setProgressLoadAttempt((attempt) => attempt + 1)} className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-bold text-white">Thử lại</button>
+          <button type="button" onClick={onLogout} className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-700">Đăng xuất</button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 animate-in fade-in duration-200 max-w-6xl mx-auto">
